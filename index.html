@@ -1,0 +1,600 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GROWVA â€” Growth By Design | Shopify Development & Ecommerce Growth</title>
+<meta name="description" content="GROWVA builds premium Shopify stores, brand systems, and growth infrastructure for ecommerce brands that refuse to look ordinary.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0a0a'/%3E%3Cpath d='M21 10a7 7 0 1 0 0 12v-5h-5' fill='none' stroke='%23B1FA20' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="page-transition" id="pageTransition" aria-hidden="true"><div class="pt-line"></div></div>
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<div class="preloader" id="preloader">
+  <div class="preloader-word">GROWVA</div>
+</div>
+
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="logo">
+      <span class="logo-text">GROWVA<span class="logo-dot">.</span></span>
+    </a>
+    <nav class="nav-links" aria-label="Primary navigation">
+      <a href="shopify.html" class="nav-link" data-hover>Shopify</a>
+      <div class="nav-item nav-item--mega" data-mega-item>
+        <button class="nav-link nav-link--mega" type="button" data-hover data-active-page="services.html" aria-expanded="false" aria-controls="mega-services">Services</button>
+        <div class="mega-menu mega-menu--services" id="mega-services" role="menu">
+          <div class="mega-tabs" role="tablist" aria-label="Service categories">
+            <button class="mega-tab active" type="button" data-mega-tab="shopify" aria-selected="true">Shopify Development</button>
+            <button class="mega-tab" type="button" data-mega-tab="brand" aria-selected="false">Brand &amp; Design</button>
+            <button class="mega-tab" type="button" data-mega-tab="growth" aria-selected="false">Growth &amp; Strategy</button>
+            <button class="mega-tab" type="button" data-mega-tab="support" aria-selected="false">Support</button>
+          </div>
+          <div class="mega-panels">
+            <div class="mega-panel active" data-mega-panel="shopify">
+              <a class="mega-link" href="services.html#shopify-development">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>
+                <span><strong>Premium Shopify Website Development</strong><small>Custom storefronts planned around how your customer buys.</small></span>
+              </a>
+              <a class="mega-link" href="services.html#shopify-cro">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+                <span><strong>Shopify CRO</strong><small>Find where the funnel breaks, then rebuild those points.</small></span>
+              </a>
+              <a class="mega-link" href="services.html#store-optimization">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/><path d="M17 17l2 2 3-4"/></svg>
+                <span><strong>Shopify Store Optimization</strong><small>Audit, clean, and restructure stores slowed by technical debt.</small></span>
+              </a>
+              <a class="mega-link" href="services.html#performance-optimization">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 14a7 7 0 0 1 14 0"/><path d="M12 14l4-5"/><path d="M7 19h10"/></svg>
+                <span><strong>Performance Optimization</strong><small>Core Web Vitals, image pipelines, and app-bloat audits.</small></span>
+              </a>
+              <a class="mega-cta" href="services.html">View All Services &rarr;</a>
+            </div>
+            <div class="mega-panel" data-mega-panel="brand">
+              <a class="mega-link" href="services.html#brand-identity">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18l4-12 4 12"/><path d="M7 14h4"/><path d="M16 7h3a2 2 0 0 1 0 4h-3V7Z"/><path d="M16 11h4"/></svg>
+                <span><strong>Brand Identity Design</strong><small>Visual systems that communicate before customers read a word.</small></span>
+              </a>
+              <a class="mega-link" href="services.html#packaging-design">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4Z"/><path d="M4 8v8l8 4 8-4V8"/><path d="M12 12v8"/></svg>
+                <span><strong>Packaging Design</strong><small>Packaging that carries the brand story from screen to shelf.</small></span>
+              </a>
+              <a class="mega-cta" href="services.html">View All Services &rarr;</a>
+            </div>
+            <div class="mega-panel" data-mega-panel="growth">
+              <a class="mega-link" href="services.html#ecommerce-strategy">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18h16"/><path d="M7 15V9"/><path d="M12 15V6"/><path d="M17 15v-4"/></svg>
+                <span><strong>Ecommerce Strategy</strong><small>The commercial plan before anyone opens a design tool.</small></span>
+              </a>
+              <a class="mega-link" href="services.html#conversion-optimization">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 8v4l3 2"/></svg>
+                <span><strong>Conversion Optimization</strong><small>Pages and flows rebuilt around how your customer buys.</small></span>
+              </a>
+              <a class="mega-link" href="services.html#growth-systems">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17l5-5 4 4 5-8"/><path d="M15 8h4v4"/></svg>
+                <span><strong>Growth Systems</strong><small>Retention infrastructure that turns first orders into repeats.</small></span>
+              </a>
+              <a class="mega-cta" href="services.html">View All Services &rarr;</a>
+            </div>
+            <div class="mega-panel" data-mega-panel="support">
+              <a class="mega-link" href="services.html#website-maintenance">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-2.8 8.2-7 10-4.2-1.8-7-5.5-7-10V6l7-3Z"/><path d="M9 12l2 2 4-5"/></svg>
+                <span><strong>Website Maintenance</strong><small>Ongoing care so the store stays fast, stable, and current.</small></span>
+              </a>
+              <a class="mega-cta" href="services.html">View All Services &rarr;</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="nav-item nav-item--mega" data-mega-item>
+        <button class="nav-link nav-link--mega" type="button" data-hover data-active-page="work.html" aria-expanded="false" aria-controls="mega-work">Work</button>
+        <div class="mega-menu mega-menu--simple" id="mega-work" role="menu">
+          <a class="mega-link" href="work.html#perfume"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4h4"/><path d="M9 8h6l2 3v8H7v-8l2-3Z"/><path d="M9 13h6"/></svg><span><strong>Perfume</strong><small>Luxury fragrance stores with editorial product storytelling.</small></span></a>
+          <a class="mega-link" href="work.html#cosmetics"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="15" r="4"/><circle cx="15" cy="9" r="4"/><path d="M12 12l5 5"/></svg><span><strong>Cosmetics</strong><small>Shade, routine, and repeat-purchase journeys built to convert.</small></span></a>
+          <a class="mega-link" href="work.html#fashion"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l4 3 4-3 3 4-3 2v8H8v-8L5 9l3-4Z"/></svg><span><strong>Fashion</strong><small>Launch-ready storefronts for collections, drops, and markets.</small></span></a>
+          <a class="mega-link" href="work.html#food-beverage"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v6a5 5 0 0 1-10 0V4Z"/><path d="M12 15v5"/><path d="M8 20h8"/></svg><span><strong>Food &amp; Beverage</strong><small>Provenance, subscription, and gifting experiences for D2C.</small></span></a>
+          <a class="mega-link" href="work.html#agriculture"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V9"/><path d="M12 13C7 13 5 10 5 6c4 0 7 2 7 7Z"/><path d="M12 16c5 0 7-3 7-7-4 0-7 2-7 7Z"/></svg><span><strong>Agriculture</strong><small>Seasonal, subscription, and farm-to-table commerce systems.</small></span></a>
+          <a class="mega-link" href="work.html#wellness"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-4.4 7-11a4 4 0 0 0-7-2.6A4 4 0 0 0 5 10c0 6.6 7 11 7 11Z"/><path d="M9 13h6"/></svg><span><strong>Wellness</strong><small>Calm, trust-led journeys for health and self-care products.</small></span></a>
+          <a class="mega-cta" href="work.html#all">View All Work &rarr;</a>
+        </div>
+      </div>
+      <a href="process.html" class="nav-link" data-hover>Process</a>
+      <a href="about.html" class="nav-link" data-hover>About</a>
+      <div class="nav-item nav-item--mega" data-mega-item>
+        <button class="nav-link nav-link--mega" type="button" data-hover data-active-page="pricing.html" aria-expanded="false" aria-controls="mega-pricing">Pricing</button>
+        <div class="mega-menu mega-menu--simple" id="mega-pricing" role="menu">
+          <a class="mega-link" href="pricing.html#branding-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18l4-12 4 12"/><path d="M7 14h4"/><path d="M16 6h3v12h-3z"/></svg><span><strong>Branding Packages</strong><small>Identity systems for memorable product brands.</small></span></a>
+          <a class="mega-link" href="pricing.html#shopify-development-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg><span><strong>Shopify Development Packages</strong><small>Custom builds scoped for conversion and scale.</small></span></a>
+          <a class="mega-link" href="pricing.html#growth-retention-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l5-5 4 3 6-8"/><path d="M15 7h4v4"/></svg><span><strong>Growth &amp; Retention Packages</strong><small>Email, SMS, and lifecycle systems.</small></span></a>
+          <a class="mega-link" href="pricing.html#seo-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="5"/><path d="M14 14l5 5"/></svg><span><strong>SEO Packages</strong><small>Organic search equity built into the store.</small></span></a>
+          <a class="mega-link" href="pricing.html#website-maintenance-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-2.8 8.2-7 10-4.2-1.8-7-5.5-7-10V6l7-3Z"/><path d="M9 12l2 2 4-5"/></svg><span><strong>Website Maintenance Packages</strong><small>Ongoing care after launch.</small></span></a>
+          <a class="mega-cta" href="pricing.html">Compare All Packages &rarr;</a>
+        </div>
+      </div>
+      <a href="faq.html" class="nav-link" data-hover>FAQ</a>
+      <a href="contact.html" class="nav-link" data-hover>Contact</a>
+    </nav>
+    <a href="contact.html" class="btn btn-nav" data-hover>Start a Project</a>
+    <button class="nav-burger" id="navBurger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navMobile"><span></span><span></span></button>
+  </div>
+  <div class="nav-mobile" id="navMobile">
+    <a href="shopify.html">Shopify</a>
+    <div class="mobile-mega">
+      <button class="mobile-mega-toggle" type="button" aria-expanded="false">Services<span></span></button>
+      <div class="mobile-mega-panel">
+        <a href="services.html#shopify-development">Premium Shopify Website Development</a>
+        <a href="services.html#shopify-cro">Shopify CRO</a>
+        <a href="services.html#store-optimization">Shopify Store Optimization</a>
+        <a href="services.html#performance-optimization">Performance Optimization</a>
+        <a href="services.html#brand-identity">Brand Identity Design</a>
+        <a href="services.html#packaging-design">Packaging Design</a>
+        <a href="services.html#ecommerce-strategy">Ecommerce Strategy</a>
+        <a href="services.html#conversion-optimization">Conversion Optimization</a>
+        <a href="services.html#growth-systems">Growth Systems</a>
+        <a href="services.html#website-maintenance">Website Maintenance</a>
+        <a href="services.html">View All Services</a>
+      </div>
+    </div>
+    <div class="mobile-mega">
+      <button class="mobile-mega-toggle" type="button" aria-expanded="false">Work<span></span></button>
+      <div class="mobile-mega-panel">
+        <a href="work.html#perfume">Perfume</a>
+        <a href="work.html#cosmetics">Cosmetics</a>
+        <a href="work.html#fashion">Fashion</a>
+        <a href="work.html#food-beverage">Food &amp; Beverage</a>
+        <a href="work.html#agriculture">Agriculture</a>
+        <a href="work.html#wellness">Wellness</a>
+        <a href="work.html#all">View All Work</a>
+      </div>
+    </div>
+    <a href="process.html">Process</a>
+    <a href="about.html">About</a>
+    <div class="mobile-mega">
+      <button class="mobile-mega-toggle" type="button" aria-expanded="false">Pricing<span></span></button>
+      <div class="mobile-mega-panel">
+        <a href="pricing.html#branding-packages">Branding Packages</a>
+        <a href="pricing.html#shopify-development-packages">Shopify Development Packages</a>
+        <a href="pricing.html#growth-retention-packages">Growth &amp; Retention Packages</a>
+        <a href="pricing.html#seo-packages">SEO Packages</a>
+        <a href="pricing.html#website-maintenance-packages">Website Maintenance Packages</a>
+        <a href="pricing.html">Compare All Packages</a>
+      </div>
+    </div>
+    <a href="faq.html">FAQ</a>
+    <a href="contact.html">Contact</a>
+  </div>
+</header>
+
+<main>
+
+  <div class="hero-travel-scene">
+  <!-- ================= HERO ================= -->
+  <section class="hero hero--has-deck">
+    <canvas id="heroCanvas"></canvas>
+    <div class="hero-vignette"></div>
+    <div class="hero-content">
+      <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Ecommerce Growth Partner</p>
+      <h1 class="hero-title">
+        Growth<br><span class="italic">By Design.</span>
+      </h1>
+      <p class="hero-sub reveal-up">GROWVA builds premium Shopify stores, brand systems, and growth infrastructure for ecommerce brands that refuse to look ordinary.</p>
+      <div class="hero-actions reveal-up">
+        <a href="contact.html" class="btn btn-primary" data-hover><span>Start a Project</span></a>
+        <a href="work.html" class="btn btn-ghost" data-hover><span>View Our Work</span></a>
+      </div>
+    </div>
+    <canvas class="brand-object-canvas hero-brand-object" data-brand-object="hero" aria-hidden="true"></canvas>
+
+    <!-- ========== STACK DECK ========== -->
+    <div class="stack-deck" id="stackDeck">
+
+      <!-- Floating badge â€” inside deck so it fades with it -->
+      <div class="stack-badge" id="stackBadge">
+        <span class="stack-badge-dot"></span>
+        Now Onboarding New Brands
+      </div>
+
+      <!-- Card 1: Shopify Store mockup -->
+      <div class="stack-card" data-card="1">
+        <div class="sc-browser-bar">
+          <span class="sc-dot sc-dot--red"></span>
+          <span class="sc-dot sc-dot--amber"></span>
+          <span class="sc-dot sc-dot--green"></span>
+        </div>
+        <div class="sc-product-img"></div>
+        <div class="sc-product-body">
+          <p class="sc-product-name">Nour No. 03</p>
+          <p class="sc-product-price">$142.00</p>
+          <div class="sc-atc-btn">Add to Cart</div>
+        </div>
+        <span class="sc-card-label">Shopify Store</span>
+        <a href="shopify.html" class="card-link" aria-label="View Shopify Store service"></a>
+        <div class="card-cta-overlay"><span>View Service â†’</span></div>
+      </div>
+
+      <!-- Card 2: Brand Identity -->
+      <div class="stack-card sc-card-brand" data-card="2">
+        <div class="sc-brand-mark">
+          <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <!-- G shape -->
+            <path d="M52 22 A22 22 0 1 0 52 58 L52 44 H36"
+                  stroke="white" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- V / check accent -->
+            <polyline points="30,37 41,55 60,24"
+                      stroke="#B1FA20" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <p class="sc-brand-name">Brand Identity</p>
+        <div class="sc-swatches">
+          <span class="sc-swatch" style="background:#111111"></span>
+          <span class="sc-swatch" style="background:#f6f6f6"></span>
+          <span class="sc-swatch" style="background:#B1FA20"></span>
+          <span class="sc-swatch" style="background:#ffffff"></span>
+        </div>
+        <span class="sc-card-label">Visual System</span>
+        <a href="services.html#brand-identity-design" class="card-link" aria-label="View Brand Identity service"></a>
+        <div class="card-cta-overlay"><span>View Service â†’</span></div>
+      </div>
+
+      <!-- Card 3: Packaging Design -->
+      <div class="stack-card sc-card-pkg" data-card="3">
+        <div class="sc-pkg-scene">
+          <div class="sc-pkg-top-face"></div>
+          <div class="sc-pkg-front-face">
+            <span class="sc-pkg-wordmark">GROWVA</span>
+            <span class="sc-pkg-sub">Design Systems</span>
+          </div>
+          <div class="sc-pkg-side-face"></div>
+        </div>
+        <span class="sc-card-label">Packaging Design</span>
+        <a href="services.html#packaging-design" class="card-link" aria-label="View Packaging Design service"></a>
+        <div class="card-cta-overlay"><span>View Service â†’</span></div>
+      </div>
+
+      <!-- Card 4: Growth / Performance -->
+      <div class="stack-card sc-card-growth" data-card="4">
+        <p class="sc-growth-eyebrow">Growth Systems</p>
+        <div class="sc-chart">
+          <div class="sc-bar" style="--bh:38%"></div>
+          <div class="sc-bar" style="--bh:55%"></div>
+          <div class="sc-bar" style="--bh:44%"></div>
+          <div class="sc-bar" style="--bh:78%"></div>
+          <div class="sc-bar" style="--bh:93%"></div>
+        </div>
+        <div class="sc-stat-block">
+          <span class="sc-stat-num">+128%</span>
+          <span class="sc-stat-lbl">Repeat Revenue</span>
+        </div>
+        <span class="sc-card-label">Performance</span>
+        <a href="services.html#growth-systems" class="card-link" aria-label="View Growth Systems service"></a>
+        <div class="card-cta-overlay"><span>View Service â†’</span></div>
+      </div>
+
+    </div>
+    <!-- ========== /STACK DECK ========== -->
+
+    <div class="hero-scroll reveal-up">
+      <span>Scroll</span>
+      <div class="hero-scroll-line"><i></i></div>
+    </div>
+    <div class="marquee-strip">
+      <div class="marquee-track">
+        <span>Perfume</span><span>Cosmetics</span><span>Fashion</span><span>Food &amp; Beverage</span><span>Agriculture</span><span>Wellness</span><span>Home &amp; Interiors</span>
+        <span>Perfume</span><span>Cosmetics</span><span>Fashion</span><span>Food &amp; Beverage</span><span>Agriculture</span><span>Wellness</span><span>Home &amp; Interiors</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Travel sentinel â€” reserves space for parallax card drift after hero pin -->
+  <div id="cardTravel"></div>
+  </div>
+
+  <!-- ================= WHY SHOPIFY (teaser) ================= -->
+  <section class="section why">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Why Shopify</p>
+        <h2 class="h2 reveal-up">The platform ambitious<br>brands grow on.</h2>
+      </div>
+      <div class="why-grid">
+        <div class="why-lead reveal-up">
+          <p>We specialize â€” not generalize. Every recommendation, every line of code, every growth system we build is built for Shopify's architecture, because that focus is what lets a store perform on launch day and still hold up at ten times the traffic.</p>
+          <div class="why-cta">
+            <a href="shopify.html" class="btn btn-ghost" data-hover><span>Learn More â†’</span></a>
+          </div>
+        </div>
+        <div class="why-cards">
+          <div class="why-card reveal-up">
+            <span class="why-num">Speed</span>
+            <h3>Built for load times that keep customers on the page</h3>
+            <p>Section-level performance budgets, lazy-loaded media, and no dead weight.</p>
+          </div>
+          <div class="why-card reveal-up">
+            <span class="why-num">Scale</span>
+            <h3>Infrastructure that holds under real traffic</h3>
+            <p>Built to survive product drops, ad spikes, and seasonal peaks without breaking checkout.</p>
+          </div>
+          <div class="why-card reveal-up">
+            <span class="why-num">Conversion</span>
+            <h3>Every screen designed to move someone toward checkout</h3>
+            <p>UX decisions backed by heatmaps, funnel data, and buyer behavior.</p>
+          </div>
+          <div class="why-card reveal-up">
+            <span class="why-num">Systems</span>
+            <h3>Integrations that connect the whole business</h3>
+            <p>Inventory, fulfilment, CRM, and marketing tools wired together â€” not bolted on.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SERVICES (compact grid) ================= -->
+  <section class="section" style="padding-top:0;">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Services</p>
+        <h2 class="h2 reveal-up">Ten disciplines.<br>One growth system.</h2>
+      </div>
+      <div class="services-compact-grid reveal-up">
+        <a href="services.html#shopify-development" class="service-compact-item" data-hover>
+          <span class="service-compact-num">01</span>
+          <span class="service-compact-name">Premium Shopify Development</span>
+        </a>
+        <a href="services.html#shopify-cro" class="service-compact-item" data-hover>
+          <span class="service-compact-num">02</span>
+          <span class="service-compact-name">Shopify CRO</span>
+        </a>
+        <a href="services.html#store-optimization" class="service-compact-item" data-hover>
+          <span class="service-compact-num">03</span>
+          <span class="service-compact-name">Store Optimization</span>
+        </a>
+        <a href="services.html#brand-identity" class="service-compact-item" data-hover>
+          <span class="service-compact-num">04</span>
+          <span class="service-compact-name">Brand Identity Design</span>
+        </a>
+        <a href="services.html#packaging-design" class="service-compact-item" data-hover>
+          <span class="service-compact-num">05</span>
+          <span class="service-compact-name">Packaging Design</span>
+        </a>
+        <a href="services.html#ecommerce-strategy" class="service-compact-item" data-hover>
+          <span class="service-compact-num">06</span>
+          <span class="service-compact-name">Ecommerce Strategy</span>
+        </a>
+        <a href="services.html#conversion-optimization" class="service-compact-item" data-hover>
+          <span class="service-compact-num">07</span>
+          <span class="service-compact-name">Conversion Optimization</span>
+        </a>
+        <a href="services.html#growth-systems" class="service-compact-item" data-hover>
+          <span class="service-compact-num">08</span>
+          <span class="service-compact-name">Growth Systems</span>
+        </a>
+        <a href="services.html#website-maintenance" class="service-compact-item" data-hover>
+          <span class="service-compact-num">09</span>
+          <span class="service-compact-name">Website Maintenance</span>
+        </a>
+        <a href="services.html#performance-optimization" class="service-compact-item" data-hover>
+          <span class="service-compact-num">10</span>
+          <span class="service-compact-name">Performance Optimization</span>
+        </a>
+      </div>
+      <div style="text-align:center;margin-top:44px;">
+        <a href="services.html" class="btn btn-ghost" data-hover><span>Explore All Services â†’</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PROCESS (teaser row) ================= -->
+  <section class="section process">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Process</p>
+        <h2 class="h2 reveal-up">Nine stages.<br>No guesswork.</h2>
+      </div>
+    </div>
+    <div class="process-track-wrap">
+      <div class="process-line"><i id="processLineFill"></i></div>
+      <div class="process-steps">
+        <div class="process-step reveal-up"><span class="p-num">01</span><h4>Discovery</h4><p>Brand, customer, and growth gaps.</p></div>
+        <div class="process-step reveal-up"><span class="p-num">02</span><h4>Strategy</h4><p>Written plan before design begins.</p></div>
+        <div class="process-step reveal-up"><span class="p-num">03</span><h4>Planning</h4><p>Sitemaps, flows, and agreed scope.</p></div>
+        <div class="process-step reveal-up"><span class="p-num">04</span><h4>Design</h4><p>High-fidelity Shopify UI.</p></div>
+        <div class="process-step reveal-up"><span class="p-num">05</span><h4>Development</h4><p>Clean code, fast load, no template debt.</p></div>
+        <div class="process-step reveal-up"><span class="p-num">06</span><h4>Testing</h4><p>Cross-device QA and benchmarking.</p></div>
+        <div class="process-step reveal-up"><span class="p-num">07</span><h4>Launch</h4><p>Coordinated go-live with monitoring.</p></div>
+        <div class="process-step reveal-up"><span class="p-num">08</span><h4>Optimization</h4><p>Data-driven post-launch refinement.</p></div>
+        <div class="process-step reveal-up"><span class="p-num">09</span><h4>Growth</h4><p>Ongoing CRO and retention work.</p></div>
+      </div>
+      <div class="process-cta reveal-up">
+        <a href="process.html" class="btn btn-ghost" data-hover><span>See Full Process â†’</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= STATS ================= -->
+  <section class="section stats">
+    <div class="container stats-grid">
+      <div class="stat-item reveal-up">
+        <span class="stat-num" data-count="120">0</span><span class="stat-plus">+</span>
+        <p>Shopify stores launched</p>
+      </div>
+      <div class="stat-item reveal-up">
+        <span class="stat-num" data-count="9">0</span>
+        <p>Industries served</p>
+      </div>
+      <div class="stat-item reveal-up">
+        <span class="stat-num" data-count="98">0</span><span class="stat-plus">%</span>
+        <p>Client retention rate</p>
+      </div>
+      <div class="stat-item reveal-up">
+        <span class="stat-num" data-count="24">0</span><span class="stat-plus">hr</span>
+        <p>Support response window</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FEATURED WORK ================= -->
+  <section class="section work">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Selected Work</p>
+        <h2 class="h2 reveal-up">Stores built to<br>outperform their category.</h2>
+      </div>
+    </div>
+    <div class="case-list">
+
+      <article class="case-card reveal-up" data-cursor-text="View Case">
+        <div class="case-visual case-visual-1"><div class="case-visual-inner"></div></div>
+        <div class="case-body">
+          <p class="case-tag">Perfume</p>
+          <h3>Noor Perfumery</h3>
+          <p class="case-line"><strong>Challenge â€”</strong> A luxury fragrance house selling through a generic template that undersold the product.</p>
+          <p class="case-line"><strong>Result â€”</strong> Average order value up, bounce rate down, and a store that finally looks like the product inside it.</p>
+          <div class="case-metrics">
+            <div><span>+64%</span><small>AOV</small></div>
+            <div><span>âˆ’41%</span><small>Bounce rate</small></div>
+            <div><span>2.1s</span><small>Load time</small></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="case-card reveal-up reverse" data-cursor-text="View Case">
+        <div class="case-visual case-visual-2"><div class="case-visual-inner"></div></div>
+        <div class="case-body">
+          <p class="case-tag">Cosmetics</p>
+          <h3>Vella Cosmetics</h3>
+          <p class="case-line"><strong>Challenge â€”</strong> High ad spend, low conversion â€” traffic was arriving and leaving without buying.</p>
+          <p class="case-line"><strong>Result â€”</strong> Checkout completion climbed within the first full sales cycle post-launch.</p>
+          <div class="case-metrics">
+            <div><span>+2.3x</span><small>Conversion rate</small></div>
+            <div><span>+52%</span><small>Repeat purchases</small></div>
+            <div><span>98</span><small>PageSpeed score</small></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="case-card reveal-up" data-cursor-text="View Case">
+        <div class="case-visual case-visual-3"><div class="case-visual-inner"></div></div>
+        <div class="case-body">
+          <p class="case-tag">Fashion</p>
+          <h3>Atelier Marbre</h3>
+          <p class="case-line"><strong>Challenge â€”</strong> A ready-to-wear label preparing for its first international launch with no room for downtime.</p>
+          <p class="case-line"><strong>Result â€”</strong> Handled a five-times traffic spike on launch day without a single checkout error.</p>
+          <div class="case-metrics">
+            <div><span>5x</span><small>Launch-day traffic</small></div>
+            <div><span>0</span><small>Checkout errors</small></div>
+            <div><span>12</span><small>Markets supported</small></div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+    <div class="work-cta reveal-up">
+      <a href="work.html" class="btn btn-ghost" data-hover><span>View All Work â†’</span></a>
+    </div>
+  </section>
+
+  <!-- ================= TESTIMONIALS ================= -->
+  <section class="section testimonials">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Client Word</p>
+        <h2 class="h2 reveal-up">What partnership<br>looks like in practice.</h2>
+      </div>
+    </div>
+    <div class="testi-marquee">
+      <div class="testi-track">
+        <div class="testi-card">
+          <p>"GROWVA didn't just redesign our store â€” they rebuilt how we think about the customer journey. The new site paid for itself in six weeks."</p>
+          <span>Founder, Noor Perfumery</span>
+        </div>
+        <div class="testi-card">
+          <p>"They speak both languages â€” brand and code. That's rare, and it's the reason our launch had zero surprises."</p>
+          <span>Head of Ecommerce, Vella Cosmetics</span>
+        </div>
+        <div class="testi-card">
+          <p>"Every recommendation came with the reasoning behind it. It never felt like guesswork â€” it felt like a plan."</p>
+          <span>Creative Director, Atelier Marbre</span>
+        </div>
+        <div class="testi-card">
+          <p>"Post-launch support has been as strong as the build itself. They still treat our store like it's their own."</p>
+          <span>Operations Lead, Terra &amp; Grove</span>
+        </div>
+        <div class="testi-card">
+          <p>"GROWVA didn't just redesign our store â€” they rebuilt how we think about the customer journey. The new site paid for itself in six weeks."</p>
+          <span>Founder, Noor Perfumery</span>
+        </div>
+        <div class="testi-card">
+          <p>"They speak both languages â€” brand and code. That's rare, and it's the reason our launch had zero surprises."</p>
+          <span>Head of Ecommerce, Vella Cosmetics</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FINAL CTA ================= -->
+  <section class="section final-cta">
+    <canvas id="ctaCanvas"></canvas>
+    <div class="container final-cta-inner">
+      <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Let's Talk</p>
+      <h2 class="final-headline reveal-up">Ready to build a store<br>that matches the brand?</h2>
+      <p class="final-sub reveal-up">Tell us about the project. We'll reply within one business day.</p>
+      <div class="hero-actions reveal-up">
+        <a href="contact.html" class="btn btn-primary" data-hover><span>Start a Project</span></a>
+        <a href="mailto:hello@growva.com" class="btn btn-ghost" data-hover><span>hello@growva.com</span></a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="container footer-top">
+    <div class="footer-brand">
+      <a href="index.html" class="logo">
+        <span class="logo-text">GROWVA<span class="logo-dot">.</span></span>
+      </a>
+      <p>Growth By Design.</p>
+      <div class="footer-object" aria-hidden="true"><canvas class="brand-object-canvas" data-brand-object="footer"></canvas></div>
+    </div>
+    <div class="footer-col">
+      <h5>Services</h5>
+      <a href="services.html#shopify-development">Shopify Development</a>
+      <a href="services.html#shopify-cro">Shopify CRO</a>
+      <a href="services.html#brand-identity">Brand Identity</a>
+      <a href="services.html#growth-systems">Growth Systems</a>
+    </div>
+    <div class="footer-col">
+      <h5>Company</h5>
+      <a href="about.html">About</a>
+      <a href="work.html">Work</a>
+      <a href="process.html">Process</a>
+      <a href="faq.html">FAQ</a>
+    </div>
+    <div class="footer-col">
+      <h5>Contact</h5>
+      <a href="mailto:hello@growva.com">hello@growva.com</a>
+      <a href="#">Instagram</a>
+      <a href="#">LinkedIn</a>
+    </div>
+  </div>
+  <div class="container footer-bottom">
+    <span>Â© <span id="year"></span> GROWVA. All rights reserved.</span>
+    <span>Privacy Policy Â· Terms</span>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/darkroomengineering/lenis@1.1.13/dist/lenis.min.js"></script>
+<script src="js/script.js"></script>
+</body>
+</html>

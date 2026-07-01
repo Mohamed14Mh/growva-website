@@ -1,0 +1,424 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why Shopify â€” GROWVA | The Platform Ambitious Brands Grow On</title>
+<meta name="description" content="Why GROWVA specializes in Shopify â€” platform advantages, our development approach, UX philosophy, performance, and how we build stores that convert.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0a0a'/%3E%3Cpath d='M21 10a7 7 0 1 0 0 12v-5h-5' fill='none' stroke='%23B1FA20' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="page-transition" id="pageTransition" aria-hidden="true"><div class="pt-line"></div></div>
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<div class="preloader" id="preloader">
+  <div class="preloader-word">GROWVA</div>
+</div>
+
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="logo">
+      <span class="logo-text">GROWVA<span class="logo-dot">.</span></span>
+    </a>
+    <nav class="nav-links" aria-label="Primary navigation">
+      <a href="shopify.html" class="nav-link" data-hover>Shopify</a>
+      <div class="nav-item nav-item--mega" data-mega-item>
+        <button class="nav-link nav-link--mega" type="button" data-hover data-active-page="services.html" aria-expanded="false" aria-controls="mega-services">Services</button>
+        <div class="mega-menu mega-menu--services" id="mega-services" role="menu">
+          <div class="mega-tabs" role="tablist" aria-label="Service categories">
+            <button class="mega-tab active" type="button" data-mega-tab="shopify" aria-selected="true">Shopify Development</button>
+            <button class="mega-tab" type="button" data-mega-tab="brand" aria-selected="false">Brand &amp; Design</button>
+            <button class="mega-tab" type="button" data-mega-tab="growth" aria-selected="false">Growth &amp; Strategy</button>
+            <button class="mega-tab" type="button" data-mega-tab="support" aria-selected="false">Support</button>
+          </div>
+          <div class="mega-panels">
+            <div class="mega-panel active" data-mega-panel="shopify">
+              <a class="mega-link" href="services.html#shopify-development">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>
+                <span><strong>Premium Shopify Website Development</strong><small>Custom storefronts planned around how your customer buys.</small></span>
+              </a>
+              <a class="mega-link" href="services.html#shopify-cro">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+                <span><strong>Shopify CRO</strong><small>Find where the funnel breaks, then rebuild those points.</small></span>
+              </a>
+              <a class="mega-link" href="services.html#store-optimization">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/><path d="M17 17l2 2 3-4"/></svg>
+                <span><strong>Shopify Store Optimization</strong><small>Audit, clean, and restructure stores slowed by technical debt.</small></span>
+              </a>
+              <a class="mega-link" href="services.html#performance-optimization">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 14a7 7 0 0 1 14 0"/><path d="M12 14l4-5"/><path d="M7 19h10"/></svg>
+                <span><strong>Performance Optimization</strong><small>Core Web Vitals, image pipelines, and app-bloat audits.</small></span>
+              </a>
+              <a class="mega-cta" href="services.html">View All Services &rarr;</a>
+            </div>
+            <div class="mega-panel" data-mega-panel="brand">
+              <a class="mega-link" href="services.html#brand-identity">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18l4-12 4 12"/><path d="M7 14h4"/><path d="M16 7h3a2 2 0 0 1 0 4h-3V7Z"/><path d="M16 11h4"/></svg>
+                <span><strong>Brand Identity Design</strong><small>Visual systems that communicate before customers read a word.</small></span>
+              </a>
+              <a class="mega-link" href="services.html#packaging-design">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4Z"/><path d="M4 8v8l8 4 8-4V8"/><path d="M12 12v8"/></svg>
+                <span><strong>Packaging Design</strong><small>Packaging that carries the brand story from screen to shelf.</small></span>
+              </a>
+              <a class="mega-cta" href="services.html">View All Services &rarr;</a>
+            </div>
+            <div class="mega-panel" data-mega-panel="growth">
+              <a class="mega-link" href="services.html#ecommerce-strategy">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18h16"/><path d="M7 15V9"/><path d="M12 15V6"/><path d="M17 15v-4"/></svg>
+                <span><strong>Ecommerce Strategy</strong><small>The commercial plan before anyone opens a design tool.</small></span>
+              </a>
+              <a class="mega-link" href="services.html#conversion-optimization">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 8v4l3 2"/></svg>
+                <span><strong>Conversion Optimization</strong><small>Pages and flows rebuilt around how your customer buys.</small></span>
+              </a>
+              <a class="mega-link" href="services.html#growth-systems">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17l5-5 4 4 5-8"/><path d="M15 8h4v4"/></svg>
+                <span><strong>Growth Systems</strong><small>Retention infrastructure that turns first orders into repeats.</small></span>
+              </a>
+              <a class="mega-cta" href="services.html">View All Services &rarr;</a>
+            </div>
+            <div class="mega-panel" data-mega-panel="support">
+              <a class="mega-link" href="services.html#website-maintenance">
+                <svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-2.8 8.2-7 10-4.2-1.8-7-5.5-7-10V6l7-3Z"/><path d="M9 12l2 2 4-5"/></svg>
+                <span><strong>Website Maintenance</strong><small>Ongoing care so the store stays fast, stable, and current.</small></span>
+              </a>
+              <a class="mega-cta" href="services.html">View All Services &rarr;</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="nav-item nav-item--mega" data-mega-item>
+        <button class="nav-link nav-link--mega" type="button" data-hover data-active-page="work.html" aria-expanded="false" aria-controls="mega-work">Work</button>
+        <div class="mega-menu mega-menu--simple" id="mega-work" role="menu">
+          <a class="mega-link" href="work.html#perfume"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4h4"/><path d="M9 8h6l2 3v8H7v-8l2-3Z"/><path d="M9 13h6"/></svg><span><strong>Perfume</strong><small>Luxury fragrance stores with editorial product storytelling.</small></span></a>
+          <a class="mega-link" href="work.html#cosmetics"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="15" r="4"/><circle cx="15" cy="9" r="4"/><path d="M12 12l5 5"/></svg><span><strong>Cosmetics</strong><small>Shade, routine, and repeat-purchase journeys built to convert.</small></span></a>
+          <a class="mega-link" href="work.html#fashion"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l4 3 4-3 3 4-3 2v8H8v-8L5 9l3-4Z"/></svg><span><strong>Fashion</strong><small>Launch-ready storefronts for collections, drops, and markets.</small></span></a>
+          <a class="mega-link" href="work.html#food-beverage"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v6a5 5 0 0 1-10 0V4Z"/><path d="M12 15v5"/><path d="M8 20h8"/></svg><span><strong>Food &amp; Beverage</strong><small>Provenance, subscription, and gifting experiences for D2C.</small></span></a>
+          <a class="mega-link" href="work.html#agriculture"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V9"/><path d="M12 13C7 13 5 10 5 6c4 0 7 2 7 7Z"/><path d="M12 16c5 0 7-3 7-7-4 0-7 2-7 7Z"/></svg><span><strong>Agriculture</strong><small>Seasonal, subscription, and farm-to-table commerce systems.</small></span></a>
+          <a class="mega-link" href="work.html#wellness"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-4.4 7-11a4 4 0 0 0-7-2.6A4 4 0 0 0 5 10c0 6.6 7 11 7 11Z"/><path d="M9 13h6"/></svg><span><strong>Wellness</strong><small>Calm, trust-led journeys for health and self-care products.</small></span></a>
+          <a class="mega-cta" href="work.html#all">View All Work &rarr;</a>
+        </div>
+      </div>
+      <a href="process.html" class="nav-link" data-hover>Process</a>
+      <a href="about.html" class="nav-link" data-hover>About</a>
+      <div class="nav-item nav-item--mega" data-mega-item>
+        <button class="nav-link nav-link--mega" type="button" data-hover data-active-page="pricing.html" aria-expanded="false" aria-controls="mega-pricing">Pricing</button>
+        <div class="mega-menu mega-menu--simple" id="mega-pricing" role="menu">
+          <a class="mega-link" href="pricing.html#branding-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18l4-12 4 12"/><path d="M7 14h4"/><path d="M16 6h3v12h-3z"/></svg><span><strong>Branding Packages</strong><small>Identity systems for memorable product brands.</small></span></a>
+          <a class="mega-link" href="pricing.html#shopify-development-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg><span><strong>Shopify Development Packages</strong><small>Custom builds scoped for conversion and scale.</small></span></a>
+          <a class="mega-link" href="pricing.html#growth-retention-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l5-5 4 3 6-8"/><path d="M15 7h4v4"/></svg><span><strong>Growth &amp; Retention Packages</strong><small>Email, SMS, and lifecycle systems.</small></span></a>
+          <a class="mega-link" href="pricing.html#seo-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="5"/><path d="M14 14l5 5"/></svg><span><strong>SEO Packages</strong><small>Organic search equity built into the store.</small></span></a>
+          <a class="mega-link" href="pricing.html#website-maintenance-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-2.8 8.2-7 10-4.2-1.8-7-5.5-7-10V6l7-3Z"/><path d="M9 12l2 2 4-5"/></svg><span><strong>Website Maintenance Packages</strong><small>Ongoing care after launch.</small></span></a>
+          <a class="mega-cta" href="pricing.html">Compare All Packages &rarr;</a>
+        </div>
+      </div>
+      <a href="faq.html" class="nav-link" data-hover>FAQ</a>
+      <a href="contact.html" class="nav-link" data-hover>Contact</a>
+    </nav>
+    <a href="contact.html" class="btn btn-nav" data-hover>Start a Project</a>
+    <button class="nav-burger" id="navBurger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navMobile"><span></span><span></span></button>
+  </div>
+  <div class="nav-mobile" id="navMobile">
+    <a href="shopify.html">Shopify</a>
+    <div class="mobile-mega">
+      <button class="mobile-mega-toggle" type="button" aria-expanded="false">Services<span></span></button>
+      <div class="mobile-mega-panel">
+        <a href="services.html#shopify-development">Premium Shopify Website Development</a>
+        <a href="services.html#shopify-cro">Shopify CRO</a>
+        <a href="services.html#store-optimization">Shopify Store Optimization</a>
+        <a href="services.html#performance-optimization">Performance Optimization</a>
+        <a href="services.html#brand-identity">Brand Identity Design</a>
+        <a href="services.html#packaging-design">Packaging Design</a>
+        <a href="services.html#ecommerce-strategy">Ecommerce Strategy</a>
+        <a href="services.html#conversion-optimization">Conversion Optimization</a>
+        <a href="services.html#growth-systems">Growth Systems</a>
+        <a href="services.html#website-maintenance">Website Maintenance</a>
+        <a href="services.html">View All Services</a>
+      </div>
+    </div>
+    <div class="mobile-mega">
+      <button class="mobile-mega-toggle" type="button" aria-expanded="false">Work<span></span></button>
+      <div class="mobile-mega-panel">
+        <a href="work.html#perfume">Perfume</a>
+        <a href="work.html#cosmetics">Cosmetics</a>
+        <a href="work.html#fashion">Fashion</a>
+        <a href="work.html#food-beverage">Food &amp; Beverage</a>
+        <a href="work.html#agriculture">Agriculture</a>
+        <a href="work.html#wellness">Wellness</a>
+        <a href="work.html#all">View All Work</a>
+      </div>
+    </div>
+    <a href="process.html">Process</a>
+    <a href="about.html">About</a>
+    <div class="mobile-mega">
+      <button class="mobile-mega-toggle" type="button" aria-expanded="false">Pricing<span></span></button>
+      <div class="mobile-mega-panel">
+        <a href="pricing.html#branding-packages">Branding Packages</a>
+        <a href="pricing.html#shopify-development-packages">Shopify Development Packages</a>
+        <a href="pricing.html#growth-retention-packages">Growth &amp; Retention Packages</a>
+        <a href="pricing.html#seo-packages">SEO Packages</a>
+        <a href="pricing.html#website-maintenance-packages">Website Maintenance Packages</a>
+        <a href="pricing.html">Compare All Packages</a>
+      </div>
+    </div>
+    <a href="faq.html">FAQ</a>
+    <a href="contact.html">Contact</a>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================= PAGE HERO ================= -->
+  <section class="page-hero" style="padding-bottom:140px;">
+    <canvas id="pageHeroCanvas"></canvas>
+    <div class="page-hero-inner">
+      <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Why Shopify</p>
+      <h1 class="page-hero-title reveal-up">The platform<br>ambitious brands<br><em style="font-style:italic;color:var(--mint);">grow on.</em></h1>
+      <p class="page-hero-sub reveal-up">We chose to specialize â€” not generalize. Shopify is the only platform we build on, and that focus is what makes every store we ship better than the last.</p>
+    </div>
+  </section>
+
+  <!-- ========== SHOPIFY CHAPTER NAVIGATION ========== -->
+  <!-- Sidebar dots â€” shown/hidden by JS -->
+  <div class="shopify-chapter-nav" id="shopifyChapterNav" aria-label="Chapter navigation">
+    <button class="chapter-dot active" aria-label="Platform"></button>
+    <button class="chapter-dot" aria-label="Advantages"></button>
+    <button class="chapter-dot" aria-label="How We Build"></button>
+    <button class="chapter-dot" aria-label="Ecosystem"></button>
+    <button class="chapter-dot" aria-label="After Launch"></button>
+  </div>
+
+  <!-- ================= CHAPTER 1 Â· PLATFORM NARRATIVE ================= -->
+  <section class="section shopify-chapter" data-chapter="1">
+    <div class="container">
+      <div class="shopify-lead">
+        <div class="shopify-lead-text">
+          <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>The Platform</p>
+          <h2 class="reveal-up">Shopify isn't just<br>a shopping cart.</h2>
+          <p class="reveal-up">For product brands in perfume, cosmetics, fashion, food, and agriculture, Shopify offers something no other platform provides: an ecosystem built specifically for conversion, scalability, and integration â€” without needing an engineering team to maintain it.</p>
+          <p class="reveal-up">Over 1.7 million merchants in 175 countries trust Shopify to power their revenue. The brands we build for aren't here because Shopify is the easiest option. They're here because it's the right one â€” and because we know how to push it far beyond what most people think it can do.</p>
+        </div>
+        <div class="shopify-visual" data-cursor-text="Explore">
+          <canvas class="shopify-canvas brand-object-canvas" data-brand-object="shopify" aria-hidden="true"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CHAPTER 2 Â· PLATFORM ADVANTAGES ================= -->
+  <section class="section shopify-chapter" data-chapter="2">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Platform Advantages</p>
+        <h2 class="h2 reveal-up">Why product brands<br>choose Shopify.</h2>
+      </div>
+      <div class="shopify-pillars reveal-up">
+        <div class="shopify-pillar">
+          <span class="shopify-pillar-num">Speed</span>
+          <h3>Performance out of the box</h3>
+          <p>Shopify's global CDN, optimized checkout, and infrastructure handle traffic spikes, flash sales, and product launches without breaking checkout â€” even at five times normal volume.</p>
+        </div>
+        <div class="shopify-pillar">
+          <span class="shopify-pillar-num">Scale</span>
+          <h3>Built for growth</h3>
+          <p>From your first 10 orders to 10,000 a day, Shopify's architecture scales with the business. You don't outgrow the platform â€” the platform grows with you.</p>
+        </div>
+        <div class="shopify-pillar">
+          <span class="shopify-pillar-num">Ecosystem</span>
+          <h3>Integrations that actually work</h3>
+          <p>6,000+ apps in the Shopify ecosystem â€” email, SMS, loyalty, inventory, fulfilment, CRM â€” all designed to connect without breaking each other.</p>
+        </div>
+        <div class="shopify-pillar">
+          <span class="shopify-pillar-num">Conversion</span>
+          <h3>Checkout built for revenue</h3>
+          <p>Shopify Checkout is the most A/B tested checkout in ecommerce. Brands on Shopify see consistently higher conversion rates than equivalent stores on WooCommerce or Magento.</p>
+        </div>
+        <div class="shopify-pillar">
+          <span class="shopify-pillar-num">Markets</span>
+          <h3>Go international without going custom</h3>
+          <p>Multi-currency, multi-language, and market-specific pricing built natively into the platform â€” no custom development required to sell in 130+ currencies.</p>
+        </div>
+        <div class="shopify-pillar">
+          <span class="shopify-pillar-num">Reliability</span>
+          <h3>99.99% uptime guarantee</h3>
+          <p>Shopify's infrastructure is maintained by one of the largest engineering teams in ecommerce. Your store doesn't go down when you're running your biggest campaign.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CHAPTER 3 Â· HOW WE BUILD ================= -->
+  <section class="section shopify-chapter" data-chapter="3" style="background:var(--black);color:var(--ivory);">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow reveal-up" style="color:var(--mint);"><span class="eyebrow-dot"></span>Development Approach</p>
+        <h2 class="h2 reveal-up" style="color:var(--ivory);">How we build<br>Shopify stores.</h2>
+      </div>
+      <div class="shopify-process reveal-up">
+        <h2 style="display:none;"></h2>
+        <div class="shopify-process-steps">
+          <div class="shopify-process-step">
+            <div class="shopify-step-num">01</div>
+            <div class="shopify-step-content">
+              <h4>No themes. Custom Liquid from scratch.</h4>
+              <p>We don't start from a Shopify theme and modify it. We write Liquid templates from a clean slate â€” which means no unused code, no template constraints, and no visual compromises from someone else's design decisions. Your store is as fast as it is because it carries nothing it doesn't need.</p>
+            </div>
+          </div>
+          <div class="shopify-process-step">
+            <div class="shopify-step-num">02</div>
+            <div class="shopify-step-content">
+              <h4>UX designed around your buyer, not a convention.</h4>
+              <p>The UX of a perfume store is fundamentally different from the UX of a food brand or a fashion label. The way customers navigate, the information they need, the pace they browse â€” all of it differs by category. We design for your specific customer's decision-making process, not for a generic ecommerce convention.</p>
+            </div>
+          </div>
+          <div class="shopify-process-step">
+            <div class="shopify-step-num">03</div>
+            <div class="shopify-step-content">
+              <h4>Performance budget before design brief.</h4>
+              <p>Every section of every page has a performance budget before the first design mockup is created. That means we're never in a position of shipping a beautiful page that loads in 6 seconds. Speed is a design constraint, not an afterthought.</p>
+            </div>
+          </div>
+          <div class="shopify-process-step">
+            <div class="shopify-step-num">04</div>
+            <div class="shopify-step-content">
+              <h4>Technical SEO built into every template.</h4>
+              <p>Schema markup, canonical tags, meta structures, and crawl-optimized URL architecture are built into every template we write â€” not added as an audit item after launch. Organic search equity starts accumulating from day one.</p>
+            </div>
+          </div>
+          <div class="shopify-process-step">
+            <div class="shopify-step-num">05</div>
+            <div class="shopify-step-content">
+              <h4>Conversion built in, not bolted on.</h4>
+              <p>Trust signals, social proof placement, urgency mechanics, and upsell architecture are considered during design â€” not suggested by a CRO consultant after launch. We've seen what converts in each category we work in, and those learnings are applied before the first pixel goes live.</p>
+            </div>
+          </div>
+          <div class="shopify-process-step">
+            <div class="shopify-step-num">06</div>
+            <div class="shopify-step-content">
+              <h4>Launch-day coordination with monitoring from visitor one.</h4>
+              <p>Our launches are events, not handoffs. We monitor real-time data from the first hour live, with error tracking, performance dashboards, and a dedicated support line active for the first 48 hours of every major launch.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CHAPTER 4 Â· THE ECOSYSTEM ================= -->
+  <section class="section shopify-chapter" data-chapter="4">
+    <div class="container">
+      <div class="shopify-integrations">
+        <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Integrations</p>
+        <h2 class="reveal-up">The ecosystem<br>we build with.</h2>
+        <p class="shopify-integrations-sub reveal-up">We work with the tools your team already knows â€” and wire them into your Shopify store so nothing runs in isolation.</p>
+        <div class="integrations-grid reveal-up">
+          <div class="integration-item">Klaviyo</div>
+          <div class="integration-item">Recharge</div>
+          <div class="integration-item">Gorgias</div>
+          <div class="integration-item">Yotpo</div>
+          <div class="integration-item">Attentive</div>
+          <div class="integration-item">Loop Returns</div>
+          <div class="integration-item">ShipBob</div>
+          <div class="integration-item">Okendo</div>
+          <div class="integration-item">Rebuy</div>
+          <div class="integration-item">Postscript</div>
+          <div class="integration-item">ShipStation</div>
+          <div class="integration-item">Triple Whale</div>
+          <div class="integration-item">Privy</div>
+          <div class="integration-item">Bold</div>
+          <div class="integration-item">Loyalty Lion</div>
+          <div class="integration-item">Judge.me</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CHAPTER 5 Â· AFTER LAUNCH ================= -->
+  <section class="section shopify-chapter" data-chapter="5">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>After Launch</p>
+        <h2 class="h2 reveal-up">The store you launch<br>should be better six<br>months later.</h2>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:40px;" class="reveal-up">
+        <div>
+          <p class="why-num" style="display:block;margin-bottom:14px;">Launch Support</p>
+          <p style="font-size:.95rem;line-height:1.7;color:var(--gray-dim);">48-hour priority monitoring window on every launch. We stay on the store with you through the first day of real traffic to catch and fix anything the test environment didn't surface.</p>
+        </div>
+        <div>
+          <p class="why-num" style="display:block;margin-bottom:14px;">Post-Launch Optimization</p>
+          <p style="font-size:.95rem;line-height:1.7;color:var(--gray-dim);">Real traffic produces real data. The first 30â€“60 days post-launch are when the most important optimization decisions can be made. We stay in to make them.</p>
+        </div>
+        <div>
+          <p class="why-num" style="display:block;margin-bottom:14px;">Ongoing Maintenance</p>
+          <p style="font-size:.95rem;line-height:1.7;color:var(--gray-dim);">Monthly retainer options to keep the store fast, updated, and functioning correctly as your team adds products, runs campaigns, and the Shopify ecosystem evolves.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FINAL CTA ================= -->
+  <section class="section final-cta">
+    <canvas id="ctaCanvas"></canvas>
+    <div class="container final-cta-inner">
+      <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Start a Shopify Project</p>
+      <h2 class="final-headline reveal-up">Ready to build a store<br>that performs?</h2>
+      <p class="final-sub reveal-up">Tell us about the brand and where you want it to go. We'll tell you exactly how we'd approach it.</p>
+      <div class="hero-actions reveal-up">
+        <a href="contact.html" class="btn btn-primary" data-hover><span>Start a Project</span></a>
+        <a href="work.html" class="btn btn-ghost" data-hover><span>See Our Work</span></a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="container footer-top">
+    <div class="footer-brand">
+      <a href="index.html" class="logo">
+        <span class="logo-text">GROWVA<span class="logo-dot">.</span></span>
+      </a>
+      <p>Growth By Design.</p>
+      <div class="footer-object" aria-hidden="true"><canvas class="brand-object-canvas" data-brand-object="footer"></canvas></div>
+    </div>
+    <div class="footer-col">
+      <h5>Services</h5>
+      <a href="services.html#shopify-development">Shopify Development</a>
+      <a href="services.html#shopify-cro">Shopify CRO</a>
+      <a href="services.html#brand-identity">Brand Identity</a>
+      <a href="services.html#growth-systems">Growth Systems</a>
+    </div>
+    <div class="footer-col">
+      <h5>Company</h5>
+      <a href="about.html">About</a>
+      <a href="work.html">Work</a>
+      <a href="process.html">Process</a>
+      <a href="faq.html">FAQ</a>
+    </div>
+    <div class="footer-col">
+      <h5>Contact</h5>
+      <a href="mailto:hello@growva.com">hello@growva.com</a>
+      <a href="#">Instagram</a>
+      <a href="#">LinkedIn</a>
+    </div>
+  </div>
+  <div class="container footer-bottom">
+    <span>Â© <span id="year"></span> GROWVA. All rights reserved.</span>
+    <span>Privacy Policy Â· Terms</span>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/darkroomengineering/lenis@1.1.13/dist/lenis.min.js"></script>
+<script src="js/script.js"></script>
+</body>
+</html>
