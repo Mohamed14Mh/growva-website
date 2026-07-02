@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0a0a'/%3E%3Cpath d='M21 10a7 7 0 1 0 0 12v-5h-5' fill='none' stroke='%23B1FA20' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="admin/admin.css">
 </head>
 <body data-page-id="services">
 
@@ -110,6 +111,8 @@
       </div>      <a href="faq.html" class="nav-link" data-hover data-edit-key="services.header.a.faq" data-edit-type="link" data-page-id="services" data-section-id="services.header">FAQ</a>
       <a href="contact.html" class="nav-link" data-hover data-edit-key="services.header.a.contact" data-edit-type="link" data-page-id="services" data-section-id="services.header">Contact</a>
     </nav>
+    <button class="admin-entry-btn" type="button" data-admin-entry="desktop" data-admin-action="open-admin">Admin</button>
+
     <a href="contact.html" class="btn btn-nav" data-hover data-edit-key="services.header.a.start_a_project" data-edit-type="link" data-page-id="services" data-section-id="services.header">Start a Project</a>
     <button class="nav-burger" id="navBurger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navMobile" data-edit-key="services.header.button.menu" data-edit-type="button" data-page-id="services" data-section-id="services.header"><span></span><span></span></button>
   </div>
@@ -170,6 +173,7 @@
     </div>
     <a href="faq.html" data-edit-key="services.header.a.faq_2" data-edit-type="link" data-page-id="services" data-section-id="services.header">FAQ</a>
     <a href="contact.html" data-edit-key="services.header.a.contact_2" data-edit-type="link" data-page-id="services" data-section-id="services.header">Contact</a>
+      <button class="admin-entry-btn admin-entry-btn--mobile" type="button" data-admin-entry="mobile" data-admin-action="open-admin">Admin</button>
   </div>
 </header>
 
@@ -424,6 +428,7 @@
 <script src="https://cdn.jsdelivr.net/gh/darkroomengineering/lenis@1.1.13/dist/lenis.min.js"></script>
 <script src="js/script.js"></script>
 <script src="js/content-registry.js"></script>
+<script src="admin/admin.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const tabs = Array.from(document.querySelectorAll('[data-service-directory-tab]'));
