@@ -1,4 +1,4 @@
-/* GROWVA Admin Phase 2: UI shell only. No public content rendering. */
+/* GROWVA Admin Phase 3: static Supabase CMS shell. */
 
 :root{
   --gv-admin-mint:#B1FA20;
@@ -71,7 +71,7 @@ body.admin-mode .gv-admin-topbar{transform:translate(-50%,0);opacity:1;pointer-e
   pointer-events:none;
   z-index:10060;
   display:grid;
-  grid-template-columns:1fr auto auto;
+  grid-template-columns:minmax(180px,1fr) auto minmax(300px,auto);
   align-items:center;
   gap:12px;
   padding:8px;
@@ -152,6 +152,33 @@ body.admin-mode .gv-admin-topbar{transform:translate(-50%,0);opacity:1;pointer-e
   gap:6px;
   flex-wrap:wrap;
   justify-content:flex-end;
+}
+.gv-admin-state{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:30px;
+  padding:0 10px;
+  border:1px solid rgba(246,246,246,.1);
+  border-radius:999px;
+  color:var(--gv-admin-muted);
+  font-family:var(--mono,'JetBrains Mono',monospace);
+  font-size:.62rem;
+  font-weight:700;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.gv-admin-status-dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#ffb3b3;
+  box-shadow:0 0 0 3px rgba(255,179,179,.12);
+}
+.gv-admin-status-dot.is-online{
+  background:var(--gv-admin-mint);
+  box-shadow:0 0 0 3px rgba(177,250,32,.12);
 }
 .gv-admin-action{
   border:1px solid rgba(246,246,246,.12);
@@ -252,6 +279,16 @@ body.admin-mode .gv-admin-topbar{transform:translate(-50%,0);opacity:1;pointer-e
   font-size:.84rem;
 }
 .gv-admin-error.is-visible{display:block;}
+.gv-admin-warning{
+  margin:0 0 16px;
+  padding:12px 13px;
+  border:1px solid rgba(255,179,179,.28);
+  border-radius:6px;
+  background:rgba(255,179,179,.08);
+  color:#ffd4d4;
+  font-size:.84rem;
+  line-height:1.45;
+}
 .gv-admin-note{
   margin-top:18px;
   padding-top:16px;
@@ -326,6 +363,32 @@ body.admin-mode .gv-admin-panel{
   color:var(--gv-admin-ink);
   overflow-wrap:anywhere;
 }
+.gv-admin-value-stack{
+  display:grid;
+  gap:8px;
+  margin:0 0 16px;
+}
+.gv-admin-value-stack div{
+  display:grid;
+  gap:5px;
+  padding:10px 11px;
+  border:1px solid rgba(246,246,246,.1);
+  border-radius:6px;
+  background:rgba(246,246,246,.035);
+}
+.gv-admin-value-stack strong{
+  color:var(--gv-admin-mint);
+  font-family:var(--mono,'JetBrains Mono',monospace);
+  font-size:.62rem;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.gv-admin-value-stack span{
+  color:var(--gv-admin-muted);
+  font-size:.78rem;
+  line-height:1.45;
+  overflow-wrap:anywhere;
+}
 .gv-admin-divider{
   height:1px;
   background:rgba(246,246,246,.1);
@@ -337,7 +400,7 @@ body.admin-mode .gv-admin-panel{
 }
 .gv-admin-panel-actions{
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:1fr 1fr 1fr;
   gap:8px;
   margin-top:12px;
 }
@@ -415,6 +478,7 @@ body.admin-edit-mode [data-edit-key].gv-admin-selected{
     width:calc(100vw - 16px);
   }
   .gv-admin-actions{justify-content:flex-start;}
+  .gv-admin-state{white-space:normal;}
   .gv-admin-segment{width:100%;}
   .gv-admin-segment button{min-height:34px;}
   .gv-admin-panel{
