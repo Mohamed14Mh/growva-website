@@ -1,0 +1,417 @@
+{
+  "primary": [
+    {
+      "id": "shopify",
+      "label": "Shopify",
+      "href": "shopify.html",
+      "order": 1,
+      "isVisible": true
+    },
+    {
+      "id": "services",
+      "label": "Services",
+      "href": "services.html",
+      "order": 2,
+      "isVisible": true,
+      "mega": "services"
+    },
+    {
+      "id": "work",
+      "label": "Work",
+      "href": "work.html",
+      "order": 3,
+      "isVisible": true,
+      "mega": "work"
+    },
+    {
+      "id": "process",
+      "label": "Process",
+      "href": "process.html",
+      "order": 4,
+      "isVisible": true
+    },
+    {
+      "id": "about",
+      "label": "About",
+      "href": "about.html",
+      "order": 5,
+      "isVisible": true
+    },
+    {
+      "id": "pricing",
+      "label": "Pricing",
+      "href": "pricing.html",
+      "order": 6,
+      "isVisible": true,
+      "mega": "pricing"
+    },
+    {
+      "id": "faq",
+      "label": "FAQ",
+      "href": "faq.html",
+      "order": 7,
+      "isVisible": true
+    },
+    {
+      "id": "contact",
+      "label": "Contact",
+      "href": "contact.html",
+      "order": 8,
+      "isVisible": true
+    }
+  ],
+  "cta": {
+    "id": "start_project",
+    "label": "Start a Project",
+    "href": "contact.html"
+  },
+  "megaMenus": {
+    "services": [
+      {
+        "id": "shopify_and_ecommerce",
+        "label": "Shopify & Ecommerce",
+        "items": [
+          {
+            "id": "premium_shopify_website_development",
+            "label": "Premium Shopify Website Development",
+            "href": "services/premium-shopify-website-development.html",
+            "description": "Most Shopify stores look like Shopify stores. Ours don't. We build custom storefronts from scratch — no bloated themes, no template compromises — designed specifically for your product, your customer, and your conversion goals.",
+            "isVisible": true
+          },
+          {
+            "id": "shopify_cro",
+            "label": "Shopify CRO",
+            "href": "services/shopify-cro.html",
+            "description": "Traffic is expensive. Losing it to a broken checkout or a confusing product page is more expensive. We analyze where your funnel breaks, then rebuild those points systematically.",
+            "isVisible": true
+          },
+          {
+            "id": "shopify_store_optimization",
+            "label": "Shopify Store Optimization",
+            "href": "services/shopify-store-optimization.html",
+            "description": "An existing store with the wrong structure, too many apps, and neglected technical debt performs worse every month. We audit, clean, and restructure it so it runs the way it should.",
+            "isVisible": true
+          },
+          {
+            "id": "performance_optimization",
+            "label": "Performance Optimization",
+            "href": "services/performance-optimization.html",
+            "description": "Core Web Vitals, image pipelines, and app-bloat audits that keep the store fast as it grows. A 1-second delay in page load time reduces conversions by up to 7%.",
+            "isVisible": true
+          }
+        ]
+      },
+      {
+        "id": "amazon_seller_central",
+        "label": "Amazon Seller Central",
+        "items": [
+          {
+            "id": "amazon_account_setup",
+            "label": "Amazon Account Setup From Scratch",
+            "href": "services/amazon-account-setup.html",
+            "description": "Amazon can become a serious revenue channel, but only if the account is built cleanly from day one. We set up Seller Central foundations so the brand does not inherit avoidable compliance, catalog, or advertising problems later.",
+            "isVisible": true
+          },
+          {
+            "id": "amazon_account_management",
+            "label": "Amazon Account Management & Growth",
+            "href": "services/amazon-account-management.html",
+            "description": "An Amazon account is not a passive shelf. It needs catalog hygiene, campaign discipline, inventory awareness, review monitoring, and reporting rhythm to grow without quietly leaking margin.",
+            "isVisible": true
+          },
+          {
+            "id": "amazon_listing_advertising_optimization",
+            "label": "Amazon Listing & Advertising Optimization",
+            "href": "services/amazon-listing-advertising-optimization.html",
+            "description": "Amazon visibility is earned through precise listing content, keyword structure, image hierarchy, and PPC management. We optimize the product page and the paid traffic system together.",
+            "isVisible": true
+          }
+        ]
+      },
+      {
+        "id": "web_development",
+        "label": "Web Development",
+        "items": [
+          {
+            "id": "corporate_websites",
+            "label": "Company & Corporate Websites",
+            "href": "services/corporate-websites.html",
+            "description": "Not every brand needs a cart. Some need a credible, sharp, fast website that explains the company, supports sales conversations, and makes the business look as serious as it is.",
+            "isVisible": true
+          },
+          {
+            "id": "portfolio_websites",
+            "label": "Portfolio & Personal Websites",
+            "href": "services/portfolio-websites.html",
+            "description": "A personal site should not feel like a template with a headshot. We design portfolios and personal websites that make expertise legible, memorable, and easy to act on.",
+            "isVisible": true
+          },
+          {
+            "id": "custom_store_development",
+            "label": "Custom Store Development",
+            "href": "services/custom-store-development.html",
+            "description": "Shopify is often the right commerce choice, but not always. For brands with unusual operational, content, marketplace, or platform requirements, we build custom store experiences outside Shopify when the brief calls for it.",
+            "isVisible": true
+          }
+        ]
+      },
+      {
+        "id": "graphic_design",
+        "label": "Graphic Design",
+        "items": [
+          {
+            "id": "brand_identity_design",
+            "label": "Brand Identity Design",
+            "href": "services/brand-identity-design.html",
+            "description": "A brand that can't be recognized at a glance can't build loyalty over time. We design visual identities that communicate something specific about the product — before the customer reads a word.",
+            "isVisible": true
+          },
+          {
+            "id": "packaging_design",
+            "label": "Packaging Design",
+            "href": "services/packaging-design.html",
+            "description": "The unboxing moment is a brand touchpoint. Packaging that loses the story between screen and shelf costs you repurchase rates, social sharing, and the premium perception you worked to build.",
+            "isVisible": true
+          },
+          {
+            "id": "marketing_social_design",
+            "label": "Marketing & Social Media Design",
+            "href": "services/marketing-social-design.html",
+            "description": "A brand identity is the system. Campaign design is how the system performs every week. We create the ongoing social, ad, and launch assets that keep the brand consistent without making it repetitive.",
+            "isVisible": true
+          }
+        ]
+      },
+      {
+        "id": "printing",
+        "label": "Printing",
+        "items": [
+          {
+            "id": "business_marketing_print",
+            "label": "Business & Marketing Print",
+            "href": "services/business-marketing-print.html",
+            "description": "Printed collateral still shapes how a brand is remembered in meetings, retail environments, launches, and local activations. We design and prepare business print that feels as considered as the digital brand.",
+            "isVisible": true
+          },
+          {
+            "id": "packaging_print_production",
+            "label": "Packaging Print Production",
+            "href": "services/packaging-print-production.html",
+            "description": "Packaging design is only finished when it survives production. We translate visual packaging systems into print-ready, supplier-ready files that protect the brand in the physical world.",
+            "isVisible": true
+          },
+          {
+            "id": "large_format_retail_print",
+            "label": "Large Format & Retail Print",
+            "href": "services/large-format-retail-print.html",
+            "description": "Retail and event environments need scale, clarity, and production discipline. We design and prepare banners, signage, displays, and in-store graphics that make the brand visible without making it loud.",
+            "isVisible": true
+          }
+        ]
+      },
+      {
+        "id": "growth_and_strategy",
+        "label": "Growth & Strategy",
+        "items": [
+          {
+            "id": "ecommerce_strategy",
+            "label": "Ecommerce Strategy",
+            "href": "services/ecommerce-strategy.html",
+            "description": "Strategy and growth systems apply whether we are building your Shopify store, managing your Amazon account, developing a corporate site, or designing your next campaign. We write the commercial plan before anyone opens a design tool.",
+            "isVisible": true
+          },
+          {
+            "id": "conversion_optimization",
+            "label": "Conversion Optimization",
+            "href": "services/conversion-optimization.html",
+            "description": "Landing pages, product pages, marketplace listings, and campaign journeys rebuilt around how your specific customer actually buys — whether the sale happens on Shopify, Amazon, or a custom web experience.",
+            "isVisible": true
+          },
+          {
+            "id": "growth_systems",
+            "label": "Growth Systems",
+            "href": "services/growth-systems.html",
+            "description": "Retention, email/SMS, and lifecycle infrastructure that turns first orders into repeat customers across every channel we touch. Acquisition is expensive. Retention is where margin lives.",
+            "isVisible": true
+          },
+          {
+            "id": "website_maintenance",
+            "label": "Website Maintenance",
+            "href": "services/website-maintenance.html",
+            "description": "Websites, stores, and campaign infrastructure left unattended break slowly, then suddenly. We keep the digital systems running, updated, and performing long after launch day.",
+            "isVisible": true
+          }
+        ]
+      }
+    ],
+    "work": [
+      {
+        "id": "shopify_stores",
+        "label": "Shopify Stores",
+        "href": "",
+        "description": "Custom storefronts, product pages, and launch builds for D2C brands.",
+        "isVisible": true
+      },
+      {
+        "id": "brand_identity",
+        "label": "Brand Identity",
+        "href": "",
+        "description": "Logos, visual systems, typography, and brand language for product brands.",
+        "isVisible": true
+      },
+      {
+        "id": "packaging_design",
+        "label": "Packaging Design",
+        "href": "",
+        "description": "Labels, boxes, and structures designed for retail shelves and D2C unboxing.",
+        "isVisible": true
+      },
+      {
+        "id": "amazon_storefronts",
+        "label": "Amazon Storefronts",
+        "href": "",
+        "description": "A+ content, brand storefronts, and listing imagery that convert on Seller Central.",
+        "isVisible": true
+      },
+      {
+        "id": "websites",
+        "label": "Websites",
+        "href": "",
+        "description": "Corporate, portfolio, and custom web builds for credible digital presence.",
+        "isVisible": true
+      },
+      {
+        "id": "marketing_and_print",
+        "label": "Marketing & Print",
+        "href": "",
+        "description": "Campaign assets, social content, and print collateral for product launches.",
+        "isVisible": true
+      }
+    ],
+    "pricing": [
+      {
+        "id": "branding_packages",
+        "label": "Brand Identity Packages",
+        "href": "pricing.html#branding-packages",
+        "description": "Visual identity systems for product brands that want to be remembered.",
+        "isVisible": true
+      },
+      {
+        "id": "shopify_development_packages",
+        "label": "E-Commerce Website Packages",
+        "href": "pricing.html#shopify-development-packages",
+        "description": "Custom Shopify builds designed for conversion and engineered for scale.",
+        "isVisible": true
+      },
+      {
+        "id": "growth_retention_packages",
+        "label": "Growth Systems Packages",
+        "href": "pricing.html#growth-retention-packages",
+        "description": "Email, SMS, and lifecycle infrastructure that turns first-time buyers into repeat customers.",
+        "isVisible": true
+      },
+      {
+        "id": "seo_packages",
+        "label": "SEO Packages",
+        "href": "pricing.html#seo-packages",
+        "description": "Organic search equity that compounds over time — built into the store, not added on top of it.",
+        "isVisible": true
+      },
+      {
+        "id": "website_maintenance_packages",
+        "label": "Website Maintenance Packages",
+        "href": "pricing.html#website-maintenance-packages",
+        "description": "Protect your investment with ongoing care — so the store keeps performing long after launch.",
+        "isVisible": true
+      },
+      {
+        "id": "amazon_seller_central_packages",
+        "label": "Amazon Seller Central Packages",
+        "href": "pricing.html#amazon-seller-central-packages",
+        "description": "Marketplace setup, management, listing optimization, and advertising systems for product brands.",
+        "isVisible": true
+      },
+      {
+        "id": "web_development_packages",
+        "label": "Web Development Packages",
+        "href": "pricing.html#web-development-packages",
+        "description": "Corporate sites, personal platforms, and custom store builds outside the usual ecommerce template path.",
+        "isVisible": true
+      },
+      {
+        "id": "printing_packages",
+        "label": "Printing Packages",
+        "href": "pricing.html#printing-packages",
+        "description": "Business collateral, packaging production files, and large-format retail print handled with brand-level precision.",
+        "isVisible": true
+      }
+    ]
+  },
+  "footer": {
+    "tagline": "Growth By Design.",
+    "columns": [
+      {
+        "id": "services",
+        "title": "Services",
+        "links": [
+          {
+            "label": "Shopify Development",
+            "href": "services/premium-shopify-website-development.html"
+          },
+          {
+            "label": "Shopify CRO",
+            "href": "services/shopify-cro.html"
+          },
+          {
+            "label": "Brand Identity",
+            "href": "services/brand-identity-design.html"
+          },
+          {
+            "label": "Growth Systems",
+            "href": "services/growth-systems.html"
+          }
+        ]
+      },
+      {
+        "id": "company",
+        "title": "Company",
+        "links": [
+          {
+            "label": "About",
+            "href": "about.html"
+          },
+          {
+            "label": "Work",
+            "href": "work.html"
+          },
+          {
+            "label": "Process",
+            "href": "process.html"
+          },
+          {
+            "label": "FAQ",
+            "href": "faq.html"
+          }
+        ]
+      },
+      {
+        "id": "contact",
+        "title": "Contact",
+        "links": [
+          {
+            "label": "hello@growva.com",
+            "href": "mailto:hello@growva.com"
+          },
+          {
+            "label": "Instagram",
+            "href": "#"
+          },
+          {
+            "label": "LinkedIn",
+            "href": "#"
+          }
+        ]
+      }
+    ]
+  }
+}

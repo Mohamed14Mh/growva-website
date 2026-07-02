@@ -1,0 +1,820 @@
+{
+  "categories": [
+    {
+      "id": "shopify_stores",
+      "title": "Shopify Stores",
+      "description": "Custom storefronts, product pages, and launch builds for D2C brands.",
+      "countLabel": "4 Projects",
+      "href": "",
+      "order": 1,
+      "isVisible": true
+    },
+    {
+      "id": "brand_identity",
+      "title": "Brand Identity",
+      "description": "Logos, visual systems, typography, and brand language for product brands.",
+      "countLabel": "3 Projects",
+      "href": "",
+      "order": 2,
+      "isVisible": true
+    },
+    {
+      "id": "packaging_design",
+      "title": "Packaging Design",
+      "description": "Labels, boxes, and structures designed for retail shelves and D2C unboxing.",
+      "countLabel": "3 Projects",
+      "href": "",
+      "order": 3,
+      "isVisible": true
+    },
+    {
+      "id": "amazon_storefronts",
+      "title": "Amazon Storefronts",
+      "description": "A+ content, brand storefronts, and listing imagery that convert on Seller Central.",
+      "countLabel": "3 Projects",
+      "href": "",
+      "order": 4,
+      "isVisible": true
+    },
+    {
+      "id": "websites",
+      "title": "Websites",
+      "description": "Corporate, portfolio, and custom web builds for credible digital presence.",
+      "countLabel": "3 Projects",
+      "href": "",
+      "order": 5,
+      "isVisible": true
+    },
+    {
+      "id": "marketing_and_print",
+      "title": "Marketing & Print",
+      "description": "Campaign assets, social content, and print collateral for product launches.",
+      "countLabel": "3 Projects",
+      "href": "",
+      "order": 6,
+      "isVisible": true
+    }
+  ],
+  "projects": [
+    {
+      "id": "amazon_storefronts_hasat_organics",
+      "slug": "hasat-organics",
+      "categoryId": "amazon_storefronts",
+      "categorySlug": "amazon-storefronts",
+      "title": "Hasat Organics Storefront .",
+      "summary": "A provenance-forward storefront that moved farm photography and origin storytelling from Instagram to where buyers actually shop — Amazon Seller Central.",
+      "href": "work/amazon-storefronts/hasat-organics.html",
+      "order": 1,
+      "isVisible": true,
+      "isFeatured": false,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Hasat's Amazon presence was a single listing with no A+ content and warehouse photography. The brand's provenance story, their primary commercial differentiator, was invisible on the platform."
+        },
+        {
+          "label": "Strategy",
+          "content": "We structured the storefront as a farm narrative: origin story, seasonal harvest calendar, and meet-the-growers module. Each product listing received an A+ page with ingredient provenance table, growing method notes, and a recipe link. We configured the Subscribe & Save programme and added a bundle cross-sell module."
+        },
+        {
+          "label": "Result",
+          "content": "Subscribe & Save orders grew from 0 to 34% of Amazon revenue within two months. Listing reviews citing quality increased by 58%. Average order value on bundles was 2.3x that of single-product orders."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "34%",
+          "label": "Subscribe & Save Revenue"
+        },
+        {
+          "value": "2.3x",
+          "label": "Bundle AOV"
+        },
+        {
+          "value": "58%",
+          "label": "Quality Review Increase"
+        }
+      ]
+    },
+    {
+      "id": "amazon_storefronts_maison_luxe",
+      "slug": "maison-luxe",
+      "categoryId": "amazon_storefronts",
+      "categorySlug": "amazon-storefronts",
+      "title": "Maison Luxe Storefront .",
+      "summary": "A premium gifting brand storefront with curated bundle cross-sells and A+ comparison modules that doubled gifting season revenue.",
+      "href": "work/amazon-storefronts/maison-luxe.html",
+      "order": 2,
+      "isVisible": true,
+      "isFeatured": false,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Maison Luxe's Amazon account had nine individual product listings with no storefront and inconsistent A+ content. Their gifting season revenue was driven by price promotions rather than brand value."
+        },
+        {
+          "label": "Strategy",
+          "content": "We created a curated gifting storefront with three seasonal collections. Each product received A+ content including a gifting occasion guide and a curated pairing module. An A+ comparison chart positioned the three signature sets against gifting price points. We configured bundle listings for the top five gifting combinations."
+        },
+        {
+          "label": "Result",
+          "content": "Gifting season revenue doubled year-on-year. Bundle listings became the top three best-selling ASINs on the account. Return rate fell from 8.1% to 2.9% after the A+ content set expectations accurately."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "2x",
+          "label": "Gifting Season Revenue"
+        },
+        {
+          "value": "2.9%",
+          "label": "Return Rate"
+        },
+        {
+          "value": "#1-3",
+          "label": "Top Selling ASINs"
+        }
+      ]
+    },
+    {
+      "id": "amazon_storefronts_noor_perfumery",
+      "slug": "noor-perfumery",
+      "categoryId": "amazon_storefronts",
+      "categorySlug": "amazon-storefronts",
+      "title": "Noor Perfumery Storefront .",
+      "summary": "Full A+ content rebuild and branded storefront that lifted conversion rate by 41% in 90 days — through scent education modules and a streamlined purchase path.",
+      "href": "work/amazon-storefronts/noor-perfumery.html",
+      "order": 3,
+      "isVisible": true,
+      "isFeatured": true,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Noor's Amazon listings used stock photography and had no A+ content. The brand's luxury positioning was invisible on the platform. They were losing to mid-market competitors on price alone because there was no perception of value."
+        },
+        {
+          "label": "Strategy",
+          "content": "We rebuilt the storefront as a three-zone experience: brand story, product world, and flagship listings. Each listing received full A+ content with a scent profile module, ingredient origin table, and a usage guide. The storefront was built around two hero collections and a search-optimised category structure."
+        },
+        {
+          "label": "Result",
+          "content": "Conversion rate rose from 2.1% to 3.0% in 90 days. Revenue from the Amazon channel grew 41% month-on-month. BSR (Best Seller Rank) for three listings improved by an average of 62 positions."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "41%",
+          "label": "Revenue Growth"
+        },
+        {
+          "value": "3.0%",
+          "label": "Conversion Rate"
+        },
+        {
+          "value": "62",
+          "label": "Average BSR Improvement"
+        }
+      ]
+    },
+    {
+      "id": "brand_identity_hasat_organics",
+      "slug": "hasat-organics",
+      "categoryId": "brand_identity",
+      "categorySlug": "brand-identity",
+      "title": "Hasat Organics Identity .",
+      "summary": "An earth-rooted brand identity with a handcrafted feel — built simultaneously for farmers market displays, harvest box packaging, and digital channels.",
+      "href": "work/brand-identity/hasat-organics.html",
+      "order": 4,
+      "isVisible": true,
+      "isFeatured": false,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Hasat's founder was selling at markets with no branding beyond a hand-lettered sign. They were scaling into CSA boxes and a Shopify store but had nothing to carry the brand into a packaging or digital context."
+        },
+        {
+          "label": "Strategy",
+          "content": "We began with positioning — settling on provenance and craft over organic certification as the primary brand story. The mark referenced a germinating seed in a minimal line-art style that reproduced cleanly on kraft paper, cardboard, and digital at any size. We specified three colourways for seasonal rotation."
+        },
+        {
+          "label": "Result",
+          "content": "The identity launched across 12 packaging formats, the Shopify store, Instagram, and 6 farmers market stalls simultaneously. CSA signups increased 3x in the season after the rebrand. The brand was featured in a regional food publication within three months of launch."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "3x",
+          "label": "CSA Signup Growth"
+        },
+        {
+          "value": "12",
+          "label": "Packaging Formats"
+        },
+        {
+          "value": "3 months",
+          "label": "Press Feature"
+        }
+      ]
+    },
+    {
+      "id": "brand_identity_noor_perfumery",
+      "slug": "noor-perfumery",
+      "categoryId": "brand_identity",
+      "categorySlug": "brand-identity",
+      "title": "Noor Perfumery Identity .",
+      "summary": "A full brand system — wordmark, monogram, typographic hierarchy, and a refined palette — built for an artisan fragrance house expanding into retail and hospitality.",
+      "href": "work/brand-identity/noor-perfumery.html",
+      "order": 5,
+      "isVisible": true,
+      "isFeatured": true,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Noor had a name and a recipe, but no identity. Their existing logo was clip art in Arial. They needed to enter luxury retail and gift-buying channels within six months and had no visual foundation to do either."
+        },
+        {
+          "label": "Strategy",
+          "content": "We built the brand system in three phases: identity audit and positioning, logo and wordmark development (12 directions narrowed to 3 refined options), and system rollout — type scale, colour palette, photographic direction, and packaging specifications. The final identity referenced calligraphic Arabic letterforms without mimicking them."
+        },
+        {
+          "label": "Result",
+          "content": "The brand launched into two luxury retail locations and a hospitality brand partnership within four months. Wholesale enquiries doubled in the first quarter after the rebrand. The identity is now in use across Shopify, Amazon, Instagram, and physical packaging."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "2x",
+          "label": "Wholesale Enquiries"
+        },
+        {
+          "value": "4 months",
+          "label": "Retail Launch"
+        },
+        {
+          "value": "3",
+          "label": "Retail Channels"
+        }
+      ]
+    },
+    {
+      "id": "brand_identity_vella_cosmetics",
+      "slug": "vella-cosmetics",
+      "categoryId": "brand_identity",
+      "categorySlug": "brand-identity",
+      "title": "Vella Cosmetics Identity .",
+      "summary": "A playful yet precise identity system with a modular logo mark designed to scale across tubes, compacts, bottles, and digital — without losing recognisability.",
+      "href": "work/brand-identity/vella-cosmetics.html",
+      "order": 6,
+      "isVisible": true,
+      "isFeatured": true,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Vella was building a cosmetics line with 14 SKUs at launch, each in a different format. They needed a mark that worked as a tube stamp, compact embossing, and social profile image simultaneously."
+        },
+        {
+          "label": "Strategy",
+          "content": "We developed a geometric monogram mark built on a 3x3 grid that simplified to a single-colour stamp at 8mm. The wordmark used a custom ligature that referenced the V-shape of the mark. The palette was designed for print accuracy — Pantone-specified for every format."
+        },
+        {
+          "label": "Result",
+          "content": "The identity rolled out across 14 SKUs at launch with no adaptation required. The mark tested at 92% recognition among target demographic at 12mm. The brand secured a retail listing with a major beauty retailer within six months of launch."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "14 SKUs",
+          "label": "Identity Rollout"
+        },
+        {
+          "value": "92%",
+          "label": "Mark Recognition"
+        },
+        {
+          "value": "6 months",
+          "label": "Retail Listing"
+        }
+      ]
+    },
+    {
+      "id": "marketing_print_noor_holiday",
+      "slug": "noor-holiday",
+      "categoryId": "marketing_print",
+      "categorySlug": "marketing-print",
+      "title": "Noor Holiday Collection .",
+      "summary": "A seasonal gifting campaign with editorial photography direction, a printed catalogue, and an in-store display system — built for both direct-to-consumer and wholesale activation.",
+      "href": "work/marketing-print/noor-holiday.html",
+      "order": 7,
+      "isVisible": true,
+      "isFeatured": false,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Noor's Q4 was their biggest commercial window but their previous holiday campaigns were a single email and a gift-wrap service. They had wholesale partners in two boutique hotels who wanted seasonal activation but had nothing to offer them."
+        },
+        {
+          "label": "Strategy",
+          "content": "We developed a campaign concept — 'The Art of Giving' — with a 12-page printed catalogue (digital and print editions), an editorial photography brief for four hero images, an in-store display specification for hotel lobby placement, and a matching digital campaign for email and Instagram. The catalogue doubled as a wholesale buyer reference."
+        },
+        {
+          "label": "Result",
+          "content": "Holiday season revenue grew 2.7x year-on-year. Two hotel partners activated the in-store display and generated 31 gift sets sold at AED 1,200 per set. The catalogue was reordered for a Valentine's campaign."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "2.7x",
+          "label": "Holiday Revenue Growth"
+        },
+        {
+          "value": "31",
+          "label": "Hotel Gift Sets Sold"
+        },
+        {
+          "value": "2",
+          "label": "Wholesale Activations"
+        }
+      ]
+    },
+    {
+      "id": "marketing_print_terra_grove",
+      "slug": "terra-grove",
+      "categoryId": "marketing_print",
+      "categorySlug": "marketing-print",
+      "title": "Terra & Grove Harvest Print .",
+      "summary": "Farmers market collateral, seasonal mailers, and branded packaging inserts that reinforce provenance at every physical touchpoint.",
+      "href": "work/marketing-print/terra-grove.html",
+      "order": 8,
+      "isVisible": true,
+      "isFeatured": false,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Terra & Grove were selling at markets with homemade printed signs and no collateral. As they expanded to five market locations and launched a corporate gifting programme, they needed print assets that worked across all contexts."
+        },
+        {
+          "label": "Strategy",
+          "content": "We designed a print system built around a seasonal illustration set — four produce illustrations per season — that carried across market banners, A5 flyers, packaging inserts, and a B2B sales sheet. The system used a limited colour palette that reproduced on a digital press for short runs, keeping per-unit costs low."
+        },
+        {
+          "label": "Result",
+          "content": "Market revenue per site grew 38% in the season after the print system launch, attributed by the client to improved impulse purchase at the stall. Corporate gifting accounts cited the sales sheet as the touchpoint that confirmed the enquiry. The illustration set has been used for three seasons without redesign."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "38%",
+          "label": "Market Revenue Growth"
+        },
+        {
+          "value": "3",
+          "label": "Seasonal Uses"
+        },
+        {
+          "value": "5",
+          "label": "Market Locations"
+        }
+      ]
+    },
+    {
+      "id": "marketing_print_vella_campaign",
+      "slug": "vella-campaign",
+      "categoryId": "marketing_print",
+      "categorySlug": "marketing-print",
+      "title": "Vella Cosmetics Campaign .",
+      "summary": "A product launch campaign across social, email, and print — from concept to 60+ deliverable assets — built around a single campaign idea executed at every touchpoint.",
+      "href": "work/marketing-print/vella-campaign.html",
+      "order": 9,
+      "isVisible": true,
+      "isFeatured": false,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Vella's previous product launches were reactive: a few Instagram posts, a banner, and a newsletter. There was no campaign concept to unify them, and each channel looked disconnected from the others."
+        },
+        {
+          "label": "Strategy",
+          "content": "We developed a launch concept — 'Found Your Formula' — that positioned shade-matching as a personal discovery. The creative system was built as a modular grid that could reformat for Instagram Reels, Stories, feed posts, email headers, and a printed lookbook insert. 60+ final assets were delivered in a brand-aligned Figma handoff."
+        },
+        {
+          "label": "Result",
+          "content": "The launch reached 148,000 accounts in the first week on Instagram. Email CTR was 4.2% vs a 1.1% previous benchmark. The printed lookbook was picked up by a beauty PR desk and syndicated in a regional magazine."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "148k",
+          "label": "Launch Week Reach"
+        },
+        {
+          "value": "4.2%",
+          "label": "Email CTR"
+        },
+        {
+          "value": "60+",
+          "label": "Campaign Assets"
+        }
+      ]
+    },
+    {
+      "id": "packaging_design_atelier_marbre",
+      "slug": "atelier-marbre",
+      "categoryId": "packaging_design",
+      "categorySlug": "packaging-design",
+      "title": "Atelier Marbre Packaging .",
+      "summary": "Tactile product packaging for marble objets — matte laminate, silk-screen print, custom tissue insert — designed for retail, gifting, and DHL Worlwide.",
+      "href": "work/packaging-design/atelier-marbre.html",
+      "order": 10,
+      "isVisible": true,
+      "isFeatured": true,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Atelier Marbre's pieces arrived in bubble wrap inside generic white boxes. At a retail price of AED 850–4,200, buyers expected packaging that matched the product's craft. Several wholesale accounts cited packaging as a barrier to listing."
+        },
+        {
+          "label": "Strategy",
+          "content": "We designed a rigid box with a matte laminate exterior and a silk-screen printed wordmark in a single white pass. The interior was a two-tone tissue system with a printed tissue and a branded sticker seal. A custom foam insert was designed for each piece size. The full system was engineered to DHL shipping standards."
+        },
+        {
+          "label": "Result",
+          "content": "Three wholesale accounts that had declined listed within two months of the packaging launch. Returns citing transit damage fell from 4.2% to 0.3%. The packaging has been featured in three product photography contexts."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "3",
+          "label": "New Wholesale Accounts"
+        },
+        {
+          "value": "0.3%",
+          "label": "Transit Damage Rate"
+        },
+        {
+          "value": "AED 4,200",
+          "label": "Highest Product Price Point"
+        }
+      ]
+    },
+    {
+      "id": "packaging_design_noor_no03",
+      "slug": "noor-no03",
+      "categoryId": "packaging_design",
+      "categorySlug": "packaging-design",
+      "title": "Noor No.03 Packaging .",
+      "summary": "Bespoke outer box and bottle sleeve for a limited-edition oud fragrance — embossed, foiled, and production-ready for 500 units.",
+      "href": "work/packaging-design/noor-no03.html",
+      "order": 11,
+      "isVisible": true,
+      "isFeatured": false,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Noor's third fragrance was conceived as a collector's edition. It needed packaging that matched a retail price point of AED 1,200 and communicated rarity without being theatrical. Their existing supplier could not handle embossing and foil on the same piece."
+        },
+        {
+          "label": "Strategy",
+          "content": "We designed a rigid box with a single-colour deboss logo on the lid and a gold foil band around the circumference. The bottle sleeve used an uncoated duplex board printed with a single Pantone. We sourced a UAE-based supplier who could handle both processes and managed the print production through to delivery."
+        },
+        {
+          "label": "Result",
+          "content": "Production hit zero defects on the 500-unit run. The packaging was photographed and featured on two luxury gift guides. Wholesale buyers cited the packaging as the primary reason for stocking the collection."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "500 units",
+          "label": "Zero-Defect Run"
+        },
+        {
+          "value": "2",
+          "label": "Gift Guide Features"
+        },
+        {
+          "value": "1,200 AED",
+          "label": "Retail Price Point"
+        }
+      ]
+    },
+    {
+      "id": "packaging_design_terra_grove",
+      "slug": "terra-grove",
+      "categoryId": "packaging_design",
+      "categorySlug": "packaging-design",
+      "title": "Terra & Grove Packaging .",
+      "summary": "A seasonal harvest box system with interchangeable label inserts — designed for repeat gifting and CSA subscription, printed on kraft and recycled board.",
+      "href": "work/packaging-design/terra-grove.html",
+      "order": 12,
+      "isVisible": true,
+      "isFeatured": false,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Terra & Grove shipped a generic brown box with a hand-written note. As they scaled into corporate gifting, they needed packaging that communicated craft and provenance while remaining economical to produce at scale."
+        },
+        {
+          "label": "Strategy",
+          "content": "We designed a base box in two sizes — single and double harvest — with a die-cut window and a slipped label system that allowed seasonal artwork to be swapped without reprinting the box. Each season had a distinct colour and illustration panel. We specified recycled materials throughout and produced a supplier-ready file pack."
+        },
+        {
+          "label": "Result",
+          "content": "Gifting orders grew by 4x in the first season after repackaging. Corporate clients cited the packaging as a deciding factor. Per-unit cost fell by 22% vs the previous custom box due to the label-swap system."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "4x",
+          "label": "Gifting Orders"
+        },
+        {
+          "value": "22%",
+          "label": "Cost Reduction"
+        },
+        {
+          "value": "2",
+          "label": "Box Formats"
+        }
+      ]
+    },
+    {
+      "id": "shopify_stores_atelier_marbre",
+      "slug": "atelier-marbre",
+      "categoryId": "shopify_stores",
+      "categorySlug": "shopify-stores",
+      "title": "Atelier Marbre .",
+      "summary": "A high-end marble homewares store built around bespoke made-to-order pieces, a collection configurator, and an exclusive waitlist for limited editions.",
+      "href": "work/shopify-stores/atelier-marbre.html",
+      "order": 13,
+      "isVisible": true,
+      "isFeatured": true,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Atelier Marbre's previous store had a standard product grid that undercut the brand's premium positioning. Lead times were hidden, and there was no way for customers to customise finishes or enquire about bespoke pieces."
+        },
+        {
+          "label": "Strategy",
+          "content": "We designed a configurator on each product page that let customers select marble finish, size, and quantity before requesting a production quote. An inventory-aware waitlist system replaced stock-out notices with anticipated delivery dates. Photography direction elevated the editorial feel."
+        },
+        {
+          "label": "Result",
+          "content": "The enquiry-to-purchase rate increased by 3.2x. Waitlist sign-ups generated AED 180,000 in pre-orders within the first quarter. Bounce rate on product pages fell from 64% to 29%."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "3.2x",
+          "label": "Enquiry-to-Purchase"
+        },
+        {
+          "value": "AED 180k",
+          "label": "Pre-Order Value"
+        },
+        {
+          "value": "29%",
+          "label": "Product Page Bounce"
+        }
+      ]
+    },
+    {
+      "id": "shopify_stores_noor_perfumery",
+      "slug": "noor-perfumery",
+      "categoryId": "shopify_stores",
+      "categorySlug": "shopify-stores",
+      "title": "Noor Perfumery .",
+      "summary": "An editorial Shopify store for an artisan fragrance house that doubled average order value through narrative-led product pages and a streamlined purchase journey.",
+      "href": "work/shopify-stores/noor-perfumery.html",
+      "order": 14,
+      "isVisible": true,
+      "isFeatured": true,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Noor's previous store looked generic — product pages that read like a catalogue rather than a sensory experience. Customers bounced after two clicks, conversion was 0.9%, and average order value sat at AED 220."
+        },
+        {
+          "label": "Strategy",
+          "content": "We restructured the store around scent storytelling: each product page opened with an editorial scroll sequence, ingredient provenance notes, and a scent-pairing module that surfaced complementary fragrances. The checkout was rebuilt for gifting — box selection, personalised message, and delivery date in a single drawer."
+        },
+        {
+          "label": "Result",
+          "content": "Conversion rate climbed from 0.9% to 2.4% in 60 days. Average order value doubled to AED 440, driven by the gifting drawer and scent-pairing cross-sells. Cart abandonment fell by 31%."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "2.4%",
+          "label": "Conversion Rate"
+        },
+        {
+          "value": "2x",
+          "label": "Average Order Value"
+        },
+        {
+          "value": "31%",
+          "label": "Abandoned Cart Reduction"
+        }
+      ]
+    },
+    {
+      "id": "shopify_stores_terra_grove",
+      "slug": "terra-grove",
+      "categoryId": "shopify_stores",
+      "categorySlug": "shopify-stores",
+      "title": "Terra & Grove .",
+      "summary": "A farm-to-table subscription store with seasonal harvest bundles, CSA member management, and provenance storytelling at every step.",
+      "href": "work/shopify-stores/terra-grove.html",
+      "order": 15,
+      "isVisible": true,
+      "isFeatured": false,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Terra & Grove were running their CSA signups through a Google Form. The process was manual, error-prone, and offered no discovery layer for new customers unfamiliar with a CSA model."
+        },
+        {
+          "label": "Strategy",
+          "content": "We built a subscription-first Shopify store with a CSA onboarding wizard that explained the model, let customers select frequency, and managed address and payment details. Each seasonal harvest bundle had a provenance page with farm location, harvest window, and recipe ideas."
+        },
+        {
+          "label": "Result",
+          "content": "CSA signup conversion hit 18% from cold traffic. Subscription revenue accounted for 67% of monthly income within six months. Customer lifetime value increased from AED 320 to AED 1,100."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "18%",
+          "label": "CSA Signup Rate"
+        },
+        {
+          "value": "67%",
+          "label": "Revenue via Subscriptions"
+        },
+        {
+          "value": "3.4x",
+          "label": "Customer Lifetime Value"
+        }
+      ]
+    },
+    {
+      "id": "shopify_stores_vella_cosmetics",
+      "slug": "vella-cosmetics",
+      "categoryId": "shopify_stores",
+      "categorySlug": "shopify-stores",
+      "title": "Vella Cosmetics .",
+      "summary": "A shade-discovery experience and routine builder that turned a cluttered beauty store into a streamlined conversion machine.",
+      "href": "work/shopify-stores/vella-cosmetics.html",
+      "order": 16,
+      "isVisible": true,
+      "isFeatured": true,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Vella had 140 SKUs across 8 product lines, but no discovery layer — customers could not find their shade or build a routine. Pages loaded in 4.8s and the mobile cart had a 78% abandonment rate."
+        },
+        {
+          "label": "Strategy",
+          "content": "We introduced a shade-finder quiz that routed customers to a curated 3-product starter set. Each product page gained a routine builder sidebar. We rebuilt the mobile cart as a persistent bottom drawer and cut page weight by 55% via image optimisation and lazy loading."
+        },
+        {
+          "label": "Result",
+          "content": "Time-to-purchase fell by 38%. Mobile conversion rate jumped from 0.8% to 2.1%. The routine builder drove 26% of all orders with a 1.9x higher AOV than single-product orders."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "2.1%",
+          "label": "Mobile Conversion"
+        },
+        {
+          "value": "38%",
+          "label": "Faster Purchase"
+        },
+        {
+          "value": "26%",
+          "label": "Orders via Routine Builder"
+        }
+      ]
+    },
+    {
+      "id": "websites_atelier_marbre",
+      "slug": "atelier-marbre",
+      "categoryId": "websites",
+      "categorySlug": "websites",
+      "title": "Atelier Marbre Website .",
+      "summary": "A bespoke brand website with editorial photography direction, collection pages, and a custom bespoke enquiry system — built to match the product's price point.",
+      "href": "work/websites/atelier-marbre.html",
+      "order": 17,
+      "isVisible": true,
+      "isFeatured": true,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Atelier Marbre had no website. Enquiries came through Instagram DM and word of mouth. As they entered a wholesale and hospitality channel, buyers required a web presence that communicated the brand's craft and production process."
+        },
+        {
+          "label": "Strategy",
+          "content": "We structured the site around four sections: brand story, material world (a visual explainer of marble finishes and origin), collection (with individual product pages and a bespoke enquiry form), and press. Photography direction and prop styling guidance was produced for the client's own shoot. The site was built on a custom CMS."
+        },
+        {
+          "label": "Result",
+          "content": "Time-on-site averaged 4m 20s. Wholesale enquiries via the site generated three confirmed accounts in the first two months. The site was submitted to and featured in one design publication within six weeks of launch."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "4m 20s",
+          "label": "Avg Time on Site"
+        },
+        {
+          "value": "3",
+          "label": "Wholesale Accounts"
+        },
+        {
+          "value": "6 weeks",
+          "label": "Press Feature"
+        }
+      ]
+    },
+    {
+      "id": "websites_dune_studio",
+      "slug": "dune-studio",
+      "categoryId": "websites",
+      "categorySlug": "websites",
+      "title": "Dune Studio Website .",
+      "summary": "A portfolio and studio presence for an interior design firm — project galleries, services pages, press coverage, and a new client enquiry flow.",
+      "href": "work/websites/dune-studio.html",
+      "order": 18,
+      "isVisible": true,
+      "isFeatured": false,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Dune Studio's portfolio was a PDF. They were pitching for hospitality and high-end residential projects but had no digital portfolio to send to prospective clients or attach to award submissions."
+        },
+        {
+          "label": "Strategy",
+          "content": "We designed a presentation-first site: a full-screen project gallery that loaded in a sequence ordered by project type (residential, hospitality, commercial). Each project page had a brief, location, scope, and photography carousel. A services page articulated the studio's five offering areas. An enquiry form routed by project type."
+        },
+        {
+          "label": "Result",
+          "content": "Client enquiries via the website generated four qualified briefs in the first quarter. The studio was accepted to a regional design award shortlist citing the website as the submission vehicle. Project page average session duration was 3m 48s."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "4",
+          "label": "Qualified Briefs"
+        },
+        {
+          "value": "3m 48s",
+          "label": "Project Page Duration"
+        },
+        {
+          "value": "1",
+          "label": "Award Shortlist"
+        }
+      ]
+    },
+    {
+      "id": "websites_hasat_organics",
+      "slug": "hasat-organics",
+      "categoryId": "websites",
+      "categorySlug": "websites",
+      "title": "Hasat Organics Website .",
+      "summary": "A farm brand website with a CSA onboarding flow, seasonal market calendar, wholesale enquiry system, and provenance storytelling throughout.",
+      "href": "work/websites/hasat-organics.html",
+      "order": 19,
+      "isVisible": true,
+      "isFeatured": false,
+      "narrative": [
+        {
+          "label": "Challenge",
+          "content": "Hasat had a Shopify store but no brand website. Their CSA programme was growing but had no proper signup flow, and B2B buyers had no way to reach them. Provenance storytelling was scattered across Instagram."
+        },
+        {
+          "label": "Strategy",
+          "content": "We built a five-section website: farm story, provenance map (an SVG map of their growing locations), seasonal calendar (a filterable grid of produce by month), CSA signup (integrated with their fulfilment system), and wholesale enquiry. The site was built for performance — sub-2s load, full mobile parity."
+        },
+        {
+          "label": "Result",
+          "content": "CSA signups from the website grew to 44% of all new members in the first season. Wholesale enquiries generated four new restaurant accounts. The seasonal calendar became the site's most-visited page."
+        }
+      ],
+      "metrics": [
+        {
+          "value": "44%",
+          "label": "CSA Signups via Web"
+        },
+        {
+          "value": "4",
+          "label": "Restaurant Accounts"
+        },
+        {
+          "value": "<2s",
+          "label": "Page Load Time"
+        }
+      ]
+    }
+  ]
+}

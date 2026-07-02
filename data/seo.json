@@ -1,0 +1,434 @@
+{
+  "about": {
+    "id": "about",
+    "path": "about.html",
+    "title": "About — GROWVA | Growth By Design",
+    "description": "GROWVA exists for ecommerce brands who are done gambling on templates. Learn our philosophy, values, and why strategy comes before execution.",
+    "canonical": "about.html",
+    "isEditable": true
+  },
+  "contact": {
+    "id": "contact",
+    "path": "contact.html",
+    "title": "Contact — GROWVA | Start a Project",
+    "description": "Tell GROWVA about your project. We",
+    "canonical": "contact.html",
+    "isEditable": true
+  },
+  "faq": {
+    "id": "faq",
+    "path": "faq.html",
+    "title": "FAQ — GROWVA | Questions Worth Answering Upfront",
+    "description": "Answers to the most common questions about working with GROWVA — Shopify development, pricing, process, support, and timelines.",
+    "canonical": "faq.html",
+    "isEditable": true
+  },
+  "home": {
+    "id": "home",
+    "path": "index.html",
+    "title": "GROWVA â€” Growth By Design | Full-Service Growth Partner for Product Brands",
+    "description": "GROWVA connects Shopify, Amazon Seller Central, web development, graphic design, printing, and growth systems for product brands that refuse to look ordinary.",
+    "canonical": "index.html",
+    "isEditable": true
+  },
+  "pricing": {
+    "id": "pricing",
+    "path": "pricing.html",
+    "title": "Pricing — GROWVA | Investment Packages for Shopify Growth",
+    "description": "GROWVA pricing packages for branding, Shopify development, ecommerce, SEO, and maintenance — honest, transparent, no surprise billing.",
+    "canonical": "pricing.html",
+    "isEditable": true
+  },
+  "process": {
+    "id": "process",
+    "path": "process.html",
+    "title": "Process — GROWVA | Nine Stages. No Guesswork.",
+    "description": "GROWVA",
+    "canonical": "process.html",
+    "isEditable": true
+  },
+  "services": {
+    "id": "services",
+    "path": "services.html",
+    "title": "Services | GROWVA | Five Departments. One Growth System.",
+    "description": "Explore GROWVA services by department: Shopify, Amazon, web development, graphic design, printing, and growth strategy.",
+    "canonical": "services.html",
+    "isEditable": true
+  },
+  "shopify": {
+    "id": "shopify",
+    "path": "shopify.html",
+    "title": "Shopify Development — GROWVA | Ecommerce Stores Built to Convert",
+    "description": "How GROWVA approaches Shopify development: platform advantages, UX philosophy, performance, integrations, and stores built to convert.",
+    "canonical": "shopify.html",
+    "isEditable": true
+  },
+  "work": {
+    "id": "work",
+    "path": "work.html",
+    "title": "Work — GROWVA | Portfolio by Category",
+    "description": "Browse GROWVA",
+    "canonical": "work.html",
+    "isEditable": true
+  },
+  "services.amazon_account_management": {
+    "id": "services.amazon_account_management",
+    "path": "services/amazon-account-management.html",
+    "title": "Amazon Account Management & Growth | GROWVA | Amazon Seller Central",
+    "description": "An Amazon account is not a passive shelf. It needs catalog hygiene, campaign discipline, inventory awareness, review monitoring, and reporting rhythm to grow without quietly leaking margin.",
+    "canonical": "services/amazon-account-management.html",
+    "isEditable": true
+  },
+  "services.amazon_account_setup": {
+    "id": "services.amazon_account_setup",
+    "path": "services/amazon-account-setup.html",
+    "title": "Amazon Account Setup From Scratch | GROWVA | Amazon Seller Central",
+    "description": "Amazon can become a serious revenue channel, but only if the account is built cleanly from day one. We set up Seller Central foundations so the brand does not inherit avoidable compliance, catalog, or advertising problems later.",
+    "canonical": "services/amazon-account-setup.html",
+    "isEditable": true
+  },
+  "services.amazon_listing_advertising_optimization": {
+    "id": "services.amazon_listing_advertising_optimization",
+    "path": "services/amazon-listing-advertising-optimization.html",
+    "title": "Amazon Listing & Advertising Optimization | GROWVA | Amazon Seller Central",
+    "description": "Amazon visibility is earned through precise listing content, keyword structure, image hierarchy, and PPC management. We optimize the product page and the paid traffic system together.",
+    "canonical": "services/amazon-listing-advertising-optimization.html",
+    "isEditable": true
+  },
+  "services.brand_identity_design": {
+    "id": "services.brand_identity_design",
+    "path": "services/brand-identity-design.html",
+    "title": "Brand Identity Design | GROWVA | Graphic Design",
+    "description": "A brand that can",
+    "canonical": "services/brand-identity-design.html",
+    "isEditable": true
+  },
+  "services.business_marketing_print": {
+    "id": "services.business_marketing_print",
+    "path": "services/business-marketing-print.html",
+    "title": "Business & Marketing Print | GROWVA | Printing",
+    "description": "Printed collateral still shapes how a brand is remembered in meetings, retail environments, launches, and local activations. We design and prepare business print that feels as considered as the digital brand.",
+    "canonical": "services/business-marketing-print.html",
+    "isEditable": true
+  },
+  "services.conversion_optimization": {
+    "id": "services.conversion_optimization",
+    "path": "services/conversion-optimization.html",
+    "title": "Conversion Optimization | GROWVA | Growth & Strategy",
+    "description": "Landing pages, product pages, marketplace listings, and campaign journeys rebuilt around how your specific customer actually buys — whether the sale happens on Shopify, Amazon, or a custom web experience.",
+    "canonical": "services/conversion-optimization.html",
+    "isEditable": true
+  },
+  "services.corporate_websites": {
+    "id": "services.corporate_websites",
+    "path": "services/corporate-websites.html",
+    "title": "Company & Corporate Websites | GROWVA | Web Development",
+    "description": "Not every brand needs a cart. Some need a credible, sharp, fast website that explains the company, supports sales conversations, and makes the business look as serious as it is.",
+    "canonical": "services/corporate-websites.html",
+    "isEditable": true
+  },
+  "services.custom_store_development": {
+    "id": "services.custom_store_development",
+    "path": "services/custom-store-development.html",
+    "title": "Custom Store Development | GROWVA | Web Development",
+    "description": "Shopify is often the right commerce choice, but not always. For brands with unusual operational, content, marketplace, or platform requirements, we build custom store experiences outside Shopify when the brief calls for it.",
+    "canonical": "services/custom-store-development.html",
+    "isEditable": true
+  },
+  "services.ecommerce_strategy": {
+    "id": "services.ecommerce_strategy",
+    "path": "services/ecommerce-strategy.html",
+    "title": "Ecommerce Strategy | GROWVA | Growth & Strategy",
+    "description": "Strategy and growth systems apply whether we are building your Shopify store, managing your Amazon account, developing a corporate site, or designing your next campaign. We write the commercial plan before anyone opens a design tool.",
+    "canonical": "services/ecommerce-strategy.html",
+    "isEditable": true
+  },
+  "services.growth_systems": {
+    "id": "services.growth_systems",
+    "path": "services/growth-systems.html",
+    "title": "Growth Systems | GROWVA | Growth & Strategy",
+    "description": "Retention, email/SMS, and lifecycle infrastructure that turns first orders into repeat customers across every channel we touch. Acquisition is expensive. Retention is where margin lives.",
+    "canonical": "services/growth-systems.html",
+    "isEditable": true
+  },
+  "services.large_format_retail_print": {
+    "id": "services.large_format_retail_print",
+    "path": "services/large-format-retail-print.html",
+    "title": "Large Format & Retail Print | GROWVA | Printing",
+    "description": "Retail and event environments need scale, clarity, and production discipline. We design and prepare banners, signage, displays, and in-store graphics that make the brand visible without making it loud.",
+    "canonical": "services/large-format-retail-print.html",
+    "isEditable": true
+  },
+  "services.marketing_social_design": {
+    "id": "services.marketing_social_design",
+    "path": "services/marketing-social-design.html",
+    "title": "Marketing & Social Media Design | GROWVA | Graphic Design",
+    "description": "A brand identity is the system. Campaign design is how the system performs every week. We create the ongoing social, ad, and launch assets that keep the brand consistent without making it repetitive.",
+    "canonical": "services/marketing-social-design.html",
+    "isEditable": true
+  },
+  "services.packaging_design": {
+    "id": "services.packaging_design",
+    "path": "services/packaging-design.html",
+    "title": "Packaging Design | GROWVA | Graphic Design",
+    "description": "The unboxing moment is a brand touchpoint. Packaging that loses the story between screen and shelf costs you repurchase rates, social sharing, and the premium perception you worked to build.",
+    "canonical": "services/packaging-design.html",
+    "isEditable": true
+  },
+  "services.packaging_print_production": {
+    "id": "services.packaging_print_production",
+    "path": "services/packaging-print-production.html",
+    "title": "Packaging Print Production | GROWVA | Printing",
+    "description": "Packaging design is only finished when it survives production. We translate visual packaging systems into print-ready, supplier-ready files that protect the brand in the physical world.",
+    "canonical": "services/packaging-print-production.html",
+    "isEditable": true
+  },
+  "services.performance_optimization": {
+    "id": "services.performance_optimization",
+    "path": "services/performance-optimization.html",
+    "title": "Performance Optimization | GROWVA | Shopify & Ecommerce",
+    "description": "Core Web Vitals, image pipelines, and app-bloat audits that keep the store fast as it grows. A 1-second delay in page load time reduces conversions by up to 7%.",
+    "canonical": "services/performance-optimization.html",
+    "isEditable": true
+  },
+  "services.portfolio_websites": {
+    "id": "services.portfolio_websites",
+    "path": "services/portfolio-websites.html",
+    "title": "Portfolio & Personal Websites | GROWVA | Web Development",
+    "description": "A personal site should not feel like a template with a headshot. We design portfolios and personal websites that make expertise legible, memorable, and easy to act on.",
+    "canonical": "services/portfolio-websites.html",
+    "isEditable": true
+  },
+  "services.premium_shopify_website_development": {
+    "id": "services.premium_shopify_website_development",
+    "path": "services/premium-shopify-website-development.html",
+    "title": "Premium Shopify Website Development | GROWVA | Shopify & Ecommerce",
+    "description": "Most Shopify stores look like Shopify stores. Ours don",
+    "canonical": "services/premium-shopify-website-development.html",
+    "isEditable": true
+  },
+  "services.shopify_cro": {
+    "id": "services.shopify_cro",
+    "path": "services/shopify-cro.html",
+    "title": "Shopify CRO | GROWVA | Shopify & Ecommerce",
+    "description": "Traffic is expensive. Losing it to a broken checkout or a confusing product page is more expensive. We analyze where your funnel breaks, then rebuild those points systematically.",
+    "canonical": "services/shopify-cro.html",
+    "isEditable": true
+  },
+  "services.shopify_store_optimization": {
+    "id": "services.shopify_store_optimization",
+    "path": "services/shopify-store-optimization.html",
+    "title": "Shopify Store Optimization | GROWVA | Shopify & Ecommerce",
+    "description": "An existing store with the wrong structure, too many apps, and neglected technical debt performs worse every month. We audit, clean, and restructure it so it runs the way it should.",
+    "canonical": "services/shopify-store-optimization.html",
+    "isEditable": true
+  },
+  "services.website_maintenance": {
+    "id": "services.website_maintenance",
+    "path": "services/website-maintenance.html",
+    "title": "Website Maintenance | GROWVA | Growth & Strategy",
+    "description": "Websites, stores, and campaign infrastructure left unattended break slowly, then suddenly. We keep the digital systems running, updated, and performing long after launch day.",
+    "canonical": "services/website-maintenance.html",
+    "isEditable": true
+  },
+  "work.amazon_storefronts": {
+    "id": "work.amazon_storefronts",
+    "path": "work/amazon-storefronts.html",
+    "title": "Amazon Storefronts — GROWVA Portfolio",
+    "description": "GROWVA Amazon Seller Central projects: Noor Perfumery, Hasat Organics, and Maison Luxe — A+ content and branded storefronts.",
+    "canonical": "work/amazon-storefronts.html",
+    "isEditable": true
+  },
+  "work.brand_identity": {
+    "id": "work.brand_identity",
+    "path": "work/brand-identity.html",
+    "title": "Brand Identity — GROWVA Portfolio",
+    "description": "GROWVA brand identity projects: Noor Perfumery, Vella Cosmetics, and Hasat Organics — full visual systems.",
+    "canonical": "work/brand-identity.html",
+    "isEditable": true
+  },
+  "work.marketing_print": {
+    "id": "work.marketing_print",
+    "path": "work/marketing-print.html",
+    "title": "Marketing & Print — GROWVA Portfolio",
+    "description": "GROWVA marketing and print projects: Vella Campaign, Noor Holiday Collection, Terra & Grove harvest collateral.",
+    "canonical": "work/marketing-print.html",
+    "isEditable": true
+  },
+  "work.packaging_design": {
+    "id": "work.packaging_design",
+    "path": "work/packaging-design.html",
+    "title": "Packaging Design — GROWVA Portfolio",
+    "description": "GROWVA packaging design projects: Noor No.03, Terra & Grove, and Atelier Marbre — from concept to supplier-ready files.",
+    "canonical": "work/packaging-design.html",
+    "isEditable": true
+  },
+  "work.shopify_stores": {
+    "id": "work.shopify_stores",
+    "path": "work/shopify-stores.html",
+    "title": "Shopify Stores — GROWVA Portfolio",
+    "description": "Custom Shopify storefronts built by GROWVA for D2C product brands — Noor Perfumery, Vella Cosmetics, Atelier Marbre, and Terra & Grove.",
+    "canonical": "work/shopify-stores.html",
+    "isEditable": true
+  },
+  "work.websites": {
+    "id": "work.websites",
+    "path": "work/websites.html",
+    "title": "Websites — GROWVA Portfolio",
+    "description": "GROWVA website projects: Atelier Marbre, Hasat Organics, and Dune Studio — corporate and portfolio web builds.",
+    "canonical": "work/websites.html",
+    "isEditable": true
+  },
+  "work.amazon_storefronts.hasat_organics": {
+    "id": "work.amazon_storefronts.hasat_organics",
+    "path": "work/amazon-storefronts/hasat-organics.html",
+    "title": "Hasat Organics Amazon Storefront — GROWVA",
+    "description": "GROWVA built a provenance-forward Amazon storefront for Hasat Organics with farm photography modules and a subscription product listing system.",
+    "canonical": "work/amazon-storefronts/hasat-organics.html",
+    "isEditable": true
+  },
+  "work.amazon_storefronts.maison_luxe": {
+    "id": "work.amazon_storefronts.maison_luxe",
+    "path": "work/amazon-storefronts/maison-luxe.html",
+    "title": "Maison Luxe Amazon Storefront — GROWVA",
+    "description": "GROWVA built the Maison Luxe Amazon storefront with curated bundle cross-sells and A+ comparison modules for a premium gifting brand.",
+    "canonical": "work/amazon-storefronts/maison-luxe.html",
+    "isEditable": true
+  },
+  "work.amazon_storefronts.noor_perfumery": {
+    "id": "work.amazon_storefronts.noor_perfumery",
+    "path": "work/amazon-storefronts/noor-perfumery.html",
+    "title": "Noor Perfumery Amazon Storefront — GROWVA",
+    "description": "How GROWVA rebuilt Noor Perfumery",
+    "canonical": "work/amazon-storefronts/noor-perfumery.html",
+    "isEditable": true
+  },
+  "work.brand_identity.hasat_organics": {
+    "id": "work.brand_identity.hasat_organics",
+    "path": "work/brand-identity/hasat-organics.html",
+    "title": "Hasat Organics Brand Identity — GROWVA",
+    "description": "GROWVA brand identity for Hasat Organics: earth-rooted identity with a handcrafted feel for farmers markets, packaging, and digital.",
+    "canonical": "work/brand-identity/hasat-organics.html",
+    "isEditable": true
+  },
+  "work.brand_identity.noor_perfumery": {
+    "id": "work.brand_identity.noor_perfumery",
+    "path": "work/brand-identity/noor-perfumery.html",
+    "title": "Noor Perfumery Brand Identity — GROWVA",
+    "description": "GROWVA",
+    "canonical": "work/brand-identity/noor-perfumery.html",
+    "isEditable": true
+  },
+  "work.brand_identity.vella_cosmetics": {
+    "id": "work.brand_identity.vella_cosmetics",
+    "path": "work/brand-identity/vella-cosmetics.html",
+    "title": "Vella Cosmetics Brand Identity — GROWVA",
+    "description": "GROWVA brand identity for Vella Cosmetics: modular logo mark that scales across all packaging formats.",
+    "canonical": "work/brand-identity/vella-cosmetics.html",
+    "isEditable": true
+  },
+  "work.marketing_print.noor_holiday": {
+    "id": "work.marketing_print.noor_holiday",
+    "path": "work/marketing-print/noor-holiday.html",
+    "title": "Noor Holiday Collection Campaign — GROWVA",
+    "description": "GROWVA seasonal gifting campaign for Noor Perfumery: editorial photography direction, catalogue, and in-store display system.",
+    "canonical": "work/marketing-print/noor-holiday.html",
+    "isEditable": true
+  },
+  "work.marketing_print.terra_grove": {
+    "id": "work.marketing_print.terra_grove",
+    "path": "work/marketing-print/terra-grove.html",
+    "title": "Terra & Grove Harvest Print — GROWVA",
+    "description": "GROWVA marketing and print for Terra & Grove: farmers market collateral, seasonal mailers, and branded packaging inserts.",
+    "canonical": "work/marketing-print/terra-grove.html",
+    "isEditable": true
+  },
+  "work.marketing_print.vella_campaign": {
+    "id": "work.marketing_print.vella_campaign",
+    "path": "work/marketing-print/vella-campaign.html",
+    "title": "Vella Cosmetics Campaign — GROWVA",
+    "description": "GROWVA",
+    "canonical": "work/marketing-print/vella-campaign.html",
+    "isEditable": true
+  },
+  "work.packaging_design.atelier_marbre": {
+    "id": "work.packaging_design.atelier_marbre",
+    "path": "work/packaging-design/atelier-marbre.html",
+    "title": "Atelier Marbre Packaging Design — GROWVA",
+    "description": "GROWVA packaging for Atelier Marbre: matte laminate, silk-screen printed product packaging for marble objets.",
+    "canonical": "work/packaging-design/atelier-marbre.html",
+    "isEditable": true
+  },
+  "work.packaging_design.noor_no03": {
+    "id": "work.packaging_design.noor_no03",
+    "path": "work/packaging-design/noor-no03.html",
+    "title": "Noor No.03 Packaging Design — GROWVA",
+    "description": "GROWVA packaging design for Noor No.03 limited-edition oud fragrance: bespoke outer box and bottle sleeve, embossed and foiled.",
+    "canonical": "work/packaging-design/noor-no03.html",
+    "isEditable": true
+  },
+  "work.packaging_design.terra_grove": {
+    "id": "work.packaging_design.terra_grove",
+    "path": "work/packaging-design/terra-grove.html",
+    "title": "Terra & Grove Packaging Design — GROWVA",
+    "description": "GROWVA packaging design for Terra & Grove: seasonal harvest box system with interchangeable label inserts.",
+    "canonical": "work/packaging-design/terra-grove.html",
+    "isEditable": true
+  },
+  "work.shopify_stores.atelier_marbre": {
+    "id": "work.shopify_stores.atelier_marbre",
+    "path": "work/shopify-stores/atelier-marbre.html",
+    "title": "Atelier Marbre Shopify Store — GROWVA",
+    "description": "How GROWVA built a bespoke Shopify store for Atelier Marbre with a collection configurator and waitlist system.",
+    "canonical": "work/shopify-stores/atelier-marbre.html",
+    "isEditable": true
+  },
+  "work.shopify_stores.noor_perfumery": {
+    "id": "work.shopify_stores.noor_perfumery",
+    "path": "work/shopify-stores/noor-perfumery.html",
+    "title": "Noor Perfumery Shopify Store — GROWVA",
+    "description": "How GROWVA built an editorial Shopify store for Noor Perfumery that doubled average order value through scent-narrative product pages.",
+    "canonical": "work/shopify-stores/noor-perfumery.html",
+    "isEditable": true
+  },
+  "work.shopify_stores.terra_grove": {
+    "id": "work.shopify_stores.terra_grove",
+    "path": "work/shopify-stores/terra-grove.html",
+    "title": "Terra & Grove Shopify Store — GROWVA",
+    "description": "How GROWVA built a farm-to-table subscription Shopify store for Terra & Grove with seasonal harvest bundles and CSA management.",
+    "canonical": "work/shopify-stores/terra-grove.html",
+    "isEditable": true
+  },
+  "work.shopify_stores.vella_cosmetics": {
+    "id": "work.shopify_stores.vella_cosmetics",
+    "path": "work/shopify-stores/vella-cosmetics.html",
+    "title": "Vella Cosmetics Shopify Store — GROWVA",
+    "description": "How GROWVA rebuilt Vella Cosmetics Shopify store with a shade-discovery UX that cut time-to-purchase by 38%.",
+    "canonical": "work/shopify-stores/vella-cosmetics.html",
+    "isEditable": true
+  },
+  "work.websites.atelier_marbre": {
+    "id": "work.websites.atelier_marbre",
+    "path": "work/websites/atelier-marbre.html",
+    "title": "Atelier Marbre Website — GROWVA",
+    "description": "GROWVA built a bespoke brand website for Atelier Marbre with editorial photography direction, collection pages, and a custom enquiry system.",
+    "canonical": "work/websites/atelier-marbre.html",
+    "isEditable": true
+  },
+  "work.websites.dune_studio": {
+    "id": "work.websites.dune_studio",
+    "path": "work/websites/dune-studio.html",
+    "title": "Dune Studio Website — GROWVA",
+    "description": "GROWVA built a portfolio and studio website for Dune Studio — an interior design firm — with project galleries, services, and press coverage.",
+    "canonical": "work/websites/dune-studio.html",
+    "isEditable": true
+  },
+  "work.websites.hasat_organics": {
+    "id": "work.websites.hasat_organics",
+    "path": "work/websites/hasat-organics.html",
+    "title": "Hasat Organics Website — GROWVA",
+    "description": "GROWVA built the Hasat Organics farm brand website with a CSA signup flow, seasonal market calendar, and B2B wholesale enquiry system.",
+    "canonical": "work/websites/hasat-organics.html",
+    "isEditable": true
+  }
+}

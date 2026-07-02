@@ -1,0 +1,588 @@
+{
+  "categories": [
+    {
+      "id": "branding_packages",
+      "slug": "branding-packages",
+      "title": "Brand Identity Packages",
+      "subtitle": "Visual identity systems for product brands that want to be remembered.",
+      "order": 1,
+      "isVisible": true
+    },
+    {
+      "id": "shopify_development_packages",
+      "slug": "shopify-development-packages",
+      "title": "E-Commerce Website Packages",
+      "subtitle": "Custom Shopify builds designed for conversion and engineered for scale.",
+      "order": 2,
+      "isVisible": true
+    },
+    {
+      "id": "growth_retention_packages",
+      "slug": "growth-retention-packages",
+      "title": "Growth Systems Packages",
+      "subtitle": "Email, SMS, and lifecycle infrastructure that turns first-time buyers into repeat customers.",
+      "order": 3,
+      "isVisible": true
+    },
+    {
+      "id": "seo_packages",
+      "slug": "seo-packages",
+      "title": "SEO Packages",
+      "subtitle": "Organic search equity that compounds over time — built into the store, not added on top of it.",
+      "order": 4,
+      "isVisible": true
+    },
+    {
+      "id": "website_maintenance_packages",
+      "slug": "website-maintenance-packages",
+      "title": "Website Maintenance Packages",
+      "subtitle": "Protect your investment with ongoing care — so the store keeps performing long after launch.",
+      "order": 5,
+      "isVisible": true
+    },
+    {
+      "id": "amazon_seller_central_packages",
+      "slug": "amazon-seller-central-packages",
+      "title": "Amazon Seller Central Packages",
+      "subtitle": "Marketplace setup, management, listing optimization, and advertising systems for product brands.",
+      "order": 6,
+      "isVisible": true
+    },
+    {
+      "id": "web_development_packages",
+      "slug": "web-development-packages",
+      "title": "Web Development Packages",
+      "subtitle": "Corporate sites, personal platforms, and custom store builds outside the usual ecommerce template path.",
+      "order": 7,
+      "isVisible": true
+    },
+    {
+      "id": "printing_packages",
+      "slug": "printing-packages",
+      "title": "Printing Packages",
+      "subtitle": "Business collateral, packaging production files, and large-format retail print handled with brand-level precision.",
+      "order": 8,
+      "isVisible": true
+    }
+  ],
+  "plans": [
+    {
+      "id": "branding_packages_essential",
+      "categoryId": "branding_packages",
+      "tier": "Essential",
+      "price": "Custom Quote",
+      "description": "For new brands that need a solid, professional identity to launch with confidence.",
+      "features": [
+        "Logo design (2 directions)",
+        "Primary color palette",
+        "Typography selection",
+        "Basic brand guidelines PDF",
+        "Digital asset pack"
+      ],
+      "cta": {
+        "label": "Get a Quote",
+        "href": "contact.html"
+      },
+      "isFeatured": false,
+      "isVisible": true,
+      "order": 1
+    },
+    {
+      "id": "branding_packages_premium",
+      "categoryId": "branding_packages",
+      "tier": "Premium",
+      "price": "Custom Quote",
+      "description": "For brands that need a complete visual system designed to travel across digital and physical touchpoints.",
+      "features": [
+        "Logo system (primary, secondary, mark)",
+        "Extended color palette with usage rules",
+        "Full typography hierarchy",
+        "Brand voice and tone guide",
+        "Comprehensive brand guidelines",
+        "Social media asset templates",
+        "Digital + print asset pack"
+      ],
+      "cta": {
+        "label": "Get a Quote",
+        "href": "contact.html"
+      },
+      "isFeatured": true,
+      "isVisible": true,
+      "order": 2
+    },
+    {
+      "id": "branding_packages_enterprise",
+      "categoryId": "branding_packages",
+      "tier": "Enterprise",
+      "price": "Custom Quote",
+      "description": "For brands undergoing a rebrand or building a multi-product visual architecture across several lines or markets.",
+      "features": [
+        "Everything in Premium",
+        "Sub-brand or product-line architecture",
+        "Market-specific adaptations",
+        "Motion and animation guidelines",
+        "Campaign identity system",
+        "Ongoing brand consultation"
+      ],
+      "cta": {
+        "label": "Talk to Us",
+        "href": "contact.html"
+      },
+      "isFeatured": false,
+      "isVisible": true,
+      "order": 3
+    },
+    {
+      "id": "shopify_development_packages_essentials_store",
+      "categoryId": "shopify_development_packages",
+      "tier": "Essentials Store",
+      "price": "Custom Quote",
+      "description": "A clean, fast, professionally designed Shopify store for brands launching or relaunching D2C.",
+      "features": [
+        "Custom homepage, collection, and PDP templates",
+        "Mobile-responsive across all breakpoints",
+        "Up to 3 app integrations",
+        "Performance-optimized build",
+        "Basic SEO setup",
+        "30-day post-launch support"
+      ],
+      "cta": {
+        "label": "Get a Quote",
+        "href": "contact.html"
+      },
+      "isFeatured": false,
+      "isVisible": true,
+      "order": 1
+    },
+    {
+      "id": "shopify_development_packages_growth_store",
+      "categoryId": "shopify_development_packages",
+      "tier": "Growth Store",
+      "price": "Custom Quote",
+      "description": "A fully custom Shopify build with conversion-focused UX, advanced integrations, and launch-day monitoring.",
+      "features": [
+        "Full custom Liquid theme (all page types)",
+        "CRO-focused UX and copy",
+        "Up to 8 app integrations",
+        "Technical SEO implementation",
+        "Core Web Vitals optimization",
+        "Launch coordination and monitoring",
+        "60-day post-launch optimization"
+      ],
+      "cta": {
+        "label": "Get a Quote",
+        "href": "contact.html"
+      },
+      "isFeatured": true,
+      "isVisible": true,
+      "order": 2
+    },
+    {
+      "id": "shopify_development_packages_enterprise_store",
+      "categoryId": "shopify_development_packages",
+      "tier": "Enterprise Store",
+      "price": "Custom Quote",
+      "description": "For brands with complex requirements: multi-market, subscription, headless, or custom checkout logic.",
+      "features": [
+        "Everything in Growth Store",
+        "Shopify Markets multi-currency setup",
+        "Custom checkout and cart functionality",
+        "Subscription or membership logic",
+        "Headless architecture (if required)",
+        "Unlimited integrations",
+        "90-day post-launch partnership"
+      ],
+      "cta": {
+        "label": "Talk to Us",
+        "href": "contact.html"
+      },
+      "isFeatured": false,
+      "isVisible": true,
+      "order": 3
+    },
+    {
+      "id": "growth_retention_packages_foundation",
+      "categoryId": "growth_retention_packages",
+      "tier": "Foundation",
+      "price": "Custom Quote",
+      "description": "Core lifecycle flows for brands just beginning their retention journey.",
+      "features": [
+        "Welcome series (5 emails)",
+        "Abandoned cart flow (3-step)",
+        "Post-purchase flow (4-step)",
+        "Platform setup and configuration",
+        "30-day performance review"
+      ],
+      "cta": {
+        "label": "Get a Quote",
+        "href": "contact.html"
+      },
+      "isFeatured": false,
+      "isVisible": true,
+      "order": 1
+    },
+    {
+      "id": "growth_retention_packages_full_stack",
+      "categoryId": "growth_retention_packages",
+      "tier": "Full Stack",
+      "price": "Custom Quote",
+      "description": "A complete retention engine: email, SMS, loyalty, and a win-back system that keeps working long after setup.",
+      "features": [
+        "Everything in Foundation",
+        "Browse abandonment flow",
+        "Win-back campaign (multi-step)",
+        "SMS flow integration",
+        "Loyalty program setup",
+        "Segmentation strategy and setup",
+        "60-day optimization cycle"
+      ],
+      "cta": {
+        "label": "Get a Quote",
+        "href": "contact.html"
+      },
+      "isFeatured": true,
+      "isVisible": true,
+      "order": 2
+    },
+    {
+      "id": "growth_retention_packages_growth_retainer",
+      "categoryId": "growth_retention_packages",
+      "tier": "Growth Retainer",
+      "price": "Custom Quote",
+      "description": "Ongoing management, testing, and optimization of your full lifecycle stack on a monthly basis.",
+      "features": [
+        "Monthly campaign deployment",
+        "Ongoing A/B testing",
+        "Flow optimization",
+        "Monthly performance report",
+        "Quarterly strategy session",
+        "Priority support"
+      ],
+      "cta": {
+        "label": "Talk to Us",
+        "href": "contact.html"
+      },
+      "isFeatured": false,
+      "isVisible": true,
+      "order": 3
+    },
+    {
+      "id": "seo_packages_technical_seo",
+      "categoryId": "seo_packages",
+      "tier": "Technical SEO",
+      "price": "Custom Quote",
+      "description": "One-time audit and implementation to fix the technical issues that are limiting your organic visibility.",
+      "features": [
+        "Full technical SEO audit",
+        "Schema markup implementation",
+        "URL and canonical structure",
+        "Meta tag optimization",
+        "Crawlability improvements"
+      ],
+      "cta": {
+        "label": "Get a Quote",
+        "href": "contact.html"
+      },
+      "isFeatured": false,
+      "isVisible": true,
+      "order": 1
+    },
+    {
+      "id": "seo_packages_seo_growth",
+      "categoryId": "seo_packages",
+      "tier": "SEO Growth",
+      "price": "Custom Quote",
+      "description": "Monthly SEO retainer combining technical maintenance, content strategy, and authority building.",
+      "features": [
+        "Technical SEO foundation (month 1)",
+        "Keyword strategy and mapping",
+        "Monthly content plan",
+        "On-page optimization",
+        "Monthly ranking report",
+        "Link building strategy"
+      ],
+      "cta": {
+        "label": "Get a Quote",
+        "href": "contact.html"
+      },
+      "isFeatured": true,
+      "isVisible": true,
+      "order": 2
+    },
+    {
+      "id": "seo_packages_enterprise_seo",
+      "categoryId": "seo_packages",
+      "tier": "Enterprise SEO",
+      "price": "Custom Quote",
+      "description": "For multi-market brands with complex SEO requirements across multiple languages, currencies, and territories.",
+      "features": [
+        "International SEO strategy",
+        "Hreflang implementation",
+        "Multi-market content strategy",
+        "Competitor analysis",
+        "Quarterly deep audit",
+        "Dedicated account lead"
+      ],
+      "cta": {
+        "label": "Talk to Us",
+        "href": "contact.html"
+      },
+      "isFeatured": false,
+      "isVisible": true,
+      "order": 3
+    },
+    {
+      "id": "website_maintenance_packages_essential",
+      "categoryId": "website_maintenance_packages",
+      "tier": "Essential",
+      "price": "Custom Quote",
+      "description": "Core monitoring and fix coverage for brands that just need the basics handled reliably.",
+      "features": [
+        "Uptime monitoring (24/7)",
+        "Monthly performance report",
+        "App and theme updates",
+        "Bug fixes (2hr/month)",
+        "Business-hours support"
+      ],
+      "cta": {
+        "label": "Get a Quote",
+        "href": "contact.html"
+      },
+      "isFeatured": false,
+      "isVisible": true,
+      "order": 1
+    },
+    {
+      "id": "website_maintenance_packages_standard",
+      "categoryId": "website_maintenance_packages",
+      "tier": "Standard",
+      "price": "Custom Quote",
+      "description": "Full maintenance coverage plus regular development time for ongoing improvements and updates.",
+      "features": [
+        "Everything in Essential",
+        "6hr development time/month",
+        "Monthly CRO review",
+        "Priority bug fixes (same day)",
+        "Quarterly health audit"
+      ],
+      "cta": {
+        "label": "Get a Quote",
+        "href": "contact.html"
+      },
+      "isFeatured": true,
+      "isVisible": true,
+      "order": 2
+    },
+    {
+      "id": "website_maintenance_packages_growth",
+      "categoryId": "website_maintenance_packages",
+      "tier": "Growth",
+      "price": "Custom Quote",
+      "description": "For actively growing brands that need ongoing development, CRO, and strategic input as part of the retainer.",
+      "features": [
+        "Everything in Standard",
+        "12hr development time/month",
+        "Monthly strategy session",
+        "A/B test management",
+        "Emergency support SLA (4hr)",
+        "Annual store architecture review"
+      ],
+      "cta": {
+        "label": "Talk to Us",
+        "href": "contact.html"
+      },
+      "isFeatured": false,
+      "isVisible": true,
+      "order": 3
+    },
+    {
+      "id": "amazon_seller_central_packages_launch_setup",
+      "categoryId": "amazon_seller_central_packages",
+      "tier": "Launch Setup",
+      "price": "Custom Quote",
+      "description": "For brands entering Amazon for the first time and needing a clean Seller Central foundation.",
+      "features": [
+        "Seller Central setup roadmap",
+        "Account configuration support",
+        "Catalog and variation structure",
+        "Brand registry checklist",
+        "Launch-readiness QA"
+      ],
+      "cta": {
+        "label": "Get a Quote",
+        "href": "contact.html"
+      },
+      "isFeatured": false,
+      "isVisible": true,
+      "order": 1
+    },
+    {
+      "id": "amazon_seller_central_packages_managed_growth",
+      "categoryId": "amazon_seller_central_packages",
+      "tier": "Managed Growth",
+      "price": "Custom Quote",
+      "description": "Ongoing account management for brands that need Amazon run with discipline, reporting, and growth planning.",
+      "features": [
+        "Account health monitoring",
+        "Catalog maintenance",
+        "Monthly growth roadmap",
+        "Listing and campaign oversight",
+        "Performance reporting"
+      ],
+      "cta": {
+        "label": "Get a Quote",
+        "href": "contact.html"
+      },
+      "isFeatured": true,
+      "isVisible": true,
+      "order": 2
+    },
+    {
+      "id": "amazon_seller_central_packages_listings_and_ads",
+      "categoryId": "amazon_seller_central_packages",
+      "tier": "Listings & Ads",
+      "price": "Custom Quote",
+      "description": "For active sellers who need stronger listing content, keyword structure, and PPC management.",
+      "features": [
+        "Keyword research",
+        "Listing rewrite and optimization",
+        "Image and A+ content direction",
+        "PPC campaign structure",
+        "Search term reporting"
+      ],
+      "cta": {
+        "label": "Talk to Us",
+        "href": "contact.html"
+      },
+      "isFeatured": false,
+      "isVisible": true,
+      "order": 3
+    },
+    {
+      "id": "web_development_packages_company_site",
+      "categoryId": "web_development_packages",
+      "tier": "Company Site",
+      "price": "Custom Quote",
+      "description": "A sharp, fast, credible website for businesses that need more than a static brochure.",
+      "features": [
+        "Messaging and sitemap workshop",
+        "Custom responsive UI",
+        "Core page development",
+        "Lead capture integration",
+        "Analytics and SEO basics"
+      ],
+      "cta": {
+        "label": "Get a Quote",
+        "href": "contact.html"
+      },
+      "isFeatured": false,
+      "isVisible": true,
+      "order": 1
+    },
+    {
+      "id": "web_development_packages_portfolio_platform",
+      "categoryId": "web_development_packages",
+      "tier": "Portfolio Platform",
+      "price": "Custom Quote",
+      "description": "For founders, creators, and experts who need a personal website that carries their reputation clearly.",
+      "features": [
+        "Positioning and proof audit",
+        "Portfolio or case-study layout",
+        "Custom responsive design",
+        "Booking or contact flow",
+        "CMS or static launch build"
+      ],
+      "cta": {
+        "label": "Get a Quote",
+        "href": "contact.html"
+      },
+      "isFeatured": true,
+      "isVisible": true,
+      "order": 2
+    },
+    {
+      "id": "web_development_packages_custom_store",
+      "categoryId": "web_development_packages",
+      "tier": "Custom Store",
+      "price": "Custom Quote",
+      "description": "For brands whose commerce requirements need a custom platform decision and technical architecture.",
+      "features": [
+        "Platform recommendation",
+        "Custom frontend scope",
+        "Product and checkout logic",
+        "Third-party integrations",
+        "QA and handover documentation"
+      ],
+      "cta": {
+        "label": "Talk to Us",
+        "href": "contact.html"
+      },
+      "isFeatured": false,
+      "isVisible": true,
+      "order": 3
+    },
+    {
+      "id": "printing_packages_business_print",
+      "categoryId": "printing_packages",
+      "tier": "Business Print",
+      "price": "Custom Quote",
+      "description": "Business cards, stationery, brochures, flyers, and inserts prepared for polished physical handoff.",
+      "features": [
+        "Print-ready artwork",
+        "Business cards and stationery",
+        "Brochures and flyers",
+        "Material recommendations",
+        "Supplier-ready files"
+      ],
+      "cta": {
+        "label": "Get a Quote",
+        "href": "contact.html"
+      },
+      "isFeatured": false,
+      "isVisible": true,
+      "order": 1
+    },
+    {
+      "id": "printing_packages_packaging_print",
+      "categoryId": "printing_packages",
+      "tier": "Packaging Print",
+      "price": "Custom Quote",
+      "description": "Production support that turns packaging design into accurate, supplier-ready printed product packaging.",
+      "features": [
+        "Dieline setup and adaptation",
+        "Print-ready packaging files",
+        "Color and finish specifications",
+        "Supplier communication pack",
+        "Proofing checklist"
+      ],
+      "cta": {
+        "label": "Get a Quote",
+        "href": "contact.html"
+      },
+      "isFeatured": true,
+      "isVisible": true,
+      "order": 2
+    },
+    {
+      "id": "printing_packages_retail_format",
+      "categoryId": "printing_packages",
+      "tier": "Retail Format",
+      "price": "Custom Quote",
+      "description": "Banners, signage, retail displays, shelf talkers, and event graphics built for scale and clarity.",
+      "features": [
+        "Retail signage concepts",
+        "Large-format production files",
+        "Display and banner design",
+        "Scale and material planning",
+        "Supplier-ready artwork pack"
+      ],
+      "cta": {
+        "label": "Talk to Us",
+        "href": "contact.html"
+      },
+      "isFeatured": false,
+      "isVisible": true,
+      "order": 3
+    }
+  ]
+}

@@ -11,7 +11,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0a0a'/%3E%3Cpath d='M21 10a7 7 0 1 0 0 12v-5h-5' fill='none' stroke='%23B1FA20' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body data-page-id="home">
 
 <div class="page-transition" id="pageTransition" aria-hidden="true"><div class="pt-line"></div></div>
 <div class="cursor-dot" id="cursorDot"></div>
@@ -21,173 +21,173 @@
   <div class="preloader-word">GROWVA</div>
 </div>
 
-<header class="nav" id="nav">
+<header class="nav" id="nav" data-page-id="home" data-section-id="home.header" data-section-type="header" data-section-order="0">
   <div class="nav-inner">
-    <a href="index.html" class="logo">
+    <a href="index.html" class="logo" data-edit-key="home.header.a.growva" data-edit-type="link" data-page-id="home" data-section-id="home.header">
       <span class="logo-text">GROWVA<span class="logo-dot">.</span></span>
     </a>
     <nav class="nav-links" aria-label="Primary navigation">
-      <a href="shopify.html" class="nav-link" data-hover>Shopify</a>
+      <a href="shopify.html" class="nav-link" data-hover data-edit-key="home.header.a.shopify" data-edit-type="link" data-page-id="home" data-section-id="home.header">Shopify</a>
       <div class="nav-item nav-item--mega" data-mega-item>
-        <button class="nav-link nav-link--mega" type="button" data-hover data-active-page="services.html" aria-expanded="false" aria-controls="mega-services">Services<svg class="nav-chevron" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="nav-link nav-link--mega" type="button" data-hover data-active-page="services.html" aria-expanded="false" aria-controls="mega-services" data-edit-key="home.header.button.services" data-edit-type="button" data-page-id="home" data-section-id="home.header">Services<svg class="nav-chevron" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <div class="mega-menu mega-menu--services" id="mega-services" role="menu">
           <div class="mega-tabs" role="tablist" aria-label="Service categories">
-            <button class="mega-tab active" type="button" data-mega-tab="shopify" aria-selected="true">Shopify &amp; Ecommerce</button>
-            <button class="mega-tab" type="button" data-mega-tab="amazon" aria-selected="false">Amazon Seller Central</button>
-            <button class="mega-tab" type="button" data-mega-tab="web" aria-selected="false">Web Development</button>
-            <button class="mega-tab" type="button" data-mega-tab="design" aria-selected="false">Graphic Design</button>
-            <button class="mega-tab" type="button" data-mega-tab="print" aria-selected="false">Printing</button>
-            <button class="mega-tab" type="button" data-mega-tab="growth" aria-selected="false">Growth &amp; Strategy</button>
+            <button class="mega-tab active" type="button" data-mega-tab="shopify" aria-selected="true" data-edit-key="home.header.button.shopify_and_ecommerce" data-edit-type="button" data-page-id="home" data-section-id="home.header">Shopify &amp; Ecommerce</button>
+            <button class="mega-tab" type="button" data-mega-tab="amazon" aria-selected="false" data-edit-key="home.header.button.amazon_seller_central" data-edit-type="button" data-page-id="home" data-section-id="home.header">Amazon Seller Central</button>
+            <button class="mega-tab" type="button" data-mega-tab="web" aria-selected="false" data-edit-key="home.header.button.web_development" data-edit-type="button" data-page-id="home" data-section-id="home.header">Web Development</button>
+            <button class="mega-tab" type="button" data-mega-tab="design" aria-selected="false" data-edit-key="home.header.button.graphic_design" data-edit-type="button" data-page-id="home" data-section-id="home.header">Graphic Design</button>
+            <button class="mega-tab" type="button" data-mega-tab="print" aria-selected="false" data-edit-key="home.header.button.printing" data-edit-type="button" data-page-id="home" data-section-id="home.header">Printing</button>
+            <button class="mega-tab" type="button" data-mega-tab="growth" aria-selected="false" data-edit-key="home.header.button.growth_and_strategy" data-edit-type="button" data-page-id="home" data-section-id="home.header">Growth &amp; Strategy</button>
           </div>
           <div class="mega-panels">
             <div class="mega-panel active" data-mega-panel="shopify">
-              <a class="mega-link" href="services/premium-shopify-website-development.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg><span><strong>Premium Shopify Website Development</strong><small>Custom storefronts planned around how your customer buys.</small></span></a>
-              <a class="mega-link" href="services/shopify-cro.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l4-4 3 3 5-6"/></svg><span><strong>Shopify CRO</strong><small>Find where the funnel breaks, then rebuild those points.</small></span></a>
-              <a class="mega-link" href="services/shopify-store-optimization.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/><path d="M17 17l2 2 3-4"/></svg><span><strong>Shopify Store Optimization</strong><small>Audit, clean, and restructure stores slowed by technical debt.</small></span></a>
-              <a class="mega-link" href="services/performance-optimization.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 14a7 7 0 0 1 14 0"/><path d="M12 14l4-5"/><path d="M7 19h10"/></svg><span><strong>Performance Optimization</strong><small>Core Web Vitals, image pipelines, and app-bloat audits.</small></span></a>
-              <a class="mega-cta" href="services.html">View All Services &rarr;</a>
+              <a class="mega-link" href="services/premium-shopify-website-development.html" data-edit-key="home.header.a.premium_shopify_website_development_custom_storefronts_pla" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg><span><strong>Premium Shopify Website Development</strong><small>Custom storefronts planned around how your customer buys.</small></span></a>
+              <a class="mega-link" href="services/shopify-cro.html" data-edit-key="home.header.a.shopify_cro_find_where_the_funnel_breaks_then_rebuild_thos" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l4-4 3 3 5-6"/></svg><span><strong>Shopify CRO</strong><small>Find where the funnel breaks, then rebuild those points.</small></span></a>
+              <a class="mega-link" href="services/shopify-store-optimization.html" data-edit-key="home.header.a.shopify_store_optimization_audit_clean_and_restructure_sto" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/><path d="M17 17l2 2 3-4"/></svg><span><strong>Shopify Store Optimization</strong><small>Audit, clean, and restructure stores slowed by technical debt.</small></span></a>
+              <a class="mega-link" href="services/performance-optimization.html" data-edit-key="home.header.a.performance_optimization_core_web_vitals_image_pipelines_a" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 14a7 7 0 0 1 14 0"/><path d="M12 14l4-5"/><path d="M7 19h10"/></svg><span><strong>Performance Optimization</strong><small>Core Web Vitals, image pipelines, and app-bloat audits.</small></span></a>
+              <a class="mega-cta" href="services.html" data-edit-key="home.header.a.view_all_services" data-edit-type="link" data-page-id="home" data-section-id="home.header">View All Services &rarr;</a>
             </div>
             <div class="mega-panel" data-mega-panel="amazon">
-              <a class="mega-link" href="services/amazon-account-setup.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12v11H6z"/><path d="M9 7a3 3 0 0 1 6 0"/><path d="M8 15c2.4 2 5.6 2 8 0"/></svg><span><strong>Amazon Account Setup From Scratch</strong><small>Seller Central foundations built cleanly from day one.</small></span></a>
-              <a class="mega-link" href="services/amazon-account-management.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18V6"/><path d="M4 18h16"/><path d="M7 15l3-4 4 3 5-7"/></svg><span><strong>Amazon Account Management &amp; Growth</strong><small>Ongoing account operations, catalog hygiene, and reporting.</small></span></a>
-              <a class="mega-link" href="services/amazon-listing-advertising-optimization.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="5"/><path d="M14 14l5 5"/><path d="M8 10h4"/></svg><span><strong>Amazon Listing &amp; Advertising Optimization</strong><small>Listing content, keywords, and PPC structured to learn.</small></span></a>
-              <a class="mega-cta" href="services.html">View All Services &rarr;</a>
+              <a class="mega-link" href="services/amazon-account-setup.html" data-edit-key="home.header.a.amazon_account_setup_from_scratch_seller_central_foundatio" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12v11H6z"/><path d="M9 7a3 3 0 0 1 6 0"/><path d="M8 15c2.4 2 5.6 2 8 0"/></svg><span><strong>Amazon Account Setup From Scratch</strong><small>Seller Central foundations built cleanly from day one.</small></span></a>
+              <a class="mega-link" href="services/amazon-account-management.html" data-edit-key="home.header.a.amazon_account_management_and_growth_ongoing_account_opera" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18V6"/><path d="M4 18h16"/><path d="M7 15l3-4 4 3 5-7"/></svg><span><strong>Amazon Account Management &amp; Growth</strong><small>Ongoing account operations, catalog hygiene, and reporting.</small></span></a>
+              <a class="mega-link" href="services/amazon-listing-advertising-optimization.html" data-edit-key="home.header.a.amazon_listing_and_advertising_optimization_listing_conten" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="5"/><path d="M14 14l5 5"/><path d="M8 10h4"/></svg><span><strong>Amazon Listing &amp; Advertising Optimization</strong><small>Listing content, keywords, and PPC structured to learn.</small></span></a>
+              <a class="mega-cta" href="services.html" data-edit-key="home.header.a.view_all_services_2" data-edit-type="link" data-page-id="home" data-section-id="home.header">View All Services &rarr;</a>
             </div>
             <div class="mega-panel" data-mega-panel="web">
-              <a class="mega-link" href="services/corporate-websites.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M8 10h8"/><path d="M8 14h5"/><path d="M10 21h4"/></svg><span><strong>Company &amp; Corporate Websites</strong><small>Credible, fast websites for serious business presence.</small></span></a>
-              <a class="mega-link" href="services/portfolio-websites.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v16H7z"/><path d="M9 8h6"/><path d="M9 12h4"/><path d="M9 16h5"/></svg><span><strong>Portfolio &amp; Personal Websites</strong><small>Personal platforms that make expertise legible.</small></span></a>
-              <a class="mega-link" href="services/custom-store-development.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14v12H5z"/><path d="M8 7V5h8v2"/><path d="M8 12h8"/></svg><span><strong>Custom Store Development</strong><small>Non-Shopify commerce for unusual operational needs.</small></span></a>
-              <a class="mega-cta" href="services.html">View All Services &rarr;</a>
+              <a class="mega-link" href="services/corporate-websites.html" data-edit-key="home.header.a.company_and_corporate_websites_credible_fast_websites_for_" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M8 10h8"/><path d="M8 14h5"/><path d="M10 21h4"/></svg><span><strong>Company &amp; Corporate Websites</strong><small>Credible, fast websites for serious business presence.</small></span></a>
+              <a class="mega-link" href="services/portfolio-websites.html" data-edit-key="home.header.a.portfolio_and_personal_websites_personal_platforms_that_ma" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v16H7z"/><path d="M9 8h6"/><path d="M9 12h4"/><path d="M9 16h5"/></svg><span><strong>Portfolio &amp; Personal Websites</strong><small>Personal platforms that make expertise legible.</small></span></a>
+              <a class="mega-link" href="services/custom-store-development.html" data-edit-key="home.header.a.custom_store_development_non_shopify_commerce_for_unusual_" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14v12H5z"/><path d="M8 7V5h8v2"/><path d="M8 12h8"/></svg><span><strong>Custom Store Development</strong><small>Non-Shopify commerce for unusual operational needs.</small></span></a>
+              <a class="mega-cta" href="services.html" data-edit-key="home.header.a.view_all_services_3" data-edit-type="link" data-page-id="home" data-section-id="home.header">View All Services &rarr;</a>
             </div>
             <div class="mega-panel" data-mega-panel="design">
-              <a class="mega-link" href="services/brand-identity-design.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18l4-12 4 12"/><path d="M7 14h4"/><path d="M16 7h3a2 2 0 0 1 0 4h-3V7Z"/></svg><span><strong>Brand Identity Design</strong><small>Visual systems that communicate before customers read.</small></span></a>
-              <a class="mega-link" href="services/packaging-design.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4Z"/><path d="M4 8v8l8 4 8-4V8"/><path d="M12 12v8"/></svg><span><strong>Packaging Design</strong><small>Packaging that carries the brand from screen to shelf.</small></span></a>
-              <a class="mega-link" href="services/marketing-social-design.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v10H5z"/><path d="M8 19h8"/><path d="M9 10h6"/><path d="M9 13h3"/></svg><span><strong>Marketing &amp; Social Media Design</strong><small>Campaign and content assets that stay on-brand.</small></span></a>
-              <a class="mega-cta" href="services.html">View All Services &rarr;</a>
+              <a class="mega-link" href="services/brand-identity-design.html" data-edit-key="home.header.a.brand_identity_design_visual_systems_that_communicate_befo" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18l4-12 4 12"/><path d="M7 14h4"/><path d="M16 7h3a2 2 0 0 1 0 4h-3V7Z"/></svg><span><strong>Brand Identity Design</strong><small>Visual systems that communicate before customers read.</small></span></a>
+              <a class="mega-link" href="services/packaging-design.html" data-edit-key="home.header.a.packaging_design_packaging_that_carries_the_brand_from_scr" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4Z"/><path d="M4 8v8l8 4 8-4V8"/><path d="M12 12v8"/></svg><span><strong>Packaging Design</strong><small>Packaging that carries the brand from screen to shelf.</small></span></a>
+              <a class="mega-link" href="services/marketing-social-design.html" data-edit-key="home.header.a.marketing_and_social_media_design_campaign_and_content_ass" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v10H5z"/><path d="M8 19h8"/><path d="M9 10h6"/><path d="M9 13h3"/></svg><span><strong>Marketing &amp; Social Media Design</strong><small>Campaign and content assets that stay on-brand.</small></span></a>
+              <a class="mega-cta" href="services.html" data-edit-key="home.header.a.view_all_services_4" data-edit-type="link" data-page-id="home" data-section-id="home.header">View All Services &rarr;</a>
             </div>
             <div class="mega-panel" data-mega-panel="print">
-              <a class="mega-link" href="services/business-marketing-print.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4"/><path d="M6 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1"/><path d="M7 14h10v6H7z"/></svg><span><strong>Business &amp; Marketing Print</strong><small>Business cards, brochures, flyers, and stationery.</small></span></a>
-              <a class="mega-link" href="services/packaging-print-production.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4Z"/><path d="M4 8v8l8 4 8-4V8"/></svg><span><strong>Packaging Print Production</strong><small>Turning packaging systems into supplier-ready files.</small></span></a>
-              <a class="mega-link" href="services/large-format-retail-print.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v10H5z"/><path d="M8 19h8"/><path d="M12 15v4"/></svg><span><strong>Large Format &amp; Retail Print</strong><small>Banners, signage, displays, and in-store graphics.</small></span></a>
-              <a class="mega-cta" href="services.html">View All Services &rarr;</a>
+              <a class="mega-link" href="services/business-marketing-print.html" data-edit-key="home.header.a.business_and_marketing_print_business_cards_brochures_flye" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4"/><path d="M6 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1"/><path d="M7 14h10v6H7z"/></svg><span><strong>Business &amp; Marketing Print</strong><small>Business cards, brochures, flyers, and stationery.</small></span></a>
+              <a class="mega-link" href="services/packaging-print-production.html" data-edit-key="home.header.a.packaging_print_production_turning_packaging_systems_into_" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4Z"/><path d="M4 8v8l8 4 8-4V8"/></svg><span><strong>Packaging Print Production</strong><small>Turning packaging systems into supplier-ready files.</small></span></a>
+              <a class="mega-link" href="services/large-format-retail-print.html" data-edit-key="home.header.a.large_format_and_retail_print_banners_signage_displays_and" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v10H5z"/><path d="M8 19h8"/><path d="M12 15v4"/></svg><span><strong>Large Format &amp; Retail Print</strong><small>Banners, signage, displays, and in-store graphics.</small></span></a>
+              <a class="mega-cta" href="services.html" data-edit-key="home.header.a.view_all_services_5" data-edit-type="link" data-page-id="home" data-section-id="home.header">View All Services &rarr;</a>
             </div>
             <div class="mega-panel" data-mega-panel="growth">
-              <a class="mega-link" href="services/ecommerce-strategy.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18h16"/><path d="M7 15V9"/><path d="M12 15V6"/><path d="M17 15v-4"/></svg><span><strong>Ecommerce Strategy</strong><small>The commercial plan before execution begins.</small></span></a>
-              <a class="mega-link" href="services/conversion-optimization.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 8v4l3 2"/></svg><span><strong>Conversion Optimization</strong><small>Journeys rebuilt around how your customer buys.</small></span></a>
-              <a class="mega-link" href="services/growth-systems.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17l5-5 4 4 5-8"/><path d="M15 8h4v4"/></svg><span><strong>Growth Systems</strong><small>Retention infrastructure that turns first orders into repeats.</small></span></a>
-              <a class="mega-link" href="services/website-maintenance.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-2.8 8.2-7 10-4.2-1.8-7-5.5-7-10V6l7-3Z"/><path d="M9 12l2 2 4-5"/></svg><span><strong>Website Maintenance</strong><small>Ongoing care for digital systems after launch.</small></span></a>
-              <a class="mega-cta" href="services.html">View All Services &rarr;</a>
+              <a class="mega-link" href="services/ecommerce-strategy.html" data-edit-key="home.header.a.ecommerce_strategy_the_commercial_plan_before_execution_be" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18h16"/><path d="M7 15V9"/><path d="M12 15V6"/><path d="M17 15v-4"/></svg><span><strong>Ecommerce Strategy</strong><small>The commercial plan before execution begins.</small></span></a>
+              <a class="mega-link" href="services/conversion-optimization.html" data-edit-key="home.header.a.conversion_optimization_journeys_rebuilt_around_how_your_c" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 8v4l3 2"/></svg><span><strong>Conversion Optimization</strong><small>Journeys rebuilt around how your customer buys.</small></span></a>
+              <a class="mega-link" href="services/growth-systems.html" data-edit-key="home.header.a.growth_systems_retention_infrastructure_that_turns_first_o" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17l5-5 4 4 5-8"/><path d="M15 8h4v4"/></svg><span><strong>Growth Systems</strong><small>Retention infrastructure that turns first orders into repeats.</small></span></a>
+              <a class="mega-link" href="services/website-maintenance.html" data-edit-key="home.header.a.website_maintenance_ongoing_care_for_digital_systems_after" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-2.8 8.2-7 10-4.2-1.8-7-5.5-7-10V6l7-3Z"/><path d="M9 12l2 2 4-5"/></svg><span><strong>Website Maintenance</strong><small>Ongoing care for digital systems after launch.</small></span></a>
+              <a class="mega-cta" href="services.html" data-edit-key="home.header.a.view_all_services_6" data-edit-type="link" data-page-id="home" data-section-id="home.header">View All Services &rarr;</a>
             </div>
           </div>
         </div>
       </div>      <div class="nav-item nav-item--mega" data-mega-item>
-        <button class="nav-link nav-link--mega" type="button" data-hover data-active-page="work.html" aria-expanded="false" aria-controls="mega-work">Work</button>
+        <button class="nav-link nav-link--mega" type="button" data-hover data-active-page="work.html" aria-expanded="false" aria-controls="mega-work" data-edit-key="home.header.button.work" data-edit-type="button" data-page-id="home" data-section-id="home.header">Work</button>
         <div class="mega-menu mega-menu--simple" id="mega-work" role="menu">
-          <a class="mega-link" href="work/shopify-stores.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg><span><strong>Shopify Stores</strong><small>Custom storefronts, product pages, and launch builds.</small></span></a>
-          <a class="mega-link" href="work/brand-identity.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18l4-12 4 12"/><path d="M7 14h4"/><path d="M16 7h3a2 2 0 0 1 0 4h-3V7Z"/></svg><span><strong>Brand Identity</strong><small>Logos, visual systems, and brand language.</small></span></a>
-          <a class="mega-link" href="work/packaging-design.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4Z"/><path d="M4 8v8l8 4 8-4V8"/><path d="M12 12v8"/></svg><span><strong>Packaging Design</strong><small>Labels, boxes, and structures for retail and D2C.</small></span></a>
-          <a class="mega-link" href="work/amazon-storefronts.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12v11H6z"/><path d="M9 7a3 3 0 0 1 6 0"/><path d="M8 15c2.4 2 5.6 2 8 0"/></svg><span><strong>Amazon Storefronts</strong><small>A+ content, storefronts, and listing imagery.</small></span></a>
-          <a class="mega-link" href="work/websites.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M8 10h8"/><path d="M10 21h4"/></svg><span><strong>Websites</strong><small>Corporate, portfolio, and custom web builds.</small></span></a>
-          <a class="mega-link" href="work/marketing-print.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4"/><path d="M6 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1"/><path d="M7 14h10v6H7z"/></svg><span><strong>Marketing &amp; Print</strong><small>Campaigns, social assets, and print collateral.</small></span></a>
-          <a class="mega-cta" href="work.html">View All Work &rarr;</a>
+          <a class="mega-link" href="work/shopify-stores.html" data-edit-key="home.header.a.shopify_stores_custom_storefronts_product_pages_and_launch" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg><span><strong>Shopify Stores</strong><small>Custom storefronts, product pages, and launch builds.</small></span></a>
+          <a class="mega-link" href="work/brand-identity.html" data-edit-key="home.header.a.brand_identity_logos_visual_systems_and_brand_language" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18l4-12 4 12"/><path d="M7 14h4"/><path d="M16 7h3a2 2 0 0 1 0 4h-3V7Z"/></svg><span><strong>Brand Identity</strong><small>Logos, visual systems, and brand language.</small></span></a>
+          <a class="mega-link" href="work/packaging-design.html" data-edit-key="home.header.a.packaging_design_labels_boxes_and_structures_for_retail_an" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4Z"/><path d="M4 8v8l8 4 8-4V8"/><path d="M12 12v8"/></svg><span><strong>Packaging Design</strong><small>Labels, boxes, and structures for retail and D2C.</small></span></a>
+          <a class="mega-link" href="work/amazon-storefronts.html" data-edit-key="home.header.a.amazon_storefronts_a_content_storefronts_and_listing_image" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12v11H6z"/><path d="M9 7a3 3 0 0 1 6 0"/><path d="M8 15c2.4 2 5.6 2 8 0"/></svg><span><strong>Amazon Storefronts</strong><small>A+ content, storefronts, and listing imagery.</small></span></a>
+          <a class="mega-link" href="work/websites.html" data-edit-key="home.header.a.websites_corporate_portfolio_and_custom_web_builds" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M8 10h8"/><path d="M10 21h4"/></svg><span><strong>Websites</strong><small>Corporate, portfolio, and custom web builds.</small></span></a>
+          <a class="mega-link" href="work/marketing-print.html" data-edit-key="home.header.a.marketing_and_print_campaigns_social_assets_and_print_coll" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4"/><path d="M6 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1"/><path d="M7 14h10v6H7z"/></svg><span><strong>Marketing &amp; Print</strong><small>Campaigns, social assets, and print collateral.</small></span></a>
+          <a class="mega-cta" href="work.html" data-edit-key="home.header.a.view_all_work" data-edit-type="link" data-page-id="home" data-section-id="home.header">View All Work &rarr;</a>
         </div>
       </div>
-      <a href="process.html" class="nav-link" data-hover>Process</a>
-      <a href="about.html" class="nav-link" data-hover>About</a>
+      <a href="process.html" class="nav-link" data-hover data-edit-key="home.header.a.process" data-edit-type="link" data-page-id="home" data-section-id="home.header">Process</a>
+      <a href="about.html" class="nav-link" data-hover data-edit-key="home.header.a.about" data-edit-type="link" data-page-id="home" data-section-id="home.header">About</a>
       <div class="nav-item nav-item--mega" data-mega-item>
-        <button class="nav-link nav-link--mega" type="button" data-hover data-active-page="pricing.html" aria-expanded="false" aria-controls="mega-pricing">Pricing<svg class="nav-chevron" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="nav-link nav-link--mega" type="button" data-hover data-active-page="pricing.html" aria-expanded="false" aria-controls="mega-pricing" data-edit-key="home.header.button.pricing" data-edit-type="button" data-page-id="home" data-section-id="home.header">Pricing<svg class="nav-chevron" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <div class="mega-menu mega-menu--simple" id="mega-pricing" role="menu">
-          <a class="mega-link" href="pricing.html#branding-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18l4-12 4 12"/><path d="M7 14h4"/><path d="M16 6h3v12h-3z"/></svg><span><strong>Branding Packages</strong><small>Identity systems for memorable product brands.</small></span></a>
-          <a class="mega-link" href="pricing.html#shopify-development-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg><span><strong>Shopify Development Packages</strong><small>Custom builds scoped for conversion and scale.</small></span></a>
-          <a class="mega-link" href="pricing.html#amazon-seller-central-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12v11H6z"/><path d="M9 7a3 3 0 0 1 6 0"/><path d="M8 15c2.4 2 5.6 2 8 0"/></svg><span><strong>Amazon Seller Central Packages</strong><small>Setup, management, listings, and advertising.</small></span></a>
-          <a class="mega-link" href="pricing.html#web-development-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M8 10h8"/><path d="M10 21h4"/></svg><span><strong>Web Development Packages</strong><small>Corporate sites, portfolios, and custom stores.</small></span></a>
-          <a class="mega-link" href="pricing.html#printing-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4"/><path d="M6 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1"/><path d="M7 14h10v6H7z"/></svg><span><strong>Printing Packages</strong><small>Business, packaging, and retail print production.</small></span></a>
-          <a class="mega-link" href="pricing.html#growth-retention-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l5-5 4 3 6-8"/><path d="M15 7h4v4"/></svg><span><strong>Growth &amp; Retention Packages</strong><small>Email, SMS, and lifecycle systems.</small></span></a>
-          <a class="mega-link" href="pricing.html#seo-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="5"/><path d="M14 14l5 5"/></svg><span><strong>SEO Packages</strong><small>Organic search equity built into the store.</small></span></a>
-          <a class="mega-link" href="pricing.html#website-maintenance-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-2.8 8.2-7 10-4.2-1.8-7-5.5-7-10V6l7-3Z"/><path d="M9 12l2 2 4-5"/></svg><span><strong>Website Maintenance Packages</strong><small>Ongoing care after launch.</small></span></a>
-          <a class="mega-cta" href="pricing.html">Compare All Packages &rarr;</a>
+          <a class="mega-link" href="pricing.html#branding-packages" data-edit-key="home.header.a.branding_packages_identity_systems_for_memorable_product_b" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18l4-12 4 12"/><path d="M7 14h4"/><path d="M16 6h3v12h-3z"/></svg><span><strong>Branding Packages</strong><small>Identity systems for memorable product brands.</small></span></a>
+          <a class="mega-link" href="pricing.html#shopify-development-packages" data-edit-key="home.header.a.shopify_development_packages_custom_builds_scoped_for_conv" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg><span><strong>Shopify Development Packages</strong><small>Custom builds scoped for conversion and scale.</small></span></a>
+          <a class="mega-link" href="pricing.html#amazon-seller-central-packages" data-edit-key="home.header.a.amazon_seller_central_packages_setup_management_listings_a" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12v11H6z"/><path d="M9 7a3 3 0 0 1 6 0"/><path d="M8 15c2.4 2 5.6 2 8 0"/></svg><span><strong>Amazon Seller Central Packages</strong><small>Setup, management, listings, and advertising.</small></span></a>
+          <a class="mega-link" href="pricing.html#web-development-packages" data-edit-key="home.header.a.web_development_packages_corporate_sites_portfolios_and_cu" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M8 10h8"/><path d="M10 21h4"/></svg><span><strong>Web Development Packages</strong><small>Corporate sites, portfolios, and custom stores.</small></span></a>
+          <a class="mega-link" href="pricing.html#printing-packages" data-edit-key="home.header.a.printing_packages_business_packaging_and_retail_print_prod" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4"/><path d="M6 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1"/><path d="M7 14h10v6H7z"/></svg><span><strong>Printing Packages</strong><small>Business, packaging, and retail print production.</small></span></a>
+          <a class="mega-link" href="pricing.html#growth-retention-packages" data-edit-key="home.header.a.growth_and_retention_packages_email_sms_and_lifecycle_syst" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l5-5 4 3 6-8"/><path d="M15 7h4v4"/></svg><span><strong>Growth &amp; Retention Packages</strong><small>Email, SMS, and lifecycle systems.</small></span></a>
+          <a class="mega-link" href="pricing.html#seo-packages" data-edit-key="home.header.a.seo_packages_organic_search_equity_built_into_the_store" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="5"/><path d="M14 14l5 5"/></svg><span><strong>SEO Packages</strong><small>Organic search equity built into the store.</small></span></a>
+          <a class="mega-link" href="pricing.html#website-maintenance-packages" data-edit-key="home.header.a.website_maintenance_packages_ongoing_care_after_launch" data-edit-type="link" data-page-id="home" data-section-id="home.header"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-2.8 8.2-7 10-4.2-1.8-7-5.5-7-10V6l7-3Z"/><path d="M9 12l2 2 4-5"/></svg><span><strong>Website Maintenance Packages</strong><small>Ongoing care after launch.</small></span></a>
+          <a class="mega-cta" href="pricing.html" data-edit-key="home.header.a.compare_all_packages" data-edit-type="link" data-page-id="home" data-section-id="home.header">Compare All Packages &rarr;</a>
         </div>
-      </div>      <a href="faq.html" class="nav-link" data-hover>FAQ</a>
-      <a href="contact.html" class="nav-link" data-hover>Contact</a>
+      </div>      <a href="faq.html" class="nav-link" data-hover data-edit-key="home.header.a.faq" data-edit-type="link" data-page-id="home" data-section-id="home.header">FAQ</a>
+      <a href="contact.html" class="nav-link" data-hover data-edit-key="home.header.a.contact" data-edit-type="link" data-page-id="home" data-section-id="home.header">Contact</a>
     </nav>
-    <a href="contact.html" class="btn btn-nav" data-hover>Start a Project</a>
-    <button class="nav-burger" id="navBurger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navMobile"><span></span><span></span></button>
+    <a href="contact.html" class="btn btn-nav" data-hover data-edit-key="home.header.a.start_a_project" data-edit-type="link" data-page-id="home" data-section-id="home.header">Start a Project</a>
+    <button class="nav-burger" id="navBurger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navMobile" data-edit-key="home.header.button.menu" data-edit-type="button" data-page-id="home" data-section-id="home.header"><span></span><span></span></button>
   </div>
   <div class="nav-mobile" id="navMobile">
-    <a href="shopify.html">Shopify</a>
+    <a href="shopify.html" data-edit-key="home.header.a.shopify_2" data-edit-type="link" data-page-id="home" data-section-id="home.header">Shopify</a>
     <div class="mobile-mega">
-      <button class="mobile-mega-toggle" type="button" aria-expanded="false">Services<svg class="nav-chevron" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="mobile-mega-toggle" type="button" aria-expanded="false" data-edit-key="home.header.button.services_2" data-edit-type="button" data-page-id="home" data-section-id="home.header">Services<svg class="nav-chevron" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <div class="mobile-mega-panel">
-        <a href="services/premium-shopify-website-development.html">Premium Shopify Website Development</a>
-        <a href="services/shopify-cro.html">Shopify CRO</a>
-        <a href="services/shopify-store-optimization.html">Shopify Store Optimization</a>
-        <a href="services/performance-optimization.html">Performance Optimization</a>
-        <a href="services/amazon-account-setup.html">Amazon Account Setup</a>
-        <a href="services/amazon-account-management.html">Amazon Account Management &amp; Growth</a>
-        <a href="services/amazon-listing-advertising-optimization.html">Amazon Listing &amp; Advertising Optimization</a>
-        <a href="services/corporate-websites.html">Company &amp; Corporate Websites</a>
-        <a href="services/portfolio-websites.html">Portfolio &amp; Personal Websites</a>
-        <a href="services/custom-store-development.html">Custom Store Development</a>
-        <a href="services/brand-identity-design.html">Brand Identity Design</a>
-        <a href="services/packaging-design.html">Packaging Design</a>
-        <a href="services/marketing-social-design.html">Marketing &amp; Social Media Design</a>
-        <a href="services/business-marketing-print.html">Business &amp; Marketing Print</a>
-        <a href="services/packaging-print-production.html">Packaging Print Production</a>
-        <a href="services/large-format-retail-print.html">Large Format &amp; Retail Print</a>
-        <a href="services/ecommerce-strategy.html">Ecommerce Strategy</a>
-        <a href="services/conversion-optimization.html">Conversion Optimization</a>
-        <a href="services/growth-systems.html">Growth Systems</a>
-        <a href="services/website-maintenance.html">Website Maintenance</a>
-        <a href="services.html">View All Services</a>
+        <a href="services/premium-shopify-website-development.html" data-edit-key="home.header.a.premium_shopify_website_development" data-edit-type="link" data-page-id="home" data-section-id="home.header">Premium Shopify Website Development</a>
+        <a href="services/shopify-cro.html" data-edit-key="home.header.a.shopify_cro" data-edit-type="link" data-page-id="home" data-section-id="home.header">Shopify CRO</a>
+        <a href="services/shopify-store-optimization.html" data-edit-key="home.header.a.shopify_store_optimization" data-edit-type="link" data-page-id="home" data-section-id="home.header">Shopify Store Optimization</a>
+        <a href="services/performance-optimization.html" data-edit-key="home.header.a.performance_optimization" data-edit-type="link" data-page-id="home" data-section-id="home.header">Performance Optimization</a>
+        <a href="services/amazon-account-setup.html" data-edit-key="home.header.a.amazon_account_setup" data-edit-type="link" data-page-id="home" data-section-id="home.header">Amazon Account Setup</a>
+        <a href="services/amazon-account-management.html" data-edit-key="home.header.a.amazon_account_management_and_growth" data-edit-type="link" data-page-id="home" data-section-id="home.header">Amazon Account Management &amp; Growth</a>
+        <a href="services/amazon-listing-advertising-optimization.html" data-edit-key="home.header.a.amazon_listing_and_advertising_optimization" data-edit-type="link" data-page-id="home" data-section-id="home.header">Amazon Listing &amp; Advertising Optimization</a>
+        <a href="services/corporate-websites.html" data-edit-key="home.header.a.company_and_corporate_websites" data-edit-type="link" data-page-id="home" data-section-id="home.header">Company &amp; Corporate Websites</a>
+        <a href="services/portfolio-websites.html" data-edit-key="home.header.a.portfolio_and_personal_websites" data-edit-type="link" data-page-id="home" data-section-id="home.header">Portfolio &amp; Personal Websites</a>
+        <a href="services/custom-store-development.html" data-edit-key="home.header.a.custom_store_development" data-edit-type="link" data-page-id="home" data-section-id="home.header">Custom Store Development</a>
+        <a href="services/brand-identity-design.html" data-edit-key="home.header.a.brand_identity_design" data-edit-type="link" data-page-id="home" data-section-id="home.header">Brand Identity Design</a>
+        <a href="services/packaging-design.html" data-edit-key="home.header.a.packaging_design" data-edit-type="link" data-page-id="home" data-section-id="home.header">Packaging Design</a>
+        <a href="services/marketing-social-design.html" data-edit-key="home.header.a.marketing_and_social_media_design" data-edit-type="link" data-page-id="home" data-section-id="home.header">Marketing &amp; Social Media Design</a>
+        <a href="services/business-marketing-print.html" data-edit-key="home.header.a.business_and_marketing_print" data-edit-type="link" data-page-id="home" data-section-id="home.header">Business &amp; Marketing Print</a>
+        <a href="services/packaging-print-production.html" data-edit-key="home.header.a.packaging_print_production" data-edit-type="link" data-page-id="home" data-section-id="home.header">Packaging Print Production</a>
+        <a href="services/large-format-retail-print.html" data-edit-key="home.header.a.large_format_and_retail_print" data-edit-type="link" data-page-id="home" data-section-id="home.header">Large Format &amp; Retail Print</a>
+        <a href="services/ecommerce-strategy.html" data-edit-key="home.header.a.ecommerce_strategy" data-edit-type="link" data-page-id="home" data-section-id="home.header">Ecommerce Strategy</a>
+        <a href="services/conversion-optimization.html" data-edit-key="home.header.a.conversion_optimization" data-edit-type="link" data-page-id="home" data-section-id="home.header">Conversion Optimization</a>
+        <a href="services/growth-systems.html" data-edit-key="home.header.a.growth_systems" data-edit-type="link" data-page-id="home" data-section-id="home.header">Growth Systems</a>
+        <a href="services/website-maintenance.html" data-edit-key="home.header.a.website_maintenance" data-edit-type="link" data-page-id="home" data-section-id="home.header">Website Maintenance</a>
+        <a href="services.html" data-edit-key="home.header.a.view_all_services_7" data-edit-type="link" data-page-id="home" data-section-id="home.header">View All Services</a>
       </div>
     </div>    <div class="mobile-mega">
-      <button class="mobile-mega-toggle" type="button" aria-expanded="false">Work<svg class="nav-chevron" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="mobile-mega-toggle" type="button" aria-expanded="false" data-edit-key="home.header.button.work_2" data-edit-type="button" data-page-id="home" data-section-id="home.header">Work<svg class="nav-chevron" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <div class="mobile-mega-panel">
-        <a href="work/shopify-stores.html">Shopify Stores</a>
-        <a href="work/brand-identity.html">Brand Identity</a>
-        <a href="work/packaging-design.html">Packaging Design</a>
-        <a href="work/amazon-storefronts.html">Amazon Storefronts</a>
-        <a href="work/websites.html">Websites</a>
-        <a href="work/marketing-print.html">Marketing &amp; Print</a>
-        <a href="work.html">View All Work</a>
+        <a href="work/shopify-stores.html" data-edit-key="home.header.a.shopify_stores" data-edit-type="link" data-page-id="home" data-section-id="home.header">Shopify Stores</a>
+        <a href="work/brand-identity.html" data-edit-key="home.header.a.brand_identity" data-edit-type="link" data-page-id="home" data-section-id="home.header">Brand Identity</a>
+        <a href="work/packaging-design.html" data-edit-key="home.header.a.packaging_design_2" data-edit-type="link" data-page-id="home" data-section-id="home.header">Packaging Design</a>
+        <a href="work/amazon-storefronts.html" data-edit-key="home.header.a.amazon_storefronts" data-edit-type="link" data-page-id="home" data-section-id="home.header">Amazon Storefronts</a>
+        <a href="work/websites.html" data-edit-key="home.header.a.websites" data-edit-type="link" data-page-id="home" data-section-id="home.header">Websites</a>
+        <a href="work/marketing-print.html" data-edit-key="home.header.a.marketing_and_print" data-edit-type="link" data-page-id="home" data-section-id="home.header">Marketing &amp; Print</a>
+        <a href="work.html" data-edit-key="home.header.a.view_all_work_2" data-edit-type="link" data-page-id="home" data-section-id="home.header">View All Work</a>
       </div>
     </div>
-    <a href="process.html">Process</a>
-    <a href="about.html">About</a>
+    <a href="process.html" data-edit-key="home.header.a.process_2" data-edit-type="link" data-page-id="home" data-section-id="home.header">Process</a>
+    <a href="about.html" data-edit-key="home.header.a.about_2" data-edit-type="link" data-page-id="home" data-section-id="home.header">About</a>
     <div class="mobile-mega">
-      <button class="mobile-mega-toggle" type="button" aria-expanded="false">Pricing<svg class="nav-chevron" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="mobile-mega-toggle" type="button" aria-expanded="false" data-edit-key="home.header.button.pricing_2" data-edit-type="button" data-page-id="home" data-section-id="home.header">Pricing<svg class="nav-chevron" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <div class="mobile-mega-panel">
-        <a href="pricing.html#branding-packages">Branding Packages</a>
-        <a href="pricing.html#shopify-development-packages">Shopify Development Packages</a>
-        <a href="pricing.html#amazon-seller-central-packages">Amazon Seller Central Packages</a>
-        <a href="pricing.html#web-development-packages">Web Development Packages</a>
-        <a href="pricing.html#printing-packages">Printing Packages</a>
-        <a href="pricing.html#growth-retention-packages">Growth &amp; Retention Packages</a>
-        <a href="pricing.html#seo-packages">SEO Packages</a>
-        <a href="pricing.html#website-maintenance-packages">Website Maintenance Packages</a>
-        <a href="pricing.html">Compare All Packages</a>
+        <a href="pricing.html#branding-packages" data-edit-key="home.header.a.branding_packages" data-edit-type="link" data-page-id="home" data-section-id="home.header">Branding Packages</a>
+        <a href="pricing.html#shopify-development-packages" data-edit-key="home.header.a.shopify_development_packages" data-edit-type="link" data-page-id="home" data-section-id="home.header">Shopify Development Packages</a>
+        <a href="pricing.html#amazon-seller-central-packages" data-edit-key="home.header.a.amazon_seller_central_packages" data-edit-type="link" data-page-id="home" data-section-id="home.header">Amazon Seller Central Packages</a>
+        <a href="pricing.html#web-development-packages" data-edit-key="home.header.a.web_development_packages" data-edit-type="link" data-page-id="home" data-section-id="home.header">Web Development Packages</a>
+        <a href="pricing.html#printing-packages" data-edit-key="home.header.a.printing_packages" data-edit-type="link" data-page-id="home" data-section-id="home.header">Printing Packages</a>
+        <a href="pricing.html#growth-retention-packages" data-edit-key="home.header.a.growth_and_retention_packages" data-edit-type="link" data-page-id="home" data-section-id="home.header">Growth &amp; Retention Packages</a>
+        <a href="pricing.html#seo-packages" data-edit-key="home.header.a.seo_packages" data-edit-type="link" data-page-id="home" data-section-id="home.header">SEO Packages</a>
+        <a href="pricing.html#website-maintenance-packages" data-edit-key="home.header.a.website_maintenance_packages" data-edit-type="link" data-page-id="home" data-section-id="home.header">Website Maintenance Packages</a>
+        <a href="pricing.html" data-edit-key="home.header.a.compare_all_packages_2" data-edit-type="link" data-page-id="home" data-section-id="home.header">Compare All Packages</a>
       </div>
-    </div>    <a href="faq.html">FAQ</a>
-    <a href="contact.html">Contact</a>
+    </div>    <a href="faq.html" data-edit-key="home.header.a.faq_2" data-edit-type="link" data-page-id="home" data-section-id="home.header">FAQ</a>
+    <a href="contact.html" data-edit-key="home.header.a.contact_2" data-edit-type="link" data-page-id="home" data-section-id="home.header">Contact</a>
   </div>
 </header>
 
-<main>
+<main data-page-id="home">
 
   <div class="hero-travel-scene">
   <!-- ================= HERO ================= -->
-  <section class="hero hero--has-deck">
+  <section class="hero hero--has-deck" data-page-id="home" data-section-id="home.home_hero_1" data-section-type="home_hero" data-section-order="1">
     <canvas id="heroCanvas"></canvas>
     <div class="hero-vignette"></div>
     <div class="hero-content">
-      <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Ecommerce Growth Partner</p>
-      <h1 class="hero-title">
+      <p class="eyebrow reveal-up" data-edit-key="home.home_hero_1.p.ecommerce_growth_partner" data-edit-type="text" data-page-id="home" data-section-id="home.home_hero_1"><span class="eyebrow-dot"></span>Ecommerce Growth Partner</p>
+      <h1 class="hero-title" data-edit-key="home.home_hero_1.h1.growth_by_design" data-edit-type="text" data-page-id="home" data-section-id="home.home_hero_1">
         Growth<br><span class="italic">By Design.</span>
       </h1>
-      <p class="hero-sub reveal-up">GROWVA is one accountable partner for product brands across Shopify, Amazon Seller Central, web development, brand design, growth systems, and print production.</p>
+      <p class="hero-sub reveal-up" data-edit-key="home.home_hero_1.p.growva_is_one_accountable_partner_for_product_brands_acros" data-edit-type="text" data-page-id="home" data-section-id="home.home_hero_1">GROWVA is one accountable partner for product brands across Shopify, Amazon Seller Central, web development, brand design, growth systems, and print production.</p>
       <div class="hero-actions reveal-up">
-        <a href="contact.html" class="btn btn-primary" data-hover><span>Start a Project</span></a>
-        <a href="work.html" class="btn btn-ghost" data-hover><span>View Our Work</span></a>
+        <a href="contact.html" class="btn btn-primary" data-hover data-edit-key="home.home_hero_1.a.start_a_project" data-edit-type="link" data-page-id="home" data-section-id="home.home_hero_1"><span>Start a Project</span></a>
+        <a href="work.html" class="btn btn-ghost" data-hover data-edit-key="home.home_hero_1.a.view_our_work" data-edit-type="link" data-page-id="home" data-section-id="home.home_hero_1"><span>View Our Work</span></a>
       </div>
     </div>
     <canvas class="brand-object-canvas hero-brand-object" data-brand-object="hero" aria-hidden="true"></canvas>
@@ -202,7 +202,7 @@
       </div>
 
       <!-- Card 1: Shopify Store mockup -->
-      <div class="stack-card" data-card="1">
+      <div class="stack-card" data-card="1" data-edit-key="home.card.stack_card_1" data-edit-type="card" data-page-id="home">
         <div class="sc-browser-bar">
           <span class="sc-dot sc-dot--red"></span>
           <span class="sc-dot sc-dot--amber"></span>
@@ -210,17 +210,17 @@
         </div>
         <div class="sc-product-img"></div>
         <div class="sc-product-body">
-          <p class="sc-product-name">Nour No. 03</p>
-          <p class="sc-product-price">$142.00</p>
+          <p class="sc-product-name" data-edit-key="home.home_hero_1.p.nour_no_03" data-edit-type="text" data-page-id="home" data-section-id="home.home_hero_1">Nour No. 03</p>
+          <p class="sc-product-price" data-edit-key="home.home_hero_1.p.142_00" data-edit-type="text" data-page-id="home" data-section-id="home.home_hero_1">$142.00</p>
           <div class="sc-atc-btn">Add to Cart</div>
         </div>
         <span class="sc-card-label">Shopify Store</span>
-        <a href="shopify.html" class="card-link" aria-label="View Shopify Store service"></a>
+        <a href="shopify.html" class="card-link" aria-label="View Shopify Store service" data-edit-key="home.home_hero_1.a.view_shopify_store_service" data-edit-type="link" data-page-id="home" data-section-id="home.home_hero_1"></a>
         <div class="card-cta-overlay"><span>View Service â†’</span></div>
       </div>
 
       <!-- Card 2: Brand Identity -->
-      <div class="stack-card sc-card-brand" data-card="2">
+      <div class="stack-card sc-card-brand" data-card="2" data-edit-key="home.card.stack_card_2" data-edit-type="card" data-page-id="home">
         <div class="sc-brand-mark">
           <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <!-- G shape -->
@@ -231,7 +231,7 @@
                       stroke="#B1FA20" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
-        <p class="sc-brand-name">Brand Identity</p>
+        <p class="sc-brand-name" data-edit-key="home.home_hero_1.p.brand_identity" data-edit-type="text" data-page-id="home" data-section-id="home.home_hero_1">Brand Identity</p>
         <div class="sc-swatches">
           <span class="sc-swatch" style="background:#111111"></span>
           <span class="sc-swatch" style="background:#f6f6f6"></span>
@@ -239,12 +239,12 @@
           <span class="sc-swatch" style="background:#ffffff"></span>
         </div>
         <span class="sc-card-label">Visual System</span>
-        <a href="services/brand-identity-design.html" class="card-link" aria-label="View Brand Identity service"></a>
+        <a href="services/brand-identity-design.html" class="card-link" aria-label="View Brand Identity service" data-edit-key="home.home_hero_1.a.view_brand_identity_service" data-edit-type="link" data-page-id="home" data-section-id="home.home_hero_1"></a>
         <div class="card-cta-overlay"><span>View Service â†’</span></div>
       </div>
 
       <!-- Card 3: Packaging Design -->
-      <div class="stack-card sc-card-pkg" data-card="3">
+      <div class="stack-card sc-card-pkg" data-card="3" data-edit-key="home.card.stack_card_3" data-edit-type="card" data-page-id="home">
         <div class="sc-pkg-scene">
           <div class="sc-pkg-top-face"></div>
           <div class="sc-pkg-front-face">
@@ -254,13 +254,13 @@
           <div class="sc-pkg-side-face"></div>
         </div>
         <span class="sc-card-label">Packaging Design</span>
-        <a href="services/packaging-design.html" class="card-link" aria-label="View Packaging Design service"></a>
+        <a href="services/packaging-design.html" class="card-link" aria-label="View Packaging Design service" data-edit-key="home.home_hero_1.a.view_packaging_design_service" data-edit-type="link" data-page-id="home" data-section-id="home.home_hero_1"></a>
         <div class="card-cta-overlay"><span>View Service â†’</span></div>
       </div>
 
       <!-- Card 4: Growth / Performance -->
-      <div class="stack-card sc-card-growth" data-card="4">
-        <p class="sc-growth-eyebrow">Growth Systems</p>
+      <div class="stack-card sc-card-growth" data-card="4" data-edit-key="home.card.stack_card_4" data-edit-type="card" data-page-id="home">
+        <p class="sc-growth-eyebrow" data-edit-key="home.home_hero_1.p.growth_systems" data-edit-type="text" data-page-id="home" data-section-id="home.home_hero_1">Growth Systems</p>
         <div class="sc-chart">
           <div class="sc-bar" style="--bh:38%"></div>
           <div class="sc-bar" style="--bh:55%"></div>
@@ -273,7 +273,7 @@
           <span class="sc-stat-lbl">Repeat Revenue</span>
         </div>
         <span class="sc-card-label">Performance</span>
-        <a href="services/growth-systems.html" class="card-link" aria-label="View Growth Systems service"></a>
+        <a href="services/growth-systems.html" class="card-link" aria-label="View Growth Systems service" data-edit-key="home.home_hero_1.a.view_growth_systems_service" data-edit-type="link" data-page-id="home" data-section-id="home.home_hero_1"></a>
         <div class="card-cta-overlay"><span>View Service â†’</span></div>
       </div>
 
@@ -297,45 +297,45 @@
   </div>
 
   <!-- ================= WHAT WE DO (teaser) ================= -->
-  <section class="section why">
+  <section class="section why" data-page-id="home" data-section-id="home.what_we_do_2" data-section-type="what_we_do" data-section-order="2">
     <div class="container">
       <div class="section-head">
-        <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>What We Do</p>
-        <h2 class="h2 reveal-up">Five departments.<br>One integrated partner.</h2>
+        <p class="eyebrow reveal-up" data-edit-key="home.what_we_do_2.p.what_we_do" data-edit-type="text" data-page-id="home" data-section-id="home.what_we_do_2"><span class="eyebrow-dot"></span>What We Do</p>
+        <h2 class="h2 reveal-up" data-edit-key="home.what_we_do_2.h2.five_departments_one_integrated_partner" data-edit-type="text" data-page-id="home" data-section-id="home.what_we_do_2">Five departments.<br>One integrated partner.</h2>
       </div>
       <div class="why-grid">
         <div class="why-lead reveal-up">
-          <p>Product brands do not grow through one channel anymore. We connect the digital store, marketplace, brand system, campaign design, and physical print touchpoints so the customer meets one coherent brand everywhere.</p>
+          <p data-edit-key="home.what_we_do_2.p.product_brands_do_not_grow_through_one_channel_anymore_we_" data-edit-type="text" data-page-id="home" data-section-id="home.what_we_do_2">Product brands do not grow through one channel anymore. We connect the digital store, marketplace, brand system, campaign design, and physical print touchpoints so the customer meets one coherent brand everywhere.</p>
           <div class="why-cta">
-            <a href="services.html" class="btn btn-ghost" data-hover><span>Explore Services &rarr;</span></a>
+            <a href="services.html" class="btn btn-ghost" data-hover data-edit-key="home.what_we_do_2.a.explore_services" data-edit-type="link" data-page-id="home" data-section-id="home.what_we_do_2"><span>Explore Services &rarr;</span></a>
           </div>
         </div>
-        <div class="why-cards">
-          <a class="why-card reveal-up" href="services/premium-shopify-website-development.html" data-hover>
+        <div class="why-cards" data-edit-key="home.card.why_card_1" data-edit-type="card" data-page-id="home">
+          <a class="why-card reveal-up" href="services/premium-shopify-website-development.html" data-hover data-edit-key="home.what_we_do_2.a.shopify_and_ecommerce_premium_stores_built_for_product_led" data-edit-type="link" data-page-id="home" data-section-id="home.what_we_do_2">
             <svg class="dept-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>
             <span class="why-num">Shopify & Ecommerce</span>
             <h3>Premium stores built for product-led conversion</h3>
             <p>Custom Shopify development, CRO, store optimization, and performance work for brands that cannot afford generic commerce.</p>
           </a>
-          <a class="why-card reveal-up" href="services/amazon-account-setup.html" data-hover>
+          <a class="why-card reveal-up" href="services/amazon-account-setup.html" data-hover data-edit-key="home.what_we_do_2.a.amazon_seller_central_marketplace_setup_management_and_gro" data-edit-type="link" data-page-id="home" data-section-id="home.what_we_do_2">
             <svg class="dept-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12v11H6z"/><path d="M9 7a3 3 0 0 1 6 0"/><path d="M8 15c2.4 2 5.6 2 8 0"/></svg>
             <span class="why-num">Amazon Seller Central</span>
             <h3>Marketplace setup, management, and growth</h3>
             <p>Seller Central foundations, account operations, listing optimization, keyword strategy, and PPC systems managed with brand discipline.</p>
           </a>
-          <a class="why-card reveal-up" href="services/corporate-websites.html" data-hover>
+          <a class="why-card reveal-up" href="services/corporate-websites.html" data-hover data-edit-key="home.what_we_do_2.a.web_development_websites_beyond_the_commerce_stack_corpora" data-edit-type="link" data-page-id="home" data-section-id="home.what_we_do_2">
             <svg class="dept-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M8 10h8"/><path d="M8 14h5"/><path d="M10 21h4"/></svg>
             <span class="why-num">Web Development</span>
             <h3>Websites beyond the commerce stack</h3>
             <p>Corporate sites, personal portfolios, and custom stores for brands that need a digital home outside the usual Shopify path.</p>
           </a>
-          <a class="why-card reveal-up" href="services/brand-identity-design.html" data-hover>
+          <a class="why-card reveal-up" href="services/brand-identity-design.html" data-hover data-edit-key="home.what_we_do_2.a.graphic_design_identity_packaging_and_campaign_design_visu" data-edit-type="link" data-page-id="home" data-section-id="home.what_we_do_2">
             <svg class="dept-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18l4-12 4 12"/><path d="M7 14h4"/><path d="M16 7h3a2 2 0 0 1 0 4h-3V7Z"/></svg>
             <span class="why-num">Graphic Design</span>
             <h3>Identity, packaging, and campaign design</h3>
             <p>Visual systems that hold across a storefront, marketplace listing, social campaign, and the box that arrives at the door.</p>
           </a>
-          <a class="why-card reveal-up" href="services/business-marketing-print.html" data-hover>
+          <a class="why-card reveal-up" href="services/business-marketing-print.html" data-hover data-edit-key="home.what_we_do_2.a.printing_physical_touchpoints_with_the_same_standard_busin" data-edit-type="link" data-page-id="home" data-section-id="home.what_we_do_2">
             <svg class="dept-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4"/><path d="M6 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1"/><path d="M7 14h10v6H7z"/></svg>
             <span class="why-num">Printing</span>
             <h3>Physical touchpoints with the same standard</h3>
@@ -347,102 +347,102 @@
   </section>
 
   <!-- ================= SERVICES (compact grid) ================= -->
-  <section class="section" style="padding-top:0;">
+  <section class="section" style="padding-top:0;" data-page-id="home" data-section-id="home.section_3" data-section-type="section" data-section-order="3">
     <div class="container">
       <div class="section-head">
-        <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Services</p>
-        <h2 class="h2 reveal-up">Twenty services.<br>One growth system.</h2>
+        <p class="eyebrow reveal-up" data-edit-key="home.section_3.p.services" data-edit-type="text" data-page-id="home" data-section-id="home.section_3"><span class="eyebrow-dot"></span>Services</p>
+        <h2 class="h2 reveal-up" data-edit-key="home.section_3.h2.twenty_services_one_growth_system" data-edit-type="text" data-page-id="home" data-section-id="home.section_3">Twenty services.<br>One growth system.</h2>
       </div>
       <div class="services-compact-grid reveal-up">
-        <a href="services/premium-shopify-website-development.html" class="service-compact-item" data-hover>
+        <a href="services/premium-shopify-website-development.html" class="service-compact-item" data-hover data-edit-key="home.section_3.a.01_shopify_and_ecommerce_development" data-edit-type="link" data-page-id="home" data-section-id="home.section_3">
           <span class="service-compact-num">01</span>
           <span class="service-compact-name">Shopify &amp; Ecommerce Development</span>
         </a>
-        <a href="services/amazon-account-setup.html" class="service-compact-item" data-hover>
+        <a href="services/amazon-account-setup.html" class="service-compact-item" data-hover data-edit-key="home.section_3.a.02_amazon_seller_central" data-edit-type="link" data-page-id="home" data-section-id="home.section_3">
           <span class="service-compact-num">02</span>
           <span class="service-compact-name">Amazon Seller Central</span>
         </a>
-        <a href="services/corporate-websites.html" class="service-compact-item" data-hover>
+        <a href="services/corporate-websites.html" class="service-compact-item" data-hover data-edit-key="home.section_3.a.03_web_development" data-edit-type="link" data-page-id="home" data-section-id="home.section_3">
           <span class="service-compact-num">03</span>
           <span class="service-compact-name">Web Development</span>
         </a>
-        <a href="services/brand-identity-design.html" class="service-compact-item" data-hover>
+        <a href="services/brand-identity-design.html" class="service-compact-item" data-hover data-edit-key="home.section_3.a.04_graphic_design" data-edit-type="link" data-page-id="home" data-section-id="home.section_3">
           <span class="service-compact-num">04</span>
           <span class="service-compact-name">Graphic Design</span>
         </a>
-        <a href="services/business-marketing-print.html" class="service-compact-item" data-hover>
+        <a href="services/business-marketing-print.html" class="service-compact-item" data-hover data-edit-key="home.section_3.a.05_printing" data-edit-type="link" data-page-id="home" data-section-id="home.section_3">
           <span class="service-compact-num">05</span>
           <span class="service-compact-name">Printing</span>
         </a>
-        <a href="services/ecommerce-strategy.html" class="service-compact-item" data-hover>
+        <a href="services/ecommerce-strategy.html" class="service-compact-item" data-hover data-edit-key="home.section_3.a.06_growth_and_strategy_systems" data-edit-type="link" data-page-id="home" data-section-id="home.section_3">
           <span class="service-compact-num">06</span>
           <span class="service-compact-name">Growth &amp; Strategy Systems</span>
         </a>
       </div>
       <div style="text-align:center;margin-top:44px;">
-        <a href="services.html" class="btn btn-ghost" data-hover><span>Explore All Services â†’</span></a>
+        <a href="services.html" class="btn btn-ghost" data-hover data-edit-key="home.section_3.a.explore_all_services" data-edit-type="link" data-page-id="home" data-section-id="home.section_3"><span>Explore All Services â†’</span></a>
       </div>
     </div>
   </section>
 
   <!-- ================= PROCESS (teaser row) ================= -->
-  <section class="section process">
+  <section class="section process" data-page-id="home" data-section-id="home.process_4" data-section-type="process" data-section-order="4">
     <div class="container">
       <div class="section-head">
-        <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Process</p>
-        <h2 class="h2 reveal-up">Nine stages.<br>No guesswork.</h2>
+        <p class="eyebrow reveal-up" data-edit-key="home.process_4.p.process" data-edit-type="text" data-page-id="home" data-section-id="home.process_4"><span class="eyebrow-dot"></span>Process</p>
+        <h2 class="h2 reveal-up" data-edit-key="home.process_4.h2.nine_stages_no_guesswork" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Nine stages.<br>No guesswork.</h2>
       </div>
     </div>
     <div class="process-track-wrap">
       <div class="process-line"><i id="processLineFill"></i></div>
-      <div class="process-steps">
-        <div class="process-step reveal-up"><span class="p-num">01</span><h4>Discovery</h4><p>Brand, customer, and growth gaps.</p></div>
-        <div class="process-step reveal-up"><span class="p-num">02</span><h4>Strategy</h4><p>Written plan before design begins.</p></div>
-        <div class="process-step reveal-up"><span class="p-num">03</span><h4>Planning</h4><p>Sitemaps, flows, and agreed scope.</p></div>
-        <div class="process-step reveal-up"><span class="p-num">04</span><h4>Design</h4><p>High-fidelity Shopify UI.</p></div>
-        <div class="process-step reveal-up"><span class="p-num">05</span><h4>Development</h4><p>Clean code, fast load, no template debt.</p></div>
-        <div class="process-step reveal-up"><span class="p-num">06</span><h4>Testing</h4><p>Cross-device QA and benchmarking.</p></div>
-        <div class="process-step reveal-up"><span class="p-num">07</span><h4>Launch</h4><p>Coordinated go-live with monitoring.</p></div>
-        <div class="process-step reveal-up"><span class="p-num">08</span><h4>Optimization</h4><p>Data-driven post-launch refinement.</p></div>
-        <div class="process-step reveal-up"><span class="p-num">09</span><h4>Growth</h4><p>Ongoing CRO and retention work.</p></div>
+      <div class="process-steps" data-edit-key="home.card.process_step_1" data-edit-type="card" data-page-id="home">
+        <div class="process-step reveal-up" data-edit-key="home.card.process_step_2" data-edit-type="card" data-page-id="home"><span class="p-num">01</span><h4 data-edit-key="home.process_4.h4.discovery" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Discovery</h4><p data-edit-key="home.process_4.p.brand_customer_and_growth_gaps" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Brand, customer, and growth gaps.</p></div>
+        <div class="process-step reveal-up" data-edit-key="home.card.process_step_3" data-edit-type="card" data-page-id="home"><span class="p-num">02</span><h4 data-edit-key="home.process_4.h4.strategy" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Strategy</h4><p data-edit-key="home.process_4.p.written_plan_before_design_begins" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Written plan before design begins.</p></div>
+        <div class="process-step reveal-up" data-edit-key="home.card.process_step_4" data-edit-type="card" data-page-id="home"><span class="p-num">03</span><h4 data-edit-key="home.process_4.h4.planning" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Planning</h4><p data-edit-key="home.process_4.p.sitemaps_flows_and_agreed_scope" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Sitemaps, flows, and agreed scope.</p></div>
+        <div class="process-step reveal-up" data-edit-key="home.card.process_step_5" data-edit-type="card" data-page-id="home"><span class="p-num">04</span><h4 data-edit-key="home.process_4.h4.design" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Design</h4><p data-edit-key="home.process_4.p.high_fidelity_shopify_ui" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">High-fidelity Shopify UI.</p></div>
+        <div class="process-step reveal-up" data-edit-key="home.card.process_step_6" data-edit-type="card" data-page-id="home"><span class="p-num">05</span><h4 data-edit-key="home.process_4.h4.development" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Development</h4><p data-edit-key="home.process_4.p.clean_code_fast_load_no_template_debt" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Clean code, fast load, no template debt.</p></div>
+        <div class="process-step reveal-up" data-edit-key="home.card.process_step_7" data-edit-type="card" data-page-id="home"><span class="p-num">06</span><h4 data-edit-key="home.process_4.h4.testing" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Testing</h4><p data-edit-key="home.process_4.p.cross_device_qa_and_benchmarking" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Cross-device QA and benchmarking.</p></div>
+        <div class="process-step reveal-up" data-edit-key="home.card.process_step_8" data-edit-type="card" data-page-id="home"><span class="p-num">07</span><h4 data-edit-key="home.process_4.h4.launch" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Launch</h4><p data-edit-key="home.process_4.p.coordinated_go_live_with_monitoring" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Coordinated go-live with monitoring.</p></div>
+        <div class="process-step reveal-up" data-edit-key="home.card.process_step_9" data-edit-type="card" data-page-id="home"><span class="p-num">08</span><h4 data-edit-key="home.process_4.h4.optimization" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Optimization</h4><p data-edit-key="home.process_4.p.data_driven_post_launch_refinement" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Data-driven post-launch refinement.</p></div>
+        <div class="process-step reveal-up" data-edit-key="home.card.process_step_10" data-edit-type="card" data-page-id="home"><span class="p-num">09</span><h4 data-edit-key="home.process_4.h4.growth" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Growth</h4><p data-edit-key="home.process_4.p.ongoing_cro_and_retention_work" data-edit-type="text" data-page-id="home" data-section-id="home.process_4">Ongoing CRO and retention work.</p></div>
       </div>
       <div class="process-cta reveal-up">
-        <a href="process.html" class="btn btn-ghost" data-hover><span>See Full Process â†’</span></a>
+        <a href="process.html" class="btn btn-ghost" data-hover data-edit-key="home.process_4.a.see_full_process" data-edit-type="link" data-page-id="home" data-section-id="home.process_4"><span>See Full Process â†’</span></a>
       </div>
     </div>
   </section>
 
   <!-- ================= STATS ================= -->
-  <section class="section stats">
+  <section class="section stats" data-page-id="home" data-section-id="home.stats_5" data-section-type="stats" data-section-order="5">
     <div class="container stats-grid">
       <div class="stat-item reveal-up">
         <span class="stat-num" data-count="120">0</span><span class="stat-plus">+</span>
-        <p>Digital and brand systems launched</p>
+        <p data-edit-key="home.stats_5.p.digital_and_brand_systems_launched" data-edit-type="text" data-page-id="home" data-section-id="home.stats_5">Digital and brand systems launched</p>
       </div>
       <div class="stat-item reveal-up">
         <span class="stat-num" data-count="9">0</span>
-        <p>Industries served</p>
+        <p data-edit-key="home.stats_5.p.industries_served" data-edit-type="text" data-page-id="home" data-section-id="home.stats_5">Industries served</p>
       </div>
       <div class="stat-item reveal-up">
         <span class="stat-num" data-count="98">0</span><span class="stat-plus">%</span>
-        <p>Client retention rate</p>
+        <p data-edit-key="home.stats_5.p.client_retention_rate" data-edit-type="text" data-page-id="home" data-section-id="home.stats_5">Client retention rate</p>
       </div>
       <div class="stat-item reveal-up">
         <span class="stat-num" data-count="24">0</span><span class="stat-plus">hr</span>
-        <p>Support response window</p>
+        <p data-edit-key="home.stats_5.p.support_response_window" data-edit-type="text" data-page-id="home" data-section-id="home.stats_5">Support response window</p>
       </div>
     </div>
   </section>
 
   <!-- ================= LATEST PROJECTS ================= -->
-  <section class="section work latest-projects">
+  <section class="section work latest-projects" data-page-id="home" data-section-id="home.latest_projects_6" data-section-type="latest_projects" data-section-order="6">
     <div class="container">
       <div class="section-head">
-        <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Selected Work</p>
-        <h2 class="h2 reveal-up">Latest projects,<br>built to outperform.</h2>
+        <p class="eyebrow reveal-up" data-edit-key="home.latest_projects_6.p.selected_work" data-edit-type="text" data-page-id="home" data-section-id="home.latest_projects_6"><span class="eyebrow-dot"></span>Selected Work</p>
+        <h2 class="h2 reveal-up" data-edit-key="home.latest_projects_6.h2.latest_projects_built_to_outperform" data-edit-type="text" data-page-id="home" data-section-id="home.latest_projects_6">Latest projects,<br>built to outperform.</h2>
       </div>
       <div class="latest-project-grid">
-        <a class="latest-project-card reveal-up" href="work.html#noor-perfumery" data-cursor-text="View Project" aria-label="View Noor Perfumery case study">
+        <a class="latest-project-card reveal-up" href="work.html#noor-perfumery" data-cursor-text="View Project" aria-label="View Noor Perfumery case study" data-edit-key="home.latest_projects_6.a.noor_perfumery_view_project_perfume_view_project" data-edit-type="link" data-page-id="home" data-section-id="home.latest_projects_6">
           <span class="latest-project-visual case-visual-1">
             <span class="case-visual-inner"></span>
             <span class="latest-project-title">Noor Perfumery</span>
@@ -454,7 +454,7 @@
           </span>
         </a>
 
-        <a class="latest-project-card reveal-up" href="work.html#vella-cosmetics" data-cursor-text="View Project" aria-label="View Vella Cosmetics case study">
+        <a class="latest-project-card reveal-up" href="work.html#vella-cosmetics" data-cursor-text="View Project" aria-label="View Vella Cosmetics case study" data-edit-key="home.latest_projects_6.a.vella_cosmetics_view_project_cosmetics_view_project" data-edit-type="link" data-page-id="home" data-section-id="home.latest_projects_6">
           <span class="latest-project-visual case-visual-2">
             <span class="case-visual-inner"></span>
             <span class="latest-project-title">Vella Cosmetics</span>
@@ -466,7 +466,7 @@
           </span>
         </a>
 
-        <a class="latest-project-card reveal-up" href="work.html#atelier-marbre" data-cursor-text="View Project" aria-label="View Atelier Marbre case study">
+        <a class="latest-project-card reveal-up" href="work.html#atelier-marbre" data-cursor-text="View Project" aria-label="View Atelier Marbre case study" data-edit-key="home.latest_projects_6.a.atelier_marbre_view_project_fashion_view_project" data-edit-type="link" data-page-id="home" data-section-id="home.latest_projects_6">
           <span class="latest-project-visual case-visual-3">
             <span class="case-visual-inner"></span>
             <span class="latest-project-title">Atelier Marbre</span>
@@ -478,7 +478,7 @@
           </span>
         </a>
 
-        <a class="latest-project-card reveal-up" href="about.html" data-cursor-text="View Project" aria-label="Get to know the GROWVA studio">
+        <a class="latest-project-card reveal-up" href="about.html" data-cursor-text="View Project" aria-label="Get to know the GROWVA studio" data-edit-key="home.latest_projects_6.a.growva_studio_system_view_project_studio_view_project" data-edit-type="link" data-page-id="home" data-section-id="home.latest_projects_6">
           <span class="latest-project-visual latest-project-visual--brand">
             <span class="latest-project-wordmark">GROWVA<span>.</span></span>
             <span class="latest-project-title">Studio System</span>
@@ -491,43 +491,43 @@
         </a>
       </div>
       <div class="work-cta reveal-up">
-        <a href="work.html" class="btn btn-ghost" data-hover><span>View All Work &rarr;</span></a>
+        <a href="work.html" class="btn btn-ghost" data-hover data-edit-key="home.latest_projects_6.a.view_all_work" data-edit-type="link" data-page-id="home" data-section-id="home.latest_projects_6"><span>View All Work &rarr;</span></a>
       </div>
     </div>
   </section>
 
   <!-- ================= TESTIMONIALS ================= -->
-  <section class="section testimonials">
+  <section class="section testimonials" data-page-id="home" data-section-id="home.section_7" data-section-type="section" data-section-order="7">
     <div class="container">
       <div class="section-head">
-        <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Client Word</p>
-        <h2 class="h2 reveal-up">What partnership<br>looks like in practice.</h2>
+        <p class="eyebrow reveal-up" data-edit-key="home.section_7.p.client_word" data-edit-type="text" data-page-id="home" data-section-id="home.section_7"><span class="eyebrow-dot"></span>Client Word</p>
+        <h2 class="h2 reveal-up" data-edit-key="home.section_7.h2.what_partnership_looks_like_in_practice" data-edit-type="text" data-page-id="home" data-section-id="home.section_7">What partnership<br>looks like in practice.</h2>
       </div>
     </div>
     <div class="testi-marquee">
       <div class="testi-track">
         <div class="testi-card">
-          <p>"GROWVA didn't just redesign our store â€” they rebuilt how we think about the customer journey. The new site paid for itself in six weeks."</p>
+          <p data-edit-key="home.section_7.p.growva_didn_t_just_redesign_our_store_they_rebuilt_how_we_" data-edit-type="text" data-page-id="home" data-section-id="home.section_7">"GROWVA didn't just redesign our store â€” they rebuilt how we think about the customer journey. The new site paid for itself in six weeks."</p>
           <span>Founder, Noor Perfumery</span>
         </div>
         <div class="testi-card">
-          <p>"They speak both languages â€” brand and code. That's rare, and it's the reason our launch had zero surprises."</p>
+          <p data-edit-key="home.section_7.p.they_speak_both_languages_brand_and_code_that_s_rare_and_i" data-edit-type="text" data-page-id="home" data-section-id="home.section_7">"They speak both languages â€” brand and code. That's rare, and it's the reason our launch had zero surprises."</p>
           <span>Head of Ecommerce, Vella Cosmetics</span>
         </div>
         <div class="testi-card">
-          <p>"Every recommendation came with the reasoning behind it. It never felt like guesswork â€” it felt like a plan."</p>
+          <p data-edit-key="home.section_7.p.every_recommendation_came_with_the_reasoning_behind_it_it_" data-edit-type="text" data-page-id="home" data-section-id="home.section_7">"Every recommendation came with the reasoning behind it. It never felt like guesswork â€” it felt like a plan."</p>
           <span>Creative Director, Atelier Marbre</span>
         </div>
         <div class="testi-card">
-          <p>"Post-launch support has been as strong as the build itself. They still treat our store like it's their own."</p>
+          <p data-edit-key="home.section_7.p.post_launch_support_has_been_as_strong_as_the_build_itself" data-edit-type="text" data-page-id="home" data-section-id="home.section_7">"Post-launch support has been as strong as the build itself. They still treat our store like it's their own."</p>
           <span>Operations Lead, Terra &amp; Grove</span>
         </div>
         <div class="testi-card">
-          <p>"GROWVA didn't just redesign our store â€” they rebuilt how we think about the customer journey. The new site paid for itself in six weeks."</p>
+          <p data-edit-key="home.section_7.p.growva_didn_t_just_redesign_our_store_they_rebuilt_how_we__2" data-edit-type="text" data-page-id="home" data-section-id="home.section_7">"GROWVA didn't just redesign our store â€” they rebuilt how we think about the customer journey. The new site paid for itself in six weeks."</p>
           <span>Founder, Noor Perfumery</span>
         </div>
         <div class="testi-card">
-          <p>"They speak both languages â€” brand and code. That's rare, and it's the reason our launch had zero surprises."</p>
+          <p data-edit-key="home.section_7.p.they_speak_both_languages_brand_and_code_that_s_rare_and_i_2" data-edit-type="text" data-page-id="home" data-section-id="home.section_7">"They speak both languages â€” brand and code. That's rare, and it's the reason our launch had zero surprises."</p>
           <span>Head of Ecommerce, Vella Cosmetics</span>
         </div>
       </div>
@@ -535,49 +535,49 @@
   </section>
 
   <!-- ================= FINAL CTA ================= -->
-  <section class="section final-cta">
+  <section class="section final-cta" data-page-id="home" data-section-id="home.final_cta_8" data-section-type="final_cta" data-section-order="8">
     <canvas id="ctaCanvas"></canvas>
     <div class="container final-cta-inner">
-      <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Let's Talk</p>
-      <h2 class="final-headline reveal-up">Ready to build a store<br>that matches the brand?</h2>
-      <p class="final-sub reveal-up">Tell us about the project. We'll reply within one business day.</p>
+      <p class="eyebrow reveal-up" data-edit-key="home.final_cta_8.p.let_s_talk" data-edit-type="text" data-page-id="home" data-section-id="home.final_cta_8"><span class="eyebrow-dot"></span>Let's Talk</p>
+      <h2 class="final-headline reveal-up" data-edit-key="home.final_cta_8.h2.ready_to_build_a_store_that_matches_the_brand" data-edit-type="text" data-page-id="home" data-section-id="home.final_cta_8">Ready to build a store<br>that matches the brand?</h2>
+      <p class="final-sub reveal-up" data-edit-key="home.final_cta_8.p.tell_us_about_the_project_we_ll_reply_within_one_business_" data-edit-type="text" data-page-id="home" data-section-id="home.final_cta_8">Tell us about the project. We'll reply within one business day.</p>
       <div class="hero-actions reveal-up">
-        <a href="contact.html" class="btn btn-primary" data-hover><span>Start a Project</span></a>
-        <a href="mailto:hello@growva.com" class="btn btn-ghost" data-hover><span>hello@growva.com</span></a>
+        <a href="contact.html" class="btn btn-primary" data-hover data-edit-key="home.final_cta_8.a.start_a_project" data-edit-type="link" data-page-id="home" data-section-id="home.final_cta_8"><span>Start a Project</span></a>
+        <a href="mailto:hello@growva.com" class="btn btn-ghost" data-hover data-edit-key="home.final_cta_8.a.hello_growva_com" data-edit-type="link" data-page-id="home" data-section-id="home.final_cta_8"><span>hello@growva.com</span></a>
       </div>
     </div>
   </section>
 
 </main>
 
-<footer class="footer">
+<footer class="footer" data-page-id="home" data-section-id="home.footer" data-section-type="footer" data-section-order="999">
   <div class="container footer-top">
     <div class="footer-brand">
-      <a href="index.html" class="logo">
+      <a href="index.html" class="logo" data-edit-key="home.footer.a.growva" data-edit-type="link" data-page-id="home" data-section-id="home.footer">
         <span class="logo-text">GROWVA<span class="logo-dot">.</span></span>
       </a>
-      <p>Growth By Design.</p>
+      <p data-edit-key="home.footer.p.growth_by_design" data-edit-type="text" data-page-id="home" data-section-id="home.footer">Growth By Design.</p>
       <div class="footer-object" aria-hidden="true"><canvas class="brand-object-canvas" data-brand-object="footer"></canvas></div>
     </div>
     <div class="footer-col">
-      <h5>Services</h5>
-      <a href="services/premium-shopify-website-development.html">Shopify Development</a>
-      <a href="services/shopify-cro.html">Shopify CRO</a>
-      <a href="services/brand-identity-design.html">Brand Identity</a>
-      <a href="services/growth-systems.html">Growth Systems</a>
+      <h5 data-edit-key="home.footer.h5.services" data-edit-type="text" data-page-id="home" data-section-id="home.footer">Services</h5>
+      <a href="services/premium-shopify-website-development.html" data-edit-key="home.footer.a.shopify_development" data-edit-type="link" data-page-id="home" data-section-id="home.footer">Shopify Development</a>
+      <a href="services/shopify-cro.html" data-edit-key="home.footer.a.shopify_cro" data-edit-type="link" data-page-id="home" data-section-id="home.footer">Shopify CRO</a>
+      <a href="services/brand-identity-design.html" data-edit-key="home.footer.a.brand_identity" data-edit-type="link" data-page-id="home" data-section-id="home.footer">Brand Identity</a>
+      <a href="services/growth-systems.html" data-edit-key="home.footer.a.growth_systems" data-edit-type="link" data-page-id="home" data-section-id="home.footer">Growth Systems</a>
     </div>
     <div class="footer-col">
-      <h5>Company</h5>
-      <a href="about.html">About</a>
-      <a href="work.html">Work</a>
-      <a href="process.html">Process</a>
-      <a href="faq.html">FAQ</a>
+      <h5 data-edit-key="home.footer.h5.company" data-edit-type="text" data-page-id="home" data-section-id="home.footer">Company</h5>
+      <a href="about.html" data-edit-key="home.footer.a.about" data-edit-type="link" data-page-id="home" data-section-id="home.footer">About</a>
+      <a href="work.html" data-edit-key="home.footer.a.work" data-edit-type="link" data-page-id="home" data-section-id="home.footer">Work</a>
+      <a href="process.html" data-edit-key="home.footer.a.process" data-edit-type="link" data-page-id="home" data-section-id="home.footer">Process</a>
+      <a href="faq.html" data-edit-key="home.footer.a.faq" data-edit-type="link" data-page-id="home" data-section-id="home.footer">FAQ</a>
     </div>
     <div class="footer-col">
-      <h5>Contact</h5>
-      <a href="mailto:hello@growva.com">hello@growva.com</a>
-      <a href="#">Instagram</a>
-      <a href="#">LinkedIn</a>
+      <h5 data-edit-key="home.footer.h5.contact" data-edit-type="text" data-page-id="home" data-section-id="home.footer">Contact</h5>
+      <a href="mailto:hello@growva.com" data-edit-key="home.footer.a.hello_growva_com" data-edit-type="link" data-page-id="home" data-section-id="home.footer">hello@growva.com</a>
+      <a href="#" data-edit-key="home.footer.a.instagram" data-edit-type="link" data-page-id="home" data-section-id="home.footer">Instagram</a>
+      <a href="#" data-edit-key="home.footer.a.linkedin" data-edit-type="link" data-page-id="home" data-section-id="home.footer">LinkedIn</a>
     </div>
   </div>
   <div class="container footer-bottom">
@@ -591,5 +591,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/darkroomengineering/lenis@1.1.13/dist/lenis.min.js"></script>
 <script src="js/script.js"></script>
+<script src="js/content-registry.js"></script>
 </body>
 </html>

@@ -1,0 +1,220 @@
+{
+  "categories": [
+    {
+      "id": "general",
+      "title": "General",
+      "order": 1,
+      "isVisible": true
+    },
+    {
+      "id": "departments",
+      "title": "Departments",
+      "order": 2,
+      "isVisible": true
+    },
+    {
+      "id": "shopify_development",
+      "title": "Shopify Development",
+      "order": 3,
+      "isVisible": true
+    },
+    {
+      "id": "pricing_and_process",
+      "title": "Pricing & Process",
+      "order": 4,
+      "isVisible": true
+    },
+    {
+      "id": "support_and_maintenance",
+      "title": "Support & Maintenance",
+      "order": 5,
+      "isVisible": true
+    }
+  ],
+  "items": [
+    {
+      "id": "general_01",
+      "categoryId": "general",
+      "question": "What does GROWVA actually do?",
+      "answer": "We operate as an integrated growth partner for product brands: Shopify and ecommerce development, Amazon Seller Central, web development, graphic design, printing, and the strategy systems that connect them. We start every engagement with a clear plan before anyone opens a design tool.",
+      "order": 1,
+      "isVisible": true
+    },
+    {
+      "id": "general_02",
+      "categoryId": "general",
+      "question": "Are you still a Shopify specialist?",
+      "answer": "Yes, Shopify remains a deep department inside GROWVA, but it is no longer the only thing we do. The difference is that our Shopify work now sits alongside Amazon, web development, graphic design, printing, and growth systems so product brands can work with one accountable partner across the channels that matter.",
+      "order": 2,
+      "isVisible": true
+    },
+    {
+      "id": "general_03",
+      "categoryId": "general",
+      "question": "What industries do you work with?",
+      "answer": "Perfume, cosmetics, fashion, food and beverage, agriculture, and wellness — categories where product presentation, brand storytelling, and visual quality drive the purchase decision. We do our best work with brands where the product is genuinely good and the store just hasn't caught up yet.",
+      "order": 3,
+      "isVisible": true
+    },
+    {
+      "id": "general_04",
+      "categoryId": "general",
+      "question": "How many projects do you take on at once?",
+      "answer": "Intentionally limited. We work with a small number of brands at any given time so that every client gets the full team, not a junior assigned to fill capacity. If we're at capacity when you reach out, we'll tell you honestly and give you a realistic timeline for when we can start.",
+      "order": 4,
+      "isVisible": true
+    },
+    {
+      "id": "departments_01",
+      "categoryId": "departments",
+      "question": "Do you manage Amazon accounts that already exist, or only new ones?",
+      "answer": "Both. We can set up Seller Central from scratch, but we also manage and optimize existing accounts. For live accounts, we start with an audit of account health, catalog structure, listing quality, PPC performance, and operational issues before recommending the right management plan.",
+      "order": 1,
+      "isVisible": true
+    },
+    {
+      "id": "departments_02",
+      "categoryId": "departments",
+      "question": "Do you build websites outside Shopify?",
+      "answer": "Yes. Shopify is still a core ecommerce department, but we also build company websites, portfolio and personal websites, and custom store experiences when the requirements do not fit Shopify cleanly.",
+      "order": 2,
+      "isVisible": true
+    },
+    {
+      "id": "departments_03",
+      "categoryId": "departments",
+      "question": "Is graphic design available without a full branding package?",
+      "answer": "Yes. Brand identity and packaging are full-system engagements, but marketing and social media design can be booked as a campaign sprint or ongoing retainer for brands that already have a visual system and need better execution.",
+      "order": 3,
+      "isVisible": true
+    },
+    {
+      "id": "departments_04",
+      "categoryId": "departments",
+      "question": "Can you handle printing for a brand outside Egypt?",
+      "answer": "Yes. We can prepare supplier-ready files, production specifications, dielines, and proofing checklists for international print partners. Physical production logistics depend on the supplier and location, but the artwork and production handoff can be managed remotely.",
+      "order": 4,
+      "isVisible": true
+    },
+    {
+      "id": "departments_05",
+      "categoryId": "departments",
+      "question": "Can one engagement include multiple departments?",
+      "answer": "That is often where the work is strongest. A launch might include Shopify development, packaging design, Amazon listing preparation, and print collateral. We scope those as one integrated roadmap so the brand does not have to brief four separate vendors.",
+      "order": 5,
+      "isVisible": true
+    },
+    {
+      "id": "shopify_development_01",
+      "categoryId": "shopify_development",
+      "question": "How long does a Shopify build take?",
+      "answer": "Most premium builds take 6–10 weeks from discovery to launch, depending on scope, custom functionality, and content readiness. The biggest variable is usually content — brands that come to us with photography and copy ready move faster than those who need to produce those assets during the build.",
+      "order": 1,
+      "isVisible": true
+    },
+    {
+      "id": "shopify_development_02",
+      "categoryId": "shopify_development",
+      "question": "Do you work with existing Shopify stores?",
+      "answer": "Yes. We regularly rebuild and optimize existing stores — often uncovering conversion issues the original build never addressed. We'll audit the existing store first so we can tell you honestly whether a rebuild, optimization, or targeted CRO sprint is the right starting point.",
+      "order": 2,
+      "isVisible": true
+    },
+    {
+      "id": "shopify_development_03",
+      "categoryId": "shopify_development",
+      "question": "Do you build on Shopify themes or from scratch?",
+      "answer": "From scratch. We write custom Liquid templates with no inherited code from existing themes — which means no performance debt, no visual compromises, and no fight against someone else's design decisions. The result is faster, more flexible, and built exactly to spec.",
+      "order": 3,
+      "isVisible": true
+    },
+    {
+      "id": "shopify_development_04",
+      "categoryId": "shopify_development",
+      "question": "Can you support multi-currency or international stores?",
+      "answer": "Yes. We build multi-market, multi-currency Shopify architecture using Shopify Markets — supporting 130+ currencies, market-specific pricing, and language adaptations. We've launched brands into 12+ international markets simultaneously without checkout errors.",
+      "order": 4,
+      "isVisible": true
+    },
+    {
+      "id": "shopify_development_05",
+      "categoryId": "shopify_development",
+      "question": "What happens if something breaks after launch?",
+      "answer": "Every launch includes a 48-hour active monitoring window where we're watching the store alongside you. For issues that arise after that, we offer maintenance retainer packages with defined response times — or, for one-off fixes, we're reachable and fast. We don't disappear after the handover.",
+      "order": 5,
+      "isVisible": true
+    },
+    {
+      "id": "pricing_and_process_01",
+      "categoryId": "pricing_and_process",
+      "question": "How is pricing structured?",
+      "answer": "Every project is scoped individually after a discovery conversation. We give you a fixed written proposal before any work begins — no open-ended hourly billing, no \"scope creep\" surprises mid-project. The number we agree on is the number you pay, unless the scope changes by mutual agreement.",
+      "order": 1,
+      "isVisible": true
+    },
+    {
+      "id": "pricing_and_process_02",
+      "categoryId": "pricing_and_process",
+      "question": "Do you require a deposit?",
+      "answer": "Yes — typically 50% at project kickoff and 50% at launch. For larger projects, we sometimes use a three-milestone structure (kickoff, design approval, launch). Payment terms are always agreed before work begins and written into the project contract.",
+      "order": 2,
+      "isVisible": true
+    },
+    {
+      "id": "pricing_and_process_03",
+      "categoryId": "pricing_and_process",
+      "question": "What does the discovery process look like?",
+      "answer": "It starts with a conversation — usually 45–60 minutes — where we learn about the brand, the current situation, and what success looks like. No pitch, no template proposal. After that, we'll share a written brief, agree on scope, and present a fixed proposal. Discovery is billed separately for larger strategic engagements; for development projects, it's typically included.",
+      "order": 3,
+      "isVisible": true
+    },
+    {
+      "id": "pricing_and_process_04",
+      "categoryId": "pricing_and_process",
+      "question": "How many rounds of revision are included?",
+      "answer": "Two rounds of design revisions are included in all packages. This is enough to get things exactly right when feedback is clear and timely — and we make the feedback process easy with structured review sessions rather than email chains. Additional revision rounds are available at a defined rate if needed.",
+      "order": 4,
+      "isVisible": true
+    },
+    {
+      "id": "support_and_maintenance_01",
+      "categoryId": "support_and_maintenance",
+      "question": "Do you offer ongoing maintenance?",
+      "answer": "Yes. Every build includes a maintenance option — monthly retainers covering updates, monitoring, bug fixes, and small development tasks. We have three tiers (Essential, Standard, Growth) to match different levels of need. Details are on the Pricing page .",
+      "order": 1,
+      "isVisible": true
+    },
+    {
+      "id": "support_and_maintenance_02",
+      "categoryId": "support_and_maintenance",
+      "question": "What's your support response time?",
+      "answer": "Within 24 hours for standard requests. Within 4 hours for clients on our Growth maintenance plan. For critical issues (checkout down, store unreachable), we treat it as an emergency regardless of plan level — because a store that can't process orders costs real money every hour.",
+      "order": 2,
+      "isVisible": true
+    },
+    {
+      "id": "support_and_maintenance_03",
+      "categoryId": "support_and_maintenance",
+      "question": "Can you design our brand identity too?",
+      "answer": "Yes — brand identity and packaging design are core services, and we frequently build the visual system before the store itself. A store built on a well-defined brand system is faster to design, more consistent, and easier to extend as the product line grows.",
+      "order": 3,
+      "isVisible": true
+    },
+    {
+      "id": "support_and_maintenance_04",
+      "categoryId": "support_and_maintenance",
+      "question": "What's included in Growth Systems?",
+      "answer": "Email and SMS lifecycle flows (welcome series, abandoned cart, post-purchase, win-back), retention infrastructure, loyalty program setup, and the integrations that connect your store to your marketing stack. Klaviyo, Attentive, and similar platforms are configured and optimized as part of the engagement.",
+      "order": 4,
+      "isVisible": true
+    },
+    {
+      "id": "support_and_maintenance_05",
+      "categoryId": "support_and_maintenance",
+      "question": "Do you work with brands that are not yet on Shopify?",
+      "answer": "Yes. We regularly help brands migrate from WooCommerce, Magento, Wix, or custom platforms to Shopify — including product data migration, SEO preservation, and a clean-slate design. The migration is typically bundled with the new store build rather than treated as a separate project.",
+      "order": 5,
+      "isVisible": true
+    }
+  ]
+}

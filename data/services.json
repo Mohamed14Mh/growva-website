@@ -1,0 +1,1478 @@
+{
+  "categories": [
+    {
+      "id": "shopify_and_ecommerce",
+      "title": "Shopify & Ecommerce",
+      "description": "",
+      "order": 1,
+      "isVisible": true,
+      "services": [
+        "premium_shopify_website_development",
+        "shopify_cro",
+        "shopify_store_optimization",
+        "performance_optimization"
+      ]
+    },
+    {
+      "id": "amazon_seller_central",
+      "title": "Amazon Seller Central",
+      "description": "",
+      "order": 2,
+      "isVisible": true,
+      "services": [
+        "amazon_account_setup",
+        "amazon_account_management",
+        "amazon_listing_advertising_optimization"
+      ]
+    },
+    {
+      "id": "web_development",
+      "title": "Web Development",
+      "description": "",
+      "order": 3,
+      "isVisible": true,
+      "services": [
+        "corporate_websites",
+        "portfolio_websites",
+        "custom_store_development"
+      ]
+    },
+    {
+      "id": "graphic_design",
+      "title": "Graphic Design",
+      "description": "",
+      "order": 4,
+      "isVisible": true,
+      "services": [
+        "brand_identity_design",
+        "packaging_design",
+        "marketing_social_design"
+      ]
+    },
+    {
+      "id": "printing",
+      "title": "Printing",
+      "description": "",
+      "order": 5,
+      "isVisible": true,
+      "services": [
+        "business_marketing_print",
+        "packaging_print_production",
+        "large_format_retail_print"
+      ]
+    },
+    {
+      "id": "growth_and_strategy",
+      "title": "Growth & Strategy",
+      "description": "",
+      "order": 6,
+      "isVisible": true,
+      "services": [
+        "ecommerce_strategy",
+        "conversion_optimization",
+        "growth_systems",
+        "website_maintenance"
+      ]
+    }
+  ],
+  "services": [
+    {
+      "id": "premium_shopify_website_development",
+      "slug": "premium-shopify-website-development",
+      "title": "Premium Shopify Website Development",
+      "categoryId": "shopify_and_ecommerce",
+      "category": "Shopify & Ecommerce",
+      "summary": "Most Shopify stores look like Shopify stores. Ours don't. We build custom storefronts from scratch — no bloated themes, no template compromises — designed specifically for your product, your customer, and your conversion goals.",
+      "href": "services/premium-shopify-website-development.html",
+      "order": 1,
+      "isVisible": true,
+      "timeline": "Timeline: 6–10 weeks from kickoff to launch",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Generic templates constrain your brand identity, load slowly, and force your customer journey to fit a mold that was designed for someone else's product."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "A fully custom Shopify build — design, development, and UX — planned around how your specific customer makes a purchase decision in your category."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Custom Liquid theme",
+            "Responsive across all devices",
+            "Conversion-optimized page templates",
+            "Shopify integrations configured",
+            "Performance-tested at launch"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Product brands in perfume, cosmetics, fashion, food & beverage, or agriculture who want a store that looks as premium as the product inside it."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "A storefront that converts at a higher rate, loads faster, and positions the brand at the level the product deserves — from day one."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Discovery and brand audit",
+            "UX strategy and wireframing",
+            "High-fidelity design in Figma",
+            "Custom Liquid development",
+            "QA, performance testing, launch"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Shopify CRO",
+          "description": "Find where the funnel breaks, then rebuild those points."
+        },
+        {
+          "href": "",
+          "title": "Shopify Store Optimization",
+          "description": "Audit, clean, and restructure stores slowed by technical debt."
+        },
+        {
+          "href": "",
+          "title": "Performance Optimization",
+          "description": "Core Web Vitals, image pipelines, and app-bloat audits."
+        }
+      ]
+    },
+    {
+      "id": "shopify_cro",
+      "slug": "shopify-cro",
+      "title": "Shopify CRO",
+      "categoryId": "shopify_and_ecommerce",
+      "category": "Shopify & Ecommerce",
+      "summary": "Traffic is expensive. Losing it to a broken checkout or a confusing product page is more expensive. We analyze where your funnel breaks, then rebuild those points systematically.",
+      "href": "services/shopify-cro.html",
+      "order": 2,
+      "isVisible": true,
+      "timeline": "Timeline: Ongoing monthly retainer or 6-week sprint",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Visitors arrive but don't convert. The issue is rarely the product — it's the friction points between landing and checkout that the existing store never fixed."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "Funnel analysis, heatmap review, session recordings, and A/B testing translated into specific design and copy changes with measurable lift."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Full funnel audit report",
+            "Priority list of friction points",
+            "Redesigned product and cart pages",
+            "A/B test setup and results",
+            "Monthly optimization roadmap"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Established stores with consistent traffic (500+ sessions/day) that are under-converting relative to industry benchmarks."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "Measurable increase in conversion rate, add-to-cart rate, and checkout completion within the first 60–90 days of optimization."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Analytics and session review",
+            "Hypothesis development",
+            "Design and implementation",
+            "A/B or multivariate testing",
+            "Results analysis and next cycle"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Premium Shopify Website Development",
+          "description": "Custom storefronts planned around how your customer buys."
+        },
+        {
+          "href": "",
+          "title": "Shopify Store Optimization",
+          "description": "Audit, clean, and restructure stores slowed by technical debt."
+        },
+        {
+          "href": "",
+          "title": "Performance Optimization",
+          "description": "Core Web Vitals, image pipelines, and app-bloat audits."
+        }
+      ]
+    },
+    {
+      "id": "shopify_store_optimization",
+      "slug": "shopify-store-optimization",
+      "title": "Shopify Store Optimization",
+      "categoryId": "shopify_and_ecommerce",
+      "category": "Shopify & Ecommerce",
+      "summary": "An existing store with the wrong structure, too many apps, and neglected technical debt performs worse every month. We audit, clean, and restructure it so it runs the way it should.",
+      "href": "services/shopify-store-optimization.html",
+      "order": 3,
+      "isVisible": true,
+      "timeline": "Timeline: 3–5 weeks for audit + implementation",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Stores built quickly or by multiple different developers accumulate technical debt — slow load times, conflicting apps, broken mobile layouts, and SEO issues that compound over time."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "A structured technical audit followed by a clean-up and rebuild of the areas causing the most drag — speed, structure, or UX depending on what the data shows."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Full technical audit report",
+            "App audit and trimming plan",
+            "Speed optimization implementation",
+            "Mobile UX corrections",
+            "SEO technical fixes"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Stores 12+ months old that have never had a technical audit, or stores built on a template that's now causing more problems than it solves."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "Faster page loads, lower bounce rate, and a store that doesn't actively cost sales through technical friction."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Core Web Vitals baseline",
+            "App and code audit",
+            "Prioritized fix list",
+            "Implementation and QA",
+            "Post-fix performance report"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Premium Shopify Website Development",
+          "description": "Custom storefronts planned around how your customer buys."
+        },
+        {
+          "href": "",
+          "title": "Shopify CRO",
+          "description": "Find where the funnel breaks, then rebuild those points."
+        },
+        {
+          "href": "",
+          "title": "Performance Optimization",
+          "description": "Core Web Vitals, image pipelines, and app-bloat audits."
+        }
+      ]
+    },
+    {
+      "id": "brand_identity_design",
+      "slug": "brand-identity-design",
+      "title": "Brand Identity Design",
+      "categoryId": "graphic_design",
+      "category": "Graphic Design",
+      "summary": "A brand that can't be recognized at a glance can't build loyalty over time. We design visual identities that communicate something specific about the product — before the customer reads a word.",
+      "href": "services/brand-identity-design.html",
+      "order": 4,
+      "isVisible": true,
+      "timeline": "Timeline: 4–6 weeks",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Generic branding makes it impossible to command premium pricing, build recognition, or give customers a reason to choose you over the next option."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "A complete visual identity system — logo, typography, color, imagery rules — built to work across digital and physical touchpoints consistently."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Logo system (primary, secondary, mark)",
+            "Color palette and usage rules",
+            "Typography system",
+            "Brand guidelines document",
+            "Digital asset pack"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "New product brands launching for the first time, or established brands that have outgrown a logo their founder designed in Canva."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "A consistent visual identity that communicates the right positioning, supports premium pricing, and travels across every platform without losing meaning."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Brand discovery and positioning",
+            "Moodboard and direction",
+            "Initial concepts (3 directions)",
+            "Refinement and system build",
+            "Final delivery with brand guide"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Packaging Design",
+          "description": "Packaging that carries the brand from screen to shelf."
+        },
+        {
+          "href": "",
+          "title": "Marketing & Social Media Design",
+          "description": "Campaign and content assets that stay on-brand."
+        }
+      ]
+    },
+    {
+      "id": "packaging_design",
+      "slug": "packaging-design",
+      "title": "Packaging Design",
+      "categoryId": "graphic_design",
+      "category": "Graphic Design",
+      "summary": "The unboxing moment is a brand touchpoint. Packaging that loses the story between screen and shelf costs you repurchase rates, social sharing, and the premium perception you worked to build.",
+      "href": "services/packaging-design.html",
+      "order": 5,
+      "isVisible": true,
+      "timeline": "Timeline: 4–7 weeks",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Packaging is often designed separately from the digital brand — resulting in a disconnect between what customers see online and what arrives at their door."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "Packaging designed as part of the same visual system as the digital brand — so the product, the box, and the website all feel like they came from the same world."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Primary packaging design (dieline)",
+            "Secondary packaging (box/bag)",
+            "Tissue, inserts, and sticker design",
+            "Print-ready files",
+            "Supplier coordination support"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Fragrance, cosmetics, food & beverage, or agricultural brands where packaging is a primary driver of perceived value and repeat purchase."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "Packaging that earns organic social sharing, supports premium pricing, and makes the unboxing experience a brand touchpoint in its own right."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Brand system review",
+            "Material and format planning",
+            "Design concepts and review",
+            "Refinement and print prep",
+            "Print-ready file delivery"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Brand Identity Design",
+          "description": "Visual systems that communicate before customers read."
+        },
+        {
+          "href": "",
+          "title": "Marketing & Social Media Design",
+          "description": "Campaign and content assets that stay on-brand."
+        }
+      ]
+    },
+    {
+      "id": "ecommerce_strategy",
+      "slug": "ecommerce-strategy",
+      "title": "Ecommerce Strategy",
+      "categoryId": "growth_and_strategy",
+      "category": "Growth & Strategy",
+      "summary": "Strategy and growth systems apply whether we are building your Shopify store, managing your Amazon account, developing a corporate site, or designing your next campaign. We write the commercial plan before anyone opens a design tool.",
+      "href": "services/ecommerce-strategy.html",
+      "order": 6,
+      "isVisible": true,
+      "timeline": "Timeline: 2–4 weeks",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Most ecommerce businesses jump straight to design and development without agreeing on positioning, pricing logic, channel priorities, or what success actually looks like in numbers."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "A written ecommerce strategy covering positioning, customer segments, product architecture, pricing, channel mix, and 12-month growth projections — before a pixel is designed."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Market and competitor analysis",
+            "Customer segment definitions",
+            "Positioning and messaging framework",
+            "Channel and product roadmap",
+            "12-month growth targets"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Brands preparing for a significant investment in their ecommerce presence who want to ensure the direction is right before committing to execution."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "A clear, agreed strategy that every subsequent design and development decision maps back to — reducing rework, confusion, and wasted spend."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Stakeholder discovery sessions",
+            "Market and data research",
+            "Strategy document draft",
+            "Review and alignment session",
+            "Final strategy delivery"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Conversion Optimization",
+          "description": "Journeys rebuilt around how your customer buys."
+        },
+        {
+          "href": "",
+          "title": "Growth Systems",
+          "description": "Retention infrastructure that turns first orders into repeats."
+        },
+        {
+          "href": "",
+          "title": "Website Maintenance",
+          "description": "Ongoing care for digital systems after launch."
+        }
+      ]
+    },
+    {
+      "id": "conversion_optimization",
+      "slug": "conversion-optimization",
+      "title": "Conversion Optimization",
+      "categoryId": "growth_and_strategy",
+      "category": "Growth & Strategy",
+      "summary": "Landing pages, product pages, marketplace listings, and campaign journeys rebuilt around how your specific customer actually buys — whether the sale happens on Shopify, Amazon, or a custom web experience.",
+      "href": "services/conversion-optimization.html",
+      "order": 7,
+      "isVisible": true,
+      "timeline": "Timeline: 4–6 weeks per sprint",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Generic page layouts ignore the specific way customers in your category make purchase decisions — leading to high traffic numbers and low conversion rates."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "Category-specific page redesigns informed by buyer behavior research, competitor analysis, and real user testing — built to reduce friction at every step."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Page-by-page conversion audit",
+            "Redesigned landing pages",
+            "Optimized product detail pages",
+            "Streamlined checkout flow",
+            "Copy and trust signal updates"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Brands running paid acquisition who are seeing strong CTR but weak conversion — the problem is on-site, not in the ads."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "Measurable improvement in add-to-cart and purchase rates without increasing ad spend — same traffic, more revenue."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Buyer behavior research",
+            "Friction audit by page type",
+            "Redesign and copywriting",
+            "Implementation and testing",
+            "Performance measurement"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Ecommerce Strategy",
+          "description": "The commercial plan before execution begins."
+        },
+        {
+          "href": "",
+          "title": "Growth Systems",
+          "description": "Retention infrastructure that turns first orders into repeats."
+        },
+        {
+          "href": "",
+          "title": "Website Maintenance",
+          "description": "Ongoing care for digital systems after launch."
+        }
+      ]
+    },
+    {
+      "id": "growth_systems",
+      "slug": "growth-systems",
+      "title": "Growth Systems",
+      "categoryId": "growth_and_strategy",
+      "category": "Growth & Strategy",
+      "summary": "Retention, email/SMS, and lifecycle infrastructure that turns first orders into repeat customers across every channel we touch. Acquisition is expensive. Retention is where margin lives.",
+      "href": "services/growth-systems.html",
+      "order": 8,
+      "isVisible": true,
+      "timeline": "Timeline: 4–6 weeks setup + ongoing",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Brands that depend entirely on paid acquisition to grow are running on a treadmill. Every sale costs the same. There's no compounding return on past customers."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "A complete retention and lifecycle system: email flows, SMS sequences, loyalty mechanics, and post-purchase journeys that keep customers coming back."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Welcome and onboarding flows",
+            "Abandoned cart and browse sequences",
+            "Post-purchase and replenishment flows",
+            "Win-back campaigns",
+            "Loyalty and referral setup"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Brands with 500+ existing customers who have not yet built any systematic retention infrastructure — leaving repeat purchase revenue on the table."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "Increased customer lifetime value, higher repeat purchase rate, and a measurable reduction in dependency on paid acquisition for revenue."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Customer data and cohort review",
+            "Lifecycle map and flow design",
+            "Copy and creative development",
+            "Platform setup and integration",
+            "Ongoing optimization"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Ecommerce Strategy",
+          "description": "The commercial plan before execution begins."
+        },
+        {
+          "href": "",
+          "title": "Conversion Optimization",
+          "description": "Journeys rebuilt around how your customer buys."
+        },
+        {
+          "href": "",
+          "title": "Website Maintenance",
+          "description": "Ongoing care for digital systems after launch."
+        }
+      ]
+    },
+    {
+      "id": "website_maintenance",
+      "slug": "website-maintenance",
+      "title": "Website Maintenance",
+      "categoryId": "growth_and_strategy",
+      "category": "Growth & Strategy",
+      "summary": "Websites, stores, and campaign infrastructure left unattended break slowly, then suddenly. We keep the digital systems running, updated, and performing long after launch day.",
+      "href": "services/website-maintenance.html",
+      "order": 9,
+      "isVisible": true,
+      "timeline": "Timeline: Ongoing monthly retainer",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Shopify apps update, themes break, new browser versions expose bugs, and seasonal campaigns need new pages — all while the team is focused on running the business."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "A monthly maintenance retainer covering updates, monitoring, bug fixes, and small development tasks — so the store stays healthy without needing a full rebuild every year."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Monthly health report",
+            "App and theme updates",
+            "Bug fixes (up to agreed hours)",
+            "Uptime and performance monitoring",
+            "Priority support channel"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Any brand that has invested in a quality website, store, or campaign infrastructure and wants to protect that investment with ongoing care — rather than paying for emergency fixes."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "A store that degrades gracefully, never has unexplained downtime, and doesn't need an emergency rebuild six months after launch."
+        },
+        {
+          "label": "Scope Options",
+          "type": "list",
+          "content": [
+            "Essential: monitoring + bug fixes",
+            "Standard: + updates + 4hr dev/month",
+            "Growth: + CRO reviews + priority SLA"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Ecommerce Strategy",
+          "description": "The commercial plan before execution begins."
+        },
+        {
+          "href": "",
+          "title": "Conversion Optimization",
+          "description": "Journeys rebuilt around how your customer buys."
+        },
+        {
+          "href": "",
+          "title": "Growth Systems",
+          "description": "Retention infrastructure that turns first orders into repeats."
+        }
+      ]
+    },
+    {
+      "id": "performance_optimization",
+      "slug": "performance-optimization",
+      "title": "Performance Optimization",
+      "categoryId": "shopify_and_ecommerce",
+      "category": "Shopify & Ecommerce",
+      "summary": "Core Web Vitals, image pipelines, and app-bloat audits that keep the store fast as it grows. A 1-second delay in page load time reduces conversions by up to 7%.",
+      "href": "services/performance-optimization.html",
+      "order": 10,
+      "isVisible": true,
+      "timeline": "Timeline: 2–4 weeks",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Every new app, unoptimized image, and third-party script added to a store adds load time. Over months, a fast store becomes a slow one without anyone noticing until the conversion rate drops."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "A comprehensive performance audit and implementation sprint targeting Core Web Vitals, image compression, script loading order, and app consolidation."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Core Web Vitals baseline report",
+            "Image optimization (entire catalog)",
+            "Script audit and lazy-loading",
+            "App consolidation recommendations",
+            "Post-implementation benchmark"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Any Shopify store scoring below 70 on PageSpeed Insights or seeing checkout abandonment that correlates with slow page transitions."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "PageSpeed score improvement of 20–40 points, measurable reduction in Time to First Byte and Largest Contentful Paint, and conversion rate lift."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Lighthouse and CWV audit",
+            "Bottleneck identification",
+            "Implementation sprint",
+            "CDN and caching review",
+            "Final performance report"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Premium Shopify Website Development",
+          "description": "Custom storefronts planned around how your customer buys."
+        },
+        {
+          "href": "",
+          "title": "Shopify CRO",
+          "description": "Find where the funnel breaks, then rebuild those points."
+        },
+        {
+          "href": "",
+          "title": "Shopify Store Optimization",
+          "description": "Audit, clean, and restructure stores slowed by technical debt."
+        }
+      ]
+    },
+    {
+      "id": "amazon_account_setup",
+      "slug": "amazon-account-setup",
+      "title": "Amazon Account Setup From Scratch",
+      "categoryId": "amazon_seller_central",
+      "category": "Amazon Seller Central",
+      "summary": "Amazon can become a serious revenue channel, but only if the account is built cleanly from day one. We set up Seller Central foundations so the brand does not inherit avoidable compliance, catalog, or advertising problems later.",
+      "href": "services/amazon-account-setup.html",
+      "order": 11,
+      "isVisible": true,
+      "timeline": "Timeline: 2–4 weeks",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "New sellers often rush through account creation, category approvals, catalog structure, shipping settings, and brand registry. Those early shortcuts become expensive once products are live and sales data starts accumulating."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "A structured Seller Central launch setup covering account configuration, brand registry guidance, catalog architecture, listing foundations, and launch-readiness checks before the first campaign goes live."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Seller Central setup roadmap",
+            "Account and store configuration",
+            "Catalog structure and parent/child variation planning",
+            "Brand registry and compliance checklist",
+            "Launch-readiness QA"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Product brands with no active Amazon presence who want to enter the marketplace professionally instead of learning through avoidable account mistakes."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "A clean, scalable Seller Central foundation ready for listings, advertising, reporting, and ongoing account management."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Product and market readiness review",
+            "Account setup and compliance mapping",
+            "Catalog and listing structure",
+            "Storefront and operational settings",
+            "Pre-launch QA and handover"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Amazon Account Management & Growth",
+          "description": "Ongoing account operations, catalog hygiene, and reporting."
+        },
+        {
+          "href": "",
+          "title": "Amazon Listing & Advertising Optimization",
+          "description": "Listing content, keywords, and PPC structured to learn."
+        }
+      ]
+    },
+    {
+      "id": "amazon_account_management",
+      "slug": "amazon-account-management",
+      "title": "Amazon Account Management & Growth",
+      "categoryId": "amazon_seller_central",
+      "category": "Amazon Seller Central",
+      "summary": "An Amazon account is not a passive shelf. It needs catalog hygiene, campaign discipline, inventory awareness, review monitoring, and reporting rhythm to grow without quietly leaking margin.",
+      "href": "services/amazon-account-management.html",
+      "order": 12,
+      "isVisible": true,
+      "timeline": "Timeline: Ongoing monthly retainer",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Existing accounts often have fragmented listings, under-managed campaigns, unresolved suppression issues, and no clear owner watching performance week to week."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "Ongoing Seller Central management that combines operational oversight, growth planning, listing governance, advertising coordination, and monthly performance reporting."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Account health monitoring",
+            "Catalog and listing maintenance",
+            "Monthly growth roadmap",
+            "Campaign and keyword oversight",
+            "Performance reporting dashboard"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Brands already selling on Amazon that need a disciplined operating partner to improve performance, reduce account friction, and make the channel commercially accountable."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "A cleaner account, stronger sales visibility, fewer preventable issues, and a growth plan that connects Amazon decisions to the broader brand strategy."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Account audit and priority map",
+            "Catalog and compliance cleanup",
+            "Campaign and listing optimization cycle",
+            "Weekly monitoring cadence",
+            "Monthly reporting and planning"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Amazon Account Setup From Scratch",
+          "description": "Seller Central foundations built cleanly from day one."
+        },
+        {
+          "href": "",
+          "title": "Amazon Listing & Advertising Optimization",
+          "description": "Listing content, keywords, and PPC structured to learn."
+        }
+      ]
+    },
+    {
+      "id": "amazon_listing_advertising_optimization",
+      "slug": "amazon-listing-advertising-optimization",
+      "title": "Amazon Listing & Advertising Optimization",
+      "categoryId": "amazon_seller_central",
+      "category": "Amazon Seller Central",
+      "summary": "Amazon visibility is earned through precise listing content, keyword structure, image hierarchy, and PPC management. We optimize the product page and the paid traffic system together.",
+      "href": "services/amazon-listing-advertising-optimization.html",
+      "order": 13,
+      "isVisible": true,
+      "timeline": "Timeline: 3–6 weeks + ongoing optimization",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Strong products lose to weaker competitors when titles are unfocused, images do not answer objections, keywords are thin, and PPC campaigns spend without learning."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "A listing and advertising sprint that improves search relevance, conversion content, campaign structure, and reporting so paid spend becomes a learning system."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Keyword research and listing map",
+            "Title, bullets, and description optimization",
+            "Image and A+ content recommendations",
+            "PPC campaign structure",
+            "Search term and performance report"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Amazon sellers with live listings and traffic but weak conversion, inefficient ad spend, or unclear keyword positioning."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "Better listing clarity, stronger keyword coverage, cleaner PPC structure, and a measurable path toward improved ACOS and conversion rate."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Listing and ad account audit",
+            "Keyword and competitor research",
+            "Content rewrite and creative direction",
+            "PPC restructure and launch",
+            "Optimization review cycle"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Amazon Account Setup From Scratch",
+          "description": "Seller Central foundations built cleanly from day one."
+        },
+        {
+          "href": "",
+          "title": "Amazon Account Management & Growth",
+          "description": "Ongoing account operations, catalog hygiene, and reporting."
+        }
+      ]
+    },
+    {
+      "id": "corporate_websites",
+      "slug": "corporate-websites",
+      "title": "Company & Corporate Websites",
+      "categoryId": "web_development",
+      "category": "Web Development",
+      "summary": "Not every brand needs a cart. Some need a credible, sharp, fast website that explains the company, supports sales conversations, and makes the business look as serious as it is.",
+      "href": "services/corporate-websites.html",
+      "order": 14,
+      "isVisible": true,
+      "timeline": "Timeline: 5–8 weeks",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Corporate websites often become static brochures: too vague to persuade, too slow to trust, and too generic to make a serious prospect feel they are in the right place."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "A custom company website built around positioning, information architecture, lead capture, credibility, and performance instead of decorative page count."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Site strategy and sitemap",
+            "Custom responsive UI design",
+            "Core page development",
+            "Lead capture and CRM integration",
+            "Analytics and SEO fundamentals"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Companies, manufacturers, service businesses, and product brands that need a non-ecommerce site to support credibility, sales, hiring, or investor conversations."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "A clear, premium web presence that turns a cold visitor into an informed prospect and gives the team a digital asset they can stand behind."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Messaging and sitemap workshop",
+            "Wireframes and content structure",
+            "Visual design",
+            "Development and integrations",
+            "QA, launch, and analytics setup"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Portfolio & Personal Websites",
+          "description": "Personal platforms that make expertise legible."
+        },
+        {
+          "href": "",
+          "title": "Custom Store Development",
+          "description": "Non-Shopify commerce for unusual operational needs."
+        }
+      ]
+    },
+    {
+      "id": "portfolio_websites",
+      "slug": "portfolio-websites",
+      "title": "Portfolio & Personal Websites",
+      "categoryId": "web_development",
+      "category": "Web Development",
+      "summary": "A personal site should not feel like a template with a headshot. We design portfolios and personal websites that make expertise legible, memorable, and easy to act on.",
+      "href": "services/portfolio-websites.html",
+      "order": 15,
+      "isVisible": true,
+      "timeline": "Timeline: 3–6 weeks",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Founders, creators, consultants, and experts often have fragmented proof: social profiles, PDFs, old bios, and scattered case studies with no central narrative."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "A focused personal website that turns reputation, work, offers, and proof into a coherent digital home."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Personal positioning structure",
+            "Portfolio or case-study layout",
+            "Custom responsive design",
+            "Contact or booking flow",
+            "Launch-ready CMS or static build"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Founders, creators, consultants, speakers, designers, and senior operators who need a website that carries their reputation with polish."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "A personal platform that makes the right people understand who you are, what you do, and why it matters without needing a long explanation."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Positioning and proof audit",
+            "Content architecture",
+            "Design direction",
+            "Development and CMS setup",
+            "Launch support"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Company & Corporate Websites",
+          "description": "Credible, fast websites for serious business presence."
+        },
+        {
+          "href": "",
+          "title": "Custom Store Development",
+          "description": "Non-Shopify commerce for unusual operational needs."
+        }
+      ]
+    },
+    {
+      "id": "custom_store_development",
+      "slug": "custom-store-development",
+      "title": "Custom Store Development",
+      "categoryId": "web_development",
+      "category": "Web Development",
+      "summary": "Shopify is often the right commerce choice, but not always. For brands with unusual operational, content, marketplace, or platform requirements, we build custom store experiences outside Shopify when the brief calls for it.",
+      "href": "services/custom-store-development.html",
+      "order": 16,
+      "isVisible": true,
+      "timeline": "Timeline: 8–14 weeks depending on scope",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Some commerce requirements do not fit neatly inside a standard platform: complex catalogs, gated buying flows, unusual fulfillment rules, or product configuration logic that needs more control."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "A custom commerce build scoped around the operational reality of the business, with careful platform selection, clean architecture, and a clear maintenance plan."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Platform and architecture recommendation",
+            "Custom frontend and backend scope",
+            "Product and checkout logic",
+            "Third-party integrations",
+            "QA and launch documentation"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Brands with commerce requirements that cannot be solved well through Shopify, Amazon, or a conventional plugin stack."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "A commerce system built around the way the business actually sells, without forcing the customer journey through the wrong platform assumptions."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Requirements and platform discovery",
+            "Technical architecture",
+            "UX and design system",
+            "Development and integration",
+            "Testing, launch, and handover"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Company & Corporate Websites",
+          "description": "Credible, fast websites for serious business presence."
+        },
+        {
+          "href": "",
+          "title": "Portfolio & Personal Websites",
+          "description": "Personal platforms that make expertise legible."
+        }
+      ]
+    },
+    {
+      "id": "marketing_social_design",
+      "slug": "marketing-social-design",
+      "title": "Marketing & Social Media Design",
+      "categoryId": "graphic_design",
+      "category": "Graphic Design",
+      "summary": "A brand identity is the system. Campaign design is how the system performs every week. We create the ongoing social, ad, and launch assets that keep the brand consistent without making it repetitive.",
+      "href": "services/marketing-social-design.html",
+      "order": 17,
+      "isVisible": true,
+      "timeline": "Timeline: Monthly retainer or 2–4 week campaign sprint",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Many brands have a good logo but weak daily execution. Feeds drift, ads look disconnected from the site, and campaign assets are produced under pressure without a clear system."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "Ongoing marketing design support for social content, paid ads, campaign launches, email graphics, and promotional assets built from the brand system."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Social post and story templates",
+            "Campaign key visuals",
+            "Paid ad creative sets",
+            "Email and banner graphics",
+            "Monthly creative asset library"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Brands with frequent campaigns or content needs that want consistent design quality without hiring a full in-house creative team."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "Campaign and content output that feels unmistakably like the brand, improves perceived quality, and gives the marketing team assets they can actually deploy."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Brand system and content audit",
+            "Monthly creative plan",
+            "Asset design and review",
+            "Format adaptation",
+            "Performance-informed refinement"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Brand Identity Design",
+          "description": "Visual systems that communicate before customers read."
+        },
+        {
+          "href": "",
+          "title": "Packaging Design",
+          "description": "Packaging that carries the brand from screen to shelf."
+        }
+      ]
+    },
+    {
+      "id": "business_marketing_print",
+      "slug": "business-marketing-print",
+      "title": "Business & Marketing Print",
+      "categoryId": "printing",
+      "category": "Printing",
+      "summary": "Printed collateral still shapes how a brand is remembered in meetings, retail environments, launches, and local activations. We design and prepare business print that feels as considered as the digital brand.",
+      "href": "services/business-marketing-print.html",
+      "order": 18,
+      "isVisible": true,
+      "timeline": "Timeline: 1–3 weeks depending on production scope",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Print is often treated as an afterthought, produced from mismatched files with weak materials, inconsistent color, and no relationship to the brand system."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "Design, print-prep, and production coordination for business cards, brochures, flyers, stationery, inserts, and launch collateral."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Print-ready artwork",
+            "Business cards and stationery",
+            "Brochures, flyers, and inserts",
+            "Material and finish recommendations",
+            "Supplier-ready production files"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Brands preparing for launches, retail meetings, events, or sales activity where physical collateral needs to carry the same quality as the digital presence."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "Printed materials that feel deliberate, premium, and consistent with the brand instead of being a last-minute file export."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Print needs assessment",
+            "Format and material planning",
+            "Design and proofing",
+            "Print-ready file preparation",
+            "Production coordination support"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Packaging Print Production",
+          "description": "Turning packaging systems into supplier-ready files."
+        },
+        {
+          "href": "",
+          "title": "Large Format & Retail Print",
+          "description": "Banners, signage, displays, and in-store graphics."
+        }
+      ]
+    },
+    {
+      "id": "packaging_print_production",
+      "slug": "packaging-print-production",
+      "title": "Packaging Print Production",
+      "categoryId": "printing",
+      "category": "Printing",
+      "summary": "Packaging design is only finished when it survives production. We translate visual packaging systems into print-ready, supplier-ready files that protect the brand in the physical world.",
+      "href": "services/packaging-print-production.html",
+      "order": 19,
+      "isVisible": true,
+      "timeline": "Timeline: 2–5 weeks depending on packaging complexity",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Beautiful packaging concepts can fail in production: dielines are wrong, finishes are misunderstood, colors shift, and suppliers receive files that are not ready for manufacturing."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "Packaging print production support that prepares dielines, verifies artwork, coordinates specs, and reduces the gap between design intent and printed product."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Dieline setup and artwork adaptation",
+            "Print-ready packaging files",
+            "Color and finish specifications",
+            "Supplier communication pack",
+            "Proofing checklist"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Product brands moving from packaging design into production, especially cosmetics, fragrance, food, wellness, and agriculture products."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "Packaging files that production teams can use confidently, reducing reprints, miscommunication, and expensive delays."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Packaging audit and supplier requirements",
+            "Dieline and artwork preparation",
+            "Material and finish specification",
+            "Proof review",
+            "Final production file delivery"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Business & Marketing Print",
+          "description": "Business cards, brochures, flyers, and stationery."
+        },
+        {
+          "href": "",
+          "title": "Large Format & Retail Print",
+          "description": "Banners, signage, displays, and in-store graphics."
+        }
+      ]
+    },
+    {
+      "id": "large_format_retail_print",
+      "slug": "large-format-retail-print",
+      "title": "Large Format & Retail Print",
+      "categoryId": "printing",
+      "category": "Printing",
+      "summary": "Retail and event environments need scale, clarity, and production discipline. We design and prepare banners, signage, displays, and in-store graphics that make the brand visible without making it loud.",
+      "href": "services/large-format-retail-print.html",
+      "order": 20,
+      "isVisible": true,
+      "timeline": "Timeline: 2–4 weeks",
+      "detailBlocks": [
+        {
+          "label": "The Problem",
+          "type": "paragraph",
+          "content": "Large-format print magnifies every weak decision. Low-resolution assets, unclear hierarchy, poor material choices, and inconsistent brand application become obvious at retail scale."
+        },
+        {
+          "label": "Our Solution",
+          "type": "paragraph",
+          "content": "Large-format design and print preparation for banners, signage, event graphics, retail displays, shelf talkers, and in-store brand moments."
+        },
+        {
+          "label": "Deliverables",
+          "type": "list",
+          "content": [
+            "Retail signage concepts",
+            "Large-format production files",
+            "Display and banner design",
+            "Scale and material recommendations",
+            "Supplier-ready artwork pack"
+          ]
+        },
+        {
+          "label": "Ideal Client",
+          "type": "paragraph",
+          "content": "Brands entering retail, attending events, opening pop-ups, or building in-store displays where the physical environment needs to match the brand standard."
+        },
+        {
+          "label": "Expected Outcome",
+          "type": "paragraph",
+          "content": "Retail and event print assets that are legible, premium, production-ready, and unmistakably connected to the wider brand system."
+        },
+        {
+          "label": "Our Process",
+          "type": "list",
+          "content": [
+            "Environment and placement review",
+            "Format planning",
+            "Design and hierarchy system",
+            "Production artwork preparation",
+            "Proofing and supplier coordination"
+          ]
+        }
+      ],
+      "related": [
+        {
+          "href": "",
+          "title": "Business & Marketing Print",
+          "description": "Business cards, brochures, flyers, and stationery."
+        },
+        {
+          "href": "",
+          "title": "Packaging Print Production",
+          "description": "Turning packaging systems into supplier-ready files."
+        }
+      ]
+    }
+  ]
+}

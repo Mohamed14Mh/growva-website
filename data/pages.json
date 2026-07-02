@@ -1,0 +1,3354 @@
+{
+  "about": {
+    "id": "about",
+    "path": "about.html",
+    "title": "About — GROWVA | Growth By Design",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Growth By Design is a philosophy, not a slogan.",
+      "description": "We exist for product brands who are done stitching together disconnected vendors across digital, marketplace, design, and print.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "See Our Work",
+          "href": "work.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "about.intro_gallery_1",
+        "type": "intro_gallery",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "about.page_hero_2",
+        "type": "page_hero",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "about.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "about.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "about.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "about.section_6",
+        "type": "section",
+        "order": 6,
+        "isVisible": true
+      },
+      {
+        "id": "about.section_7",
+        "type": "section",
+        "order": 7,
+        "isVisible": true
+      },
+      {
+        "id": "about.stats_8",
+        "type": "stats",
+        "order": 8,
+        "isVisible": true
+      },
+      {
+        "id": "about.final_cta_9",
+        "type": "final_cta",
+        "order": 9,
+        "isVisible": true
+      }
+    ]
+  },
+  "contact": {
+    "id": "contact",
+    "path": "contact.html",
+    "title": "Contact — GROWVA | Start a Project",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Start a project. We'll reply within one business day.",
+      "description": "No sales pitch, no template response. Tell us what you're building and we'll tell you honestly how we'd approach it.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Chat on WhatsApp",
+          "href": "https://wa.me/1234567890",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "contact.intro_gallery_1",
+        "type": "intro_gallery",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "contact.page_hero_2",
+        "type": "page_hero",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "contact.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "contact.stats_4",
+        "type": "stats",
+        "order": 4,
+        "isVisible": true
+      }
+    ],
+    "contact": {
+      "email": "hello@growva.com",
+      "whatsappUrl": "https://wa.me/1234567890",
+      "form": {
+        "id": "project_inquiry",
+        "fields": [
+          {
+            "id": "fname",
+            "name": "first_name",
+            "type": "text",
+            "required": true,
+            "placeholder": "Your first name"
+          },
+          {
+            "id": "lname",
+            "name": "last_name",
+            "type": "text",
+            "required": true,
+            "placeholder": "Your last name"
+          },
+          {
+            "id": "email",
+            "name": "email",
+            "type": "email",
+            "required": true,
+            "placeholder": "hello@yourbrand.com"
+          },
+          {
+            "id": "company",
+            "name": "company",
+            "type": "text",
+            "required": false,
+            "placeholder": "Your brand name"
+          },
+          {
+            "id": "budget",
+            "name": "budget",
+            "type": "select",
+            "required": false,
+            "placeholder": ""
+          },
+          {
+            "id": "service",
+            "name": "service",
+            "type": "select",
+            "required": true,
+            "placeholder": ""
+          },
+          {
+            "id": "message",
+            "name": "message",
+            "type": "textarea",
+            "required": true,
+            "placeholder": "What are you building, where are you now, and what does success look like for you?"
+          },
+          {
+            "id": "timeline",
+            "name": "timeline",
+            "type": "text",
+            "required": false,
+            "placeholder": "e.g. As soon as possible, Q3 2025, etc."
+          }
+        ]
+      }
+    }
+  },
+  "faq": {
+    "id": "faq",
+    "path": "faq.html",
+    "title": "FAQ — GROWVA | Questions Worth Answering Upfront",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Questions worth answering upfront.",
+      "description": "If your question isn't here, it takes about 30 seconds to ask us directly.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Contact Us",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "hello@growva.com",
+          "href": "mailto:hello@growva.com",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "faq.intro_gallery_1",
+        "type": "intro_gallery",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "faq.page_hero_2",
+        "type": "page_hero",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "faq.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "faq.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "home": {
+    "id": "home",
+    "path": "index.html",
+    "title": "GROWVA â€” Growth By Design | Full-Service Growth Partner for Product Brands",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Growth By Design.",
+      "description": "GROWVA is one accountable partner for product brands across Shopify, Amazon Seller Central, web development, brand design, growth systems, and print production.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Our Work",
+          "href": "work.html",
+          "isVisible": true,
+          "order": 3
+        },
+        {
+          "id": "button_4",
+          "label": "Explore Services ->",
+          "href": "services.html",
+          "isVisible": true,
+          "order": 4
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "home.home_hero_1",
+        "type": "home_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "home.what_we_do_2",
+        "type": "what_we_do",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "home.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "home.process_4",
+        "type": "process",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "home.stats_5",
+        "type": "stats",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "home.latest_projects_6",
+        "type": "latest_projects",
+        "order": 6,
+        "isVisible": true
+      },
+      {
+        "id": "home.section_7",
+        "type": "section",
+        "order": 7,
+        "isVisible": true
+      },
+      {
+        "id": "home.final_cta_8",
+        "type": "final_cta",
+        "order": 8,
+        "isVisible": true
+      }
+    ]
+  },
+  "pricing": {
+    "id": "pricing",
+    "path": "pricing.html",
+    "title": "Pricing — GROWVA | Investment Packages for Shopify Growth",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Transparent pricing. Fixed proposals. No surprises.",
+      "description": "Every project is scoped individually after discovery. These packages give you a clear starting point — the final number is agreed in writing before any work begins.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Get a Quote",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "Get a Quote",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 3
+        },
+        {
+          "id": "button_4",
+          "label": "Talk to Us",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 4
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "pricing.intro_gallery_1",
+        "type": "intro_gallery",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "pricing.page_hero_2",
+        "type": "page_hero",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "pricing.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "pricing.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "pricing.final_cta_5",
+        "type": "final_cta",
+        "order": 5,
+        "isVisible": true
+      }
+    ]
+  },
+  "process": {
+    "id": "process",
+    "path": "process.html",
+    "title": "Process — GROWVA | Nine Stages. No Guesswork.",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Nine stages. No guesswork.",
+      "description": "Every project follows the same structured approach — from the first discovery call to the last optimization report. Here's exactly what happens at each stage.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Book a Discovery Call",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Services",
+          "href": "services.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "process.intro_gallery_1",
+        "type": "intro_gallery",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "process.page_hero_2",
+        "type": "page_hero",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "process.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "process.stats_4",
+        "type": "stats",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "process.final_cta_5",
+        "type": "final_cta",
+        "order": 5,
+        "isVisible": true
+      }
+    ]
+  },
+  "services": {
+    "id": "services",
+    "path": "services.html",
+    "title": "Services | GROWVA | Five Departments. One Growth System.",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Five departments. One growth system.",
+      "description": "Shopify, Amazon, web development, graphic design, printing, and growth systems working as one accountable partner for product brands.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.intro_gallery_1",
+        "type": "intro_gallery",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.page_hero_2",
+        "type": "page_hero",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.service_directory_3",
+        "type": "service_directory",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "shopify": {
+    "id": "shopify",
+    "path": "shopify.html",
+    "title": "Shopify Development — GROWVA | Ecommerce Stores Built to Convert",
+    "hero": {
+      "eyebrow": "",
+      "headline": "The platform ambitious brands grow on.",
+      "description": "Shopify remains one of our deepest departments. This is how we approach the platform when a product brand needs a storefront built for performance, conversion, and long-term growth.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "See Our Work",
+          "href": "work.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "shopify.intro_gallery_1",
+        "type": "intro_gallery",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "shopify.page_hero_2",
+        "type": "page_hero",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "shopify.shopify_chapter_3",
+        "type": "shopify_chapter",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "shopify.shopify_chapter_4",
+        "type": "shopify_chapter",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "shopify.shopify_chapter_5",
+        "type": "shopify_chapter",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "shopify.shopify_chapter_6",
+        "type": "shopify_chapter",
+        "order": 6,
+        "isVisible": true
+      },
+      {
+        "id": "shopify.shopify_chapter_7",
+        "type": "shopify_chapter",
+        "order": 7,
+        "isVisible": true
+      },
+      {
+        "id": "shopify.final_cta_8",
+        "type": "final_cta",
+        "order": 8,
+        "isVisible": true
+      }
+    ]
+  },
+  "work": {
+    "id": "work",
+    "path": "work.html",
+    "title": "Work — GROWVA | Portfolio by Category",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Work That Performs.",
+      "description": "Browse by discipline — every project is documented with challenge, strategy, results, and the visual systems behind it.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.work_directory_2",
+        "type": "work_directory",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.cta_band_3",
+        "type": "cta_band",
+        "order": 3,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.amazon_account_management": {
+    "id": "services.amazon_account_management",
+    "path": "services/amazon-account-management.html",
+    "title": "Amazon Account Management & Growth | GROWVA | Amazon Seller Central",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Amazon Account Management & Growth",
+      "description": "An Amazon account is not a passive shelf. It needs catalog hygiene, campaign discipline, inventory awareness, review monitoring, and reporting rhythm to grow without quietly leaking margin.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.amazon_account_management.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.amazon_account_management.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.amazon_account_management.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.amazon_account_management.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.amazon_account_setup": {
+    "id": "services.amazon_account_setup",
+    "path": "services/amazon-account-setup.html",
+    "title": "Amazon Account Setup From Scratch | GROWVA | Amazon Seller Central",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Amazon Account Setup From Scratch",
+      "description": "Amazon can become a serious revenue channel, but only if the account is built cleanly from day one. We set up Seller Central foundations so the brand does not inherit avoidable compliance, catalog, or advertising problems later.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.amazon_account_setup.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.amazon_account_setup.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.amazon_account_setup.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.amazon_account_setup.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.amazon_listing_advertising_optimization": {
+    "id": "services.amazon_listing_advertising_optimization",
+    "path": "services/amazon-listing-advertising-optimization.html",
+    "title": "Amazon Listing & Advertising Optimization | GROWVA | Amazon Seller Central",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Amazon Listing & Advertising Optimization",
+      "description": "Amazon visibility is earned through precise listing content, keyword structure, image hierarchy, and PPC management. We optimize the product page and the paid traffic system together.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.amazon_listing_advertising_optimization.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.amazon_listing_advertising_optimization.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.amazon_listing_advertising_optimization.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.amazon_listing_advertising_optimization.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.brand_identity_design": {
+    "id": "services.brand_identity_design",
+    "path": "services/brand-identity-design.html",
+    "title": "Brand Identity Design | GROWVA | Graphic Design",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Brand Identity Design",
+      "description": "A brand that can't be recognized at a glance can't build loyalty over time. We design visual identities that communicate something specific about the product — before the customer reads a word.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.brand_identity_design.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.brand_identity_design.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.brand_identity_design.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.brand_identity_design.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.business_marketing_print": {
+    "id": "services.business_marketing_print",
+    "path": "services/business-marketing-print.html",
+    "title": "Business & Marketing Print | GROWVA | Printing",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Business & Marketing Print",
+      "description": "Printed collateral still shapes how a brand is remembered in meetings, retail environments, launches, and local activations. We design and prepare business print that feels as considered as the digital brand.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.business_marketing_print.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.business_marketing_print.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.business_marketing_print.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.business_marketing_print.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.conversion_optimization": {
+    "id": "services.conversion_optimization",
+    "path": "services/conversion-optimization.html",
+    "title": "Conversion Optimization | GROWVA | Growth & Strategy",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Conversion Optimization",
+      "description": "Landing pages, product pages, marketplace listings, and campaign journeys rebuilt around how your specific customer actually buys — whether the sale happens on Shopify, Amazon, or a custom web experience.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.conversion_optimization.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.conversion_optimization.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.conversion_optimization.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.conversion_optimization.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.corporate_websites": {
+    "id": "services.corporate_websites",
+    "path": "services/corporate-websites.html",
+    "title": "Company & Corporate Websites | GROWVA | Web Development",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Company & Corporate Websites",
+      "description": "Not every brand needs a cart. Some need a credible, sharp, fast website that explains the company, supports sales conversations, and makes the business look as serious as it is.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.corporate_websites.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.corporate_websites.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.corporate_websites.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.corporate_websites.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.custom_store_development": {
+    "id": "services.custom_store_development",
+    "path": "services/custom-store-development.html",
+    "title": "Custom Store Development | GROWVA | Web Development",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Custom Store Development",
+      "description": "Shopify is often the right commerce choice, but not always. For brands with unusual operational, content, marketplace, or platform requirements, we build custom store experiences outside Shopify when the brief calls for it.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.custom_store_development.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.custom_store_development.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.custom_store_development.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.custom_store_development.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.ecommerce_strategy": {
+    "id": "services.ecommerce_strategy",
+    "path": "services/ecommerce-strategy.html",
+    "title": "Ecommerce Strategy | GROWVA | Growth & Strategy",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Ecommerce Strategy",
+      "description": "Strategy and growth systems apply whether we are building your Shopify store, managing your Amazon account, developing a corporate site, or designing your next campaign. We write the commercial plan before anyone opens a design tool.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.ecommerce_strategy.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.ecommerce_strategy.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.ecommerce_strategy.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.ecommerce_strategy.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.growth_systems": {
+    "id": "services.growth_systems",
+    "path": "services/growth-systems.html",
+    "title": "Growth Systems | GROWVA | Growth & Strategy",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Growth Systems",
+      "description": "Retention, email/SMS, and lifecycle infrastructure that turns first orders into repeat customers across every channel we touch. Acquisition is expensive. Retention is where margin lives.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.growth_systems.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.growth_systems.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.growth_systems.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.growth_systems.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.large_format_retail_print": {
+    "id": "services.large_format_retail_print",
+    "path": "services/large-format-retail-print.html",
+    "title": "Large Format & Retail Print | GROWVA | Printing",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Large Format & Retail Print",
+      "description": "Retail and event environments need scale, clarity, and production discipline. We design and prepare banners, signage, displays, and in-store graphics that make the brand visible without making it loud.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.large_format_retail_print.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.large_format_retail_print.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.large_format_retail_print.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.large_format_retail_print.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.marketing_social_design": {
+    "id": "services.marketing_social_design",
+    "path": "services/marketing-social-design.html",
+    "title": "Marketing & Social Media Design | GROWVA | Graphic Design",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Marketing & Social Media Design",
+      "description": "A brand identity is the system. Campaign design is how the system performs every week. We create the ongoing social, ad, and launch assets that keep the brand consistent without making it repetitive.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.marketing_social_design.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.marketing_social_design.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.marketing_social_design.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.marketing_social_design.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.packaging_design": {
+    "id": "services.packaging_design",
+    "path": "services/packaging-design.html",
+    "title": "Packaging Design | GROWVA | Graphic Design",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Packaging Design",
+      "description": "The unboxing moment is a brand touchpoint. Packaging that loses the story between screen and shelf costs you repurchase rates, social sharing, and the premium perception you worked to build.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.packaging_design.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.packaging_design.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.packaging_design.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.packaging_design.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.packaging_print_production": {
+    "id": "services.packaging_print_production",
+    "path": "services/packaging-print-production.html",
+    "title": "Packaging Print Production | GROWVA | Printing",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Packaging Print Production",
+      "description": "Packaging design is only finished when it survives production. We translate visual packaging systems into print-ready, supplier-ready files that protect the brand in the physical world.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.packaging_print_production.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.packaging_print_production.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.packaging_print_production.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.packaging_print_production.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.performance_optimization": {
+    "id": "services.performance_optimization",
+    "path": "services/performance-optimization.html",
+    "title": "Performance Optimization | GROWVA | Shopify & Ecommerce",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Performance Optimization",
+      "description": "Core Web Vitals, image pipelines, and app-bloat audits that keep the store fast as it grows. A 1-second delay in page load time reduces conversions by up to 7%.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.performance_optimization.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.performance_optimization.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.performance_optimization.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.performance_optimization.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.portfolio_websites": {
+    "id": "services.portfolio_websites",
+    "path": "services/portfolio-websites.html",
+    "title": "Portfolio & Personal Websites | GROWVA | Web Development",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Portfolio & Personal Websites",
+      "description": "A personal site should not feel like a template with a headshot. We design portfolios and personal websites that make expertise legible, memorable, and easy to act on.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.portfolio_websites.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.portfolio_websites.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.portfolio_websites.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.portfolio_websites.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.premium_shopify_website_development": {
+    "id": "services.premium_shopify_website_development",
+    "path": "services/premium-shopify-website-development.html",
+    "title": "Premium Shopify Website Development | GROWVA | Shopify & Ecommerce",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Premium Shopify Website Development",
+      "description": "Most Shopify stores look like Shopify stores. Ours don't. We build custom storefronts from scratch — no bloated themes, no template compromises — designed specifically for your product, your customer, and your conversion goals.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.premium_shopify_website_development.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.premium_shopify_website_development.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.premium_shopify_website_development.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.premium_shopify_website_development.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.shopify_cro": {
+    "id": "services.shopify_cro",
+    "path": "services/shopify-cro.html",
+    "title": "Shopify CRO | GROWVA | Shopify & Ecommerce",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Shopify CRO",
+      "description": "Traffic is expensive. Losing it to a broken checkout or a confusing product page is more expensive. We analyze where your funnel breaks, then rebuild those points systematically.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.shopify_cro.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.shopify_cro.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.shopify_cro.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.shopify_cro.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.shopify_store_optimization": {
+    "id": "services.shopify_store_optimization",
+    "path": "services/shopify-store-optimization.html",
+    "title": "Shopify Store Optimization | GROWVA | Shopify & Ecommerce",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Shopify Store Optimization",
+      "description": "An existing store with the wrong structure, too many apps, and neglected technical debt performs worse every month. We audit, clean, and restructure it so it runs the way it should.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.shopify_store_optimization.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.shopify_store_optimization.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.shopify_store_optimization.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.shopify_store_optimization.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "services.website_maintenance": {
+    "id": "services.website_maintenance",
+    "path": "services/website-maintenance.html",
+    "title": "Website Maintenance | GROWVA | Growth & Strategy",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Website Maintenance",
+      "description": "Websites, stores, and campaign infrastructure left unattended break slowly, then suddenly. We keep the digital systems running, updated, and performing long after launch day.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Talk to Us",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "button_3",
+          "label": "View Pricing",
+          "href": "../pricing.html",
+          "isVisible": true,
+          "order": 3
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "services.website_maintenance.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "services.website_maintenance.service_detail_2",
+        "type": "service_detail",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "services.website_maintenance.related_services_3",
+        "type": "related_services",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "services.website_maintenance.final_cta_4",
+        "type": "final_cta",
+        "order": 4,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.amazon_storefronts": {
+    "id": "work.amazon_storefronts",
+    "path": "work/amazon-storefronts.html",
+    "title": "Amazon Storefronts — GROWVA Portfolio",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Amazon Storefronts.",
+      "description": "A+ content, brand storefronts, and listing imagery that convert browser sessions into purchases on Seller Central.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.amazon_storefronts.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.amazon_storefronts.work_directory_2",
+        "type": "work_directory",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.amazon_storefronts.cta_band_3",
+        "type": "cta_band",
+        "order": 3,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.brand_identity": {
+    "id": "work.brand_identity",
+    "path": "work/brand-identity.html",
+    "title": "Brand Identity — GROWVA Portfolio",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Brand Identity.",
+      "description": "Logos, visual systems, and brand language built for product brands that need to communicate before anyone reads a word.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.brand_identity.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.brand_identity.work_directory_2",
+        "type": "work_directory",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.brand_identity.cta_band_3",
+        "type": "cta_band",
+        "order": 3,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.marketing_print": {
+    "id": "work.marketing_print",
+    "path": "work/marketing-print.html",
+    "title": "Marketing & Print — GROWVA Portfolio",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Marketing & Print.",
+      "description": "Campaign assets, social content, and print collateral that stay on-brand at every touchpoint — from digital launch to store shelf.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.marketing_print.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.marketing_print.work_directory_2",
+        "type": "work_directory",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.marketing_print.cta_band_3",
+        "type": "cta_band",
+        "order": 3,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.packaging_design": {
+    "id": "work.packaging_design",
+    "path": "work/packaging-design.html",
+    "title": "Packaging Design — GROWVA Portfolio",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Packaging Design.",
+      "description": "Labels, boxes, and structures designed for retail shelves and D2C unboxing — where first physical contact defines the brand.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.packaging_design.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.packaging_design.work_directory_2",
+        "type": "work_directory",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.packaging_design.cta_band_3",
+        "type": "cta_band",
+        "order": 3,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.shopify_stores": {
+    "id": "work.shopify_stores",
+    "path": "work/shopify-stores.html",
+    "title": "Shopify Stores — GROWVA Portfolio",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Shopify Stores.",
+      "description": "Custom storefronts for product brands who need performance, not just aesthetics — built around how their customers actually buy.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.shopify_stores.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.work_directory_2",
+        "type": "work_directory",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.cta_band_3",
+        "type": "cta_band",
+        "order": 3,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.websites": {
+    "id": "work.websites",
+    "path": "work/websites.html",
+    "title": "Websites — GROWVA Portfolio",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Websites .",
+      "description": "Corporate, portfolio, and custom web builds for brands who need a credible digital presence beyond their store.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.websites.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.websites.work_directory_2",
+        "type": "work_directory",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.websites.cta_band_3",
+        "type": "cta_band",
+        "order": 3,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.amazon_storefronts.hasat_organics": {
+    "id": "work.amazon_storefronts.hasat_organics",
+    "path": "work/amazon-storefronts/hasat-organics.html",
+    "title": "Hasat Organics Amazon Storefront — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Hasat Organics Storefront .",
+      "description": "A provenance-forward storefront that moved farm photography and origin storytelling from Instagram to where buyers actually shop — Amazon Seller Central.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.amazon_storefronts.hasat_organics.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.amazon_storefronts.hasat_organics.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.amazon_storefronts.hasat_organics.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.amazon_storefronts.hasat_organics.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.amazon_storefronts.hasat_organics.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.amazon_storefronts.hasat_organics.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.amazon_storefronts.maison_luxe": {
+    "id": "work.amazon_storefronts.maison_luxe",
+    "path": "work/amazon-storefronts/maison-luxe.html",
+    "title": "Maison Luxe Amazon Storefront — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Maison Luxe Storefront .",
+      "description": "A premium gifting brand storefront with curated bundle cross-sells and A+ comparison modules that doubled gifting season revenue.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.amazon_storefronts.maison_luxe.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.amazon_storefronts.maison_luxe.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.amazon_storefronts.maison_luxe.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.amazon_storefronts.maison_luxe.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.amazon_storefronts.maison_luxe.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.amazon_storefronts.maison_luxe.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.amazon_storefronts.noor_perfumery": {
+    "id": "work.amazon_storefronts.noor_perfumery",
+    "path": "work/amazon-storefronts/noor-perfumery.html",
+    "title": "Noor Perfumery Amazon Storefront — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Noor Perfumery Storefront .",
+      "description": "Full A+ content rebuild and branded storefront that lifted conversion rate by 41% in 90 days — through scent education modules and a streamlined purchase path.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.amazon_storefronts.noor_perfumery.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.amazon_storefronts.noor_perfumery.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.amazon_storefronts.noor_perfumery.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.amazon_storefronts.noor_perfumery.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.amazon_storefronts.noor_perfumery.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.amazon_storefronts.noor_perfumery.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.brand_identity.hasat_organics": {
+    "id": "work.brand_identity.hasat_organics",
+    "path": "work/brand-identity/hasat-organics.html",
+    "title": "Hasat Organics Brand Identity — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Hasat Organics Identity .",
+      "description": "An earth-rooted brand identity with a handcrafted feel — built simultaneously for farmers market displays, harvest box packaging, and digital channels.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.brand_identity.hasat_organics.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.brand_identity.hasat_organics.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.brand_identity.hasat_organics.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.brand_identity.hasat_organics.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.brand_identity.hasat_organics.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.brand_identity.hasat_organics.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.brand_identity.noor_perfumery": {
+    "id": "work.brand_identity.noor_perfumery",
+    "path": "work/brand-identity/noor-perfumery.html",
+    "title": "Noor Perfumery Brand Identity — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Noor Perfumery Identity .",
+      "description": "A full brand system — wordmark, monogram, typographic hierarchy, and a refined palette — built for an artisan fragrance house expanding into retail and hospitality.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.brand_identity.noor_perfumery.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.brand_identity.noor_perfumery.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.brand_identity.noor_perfumery.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.brand_identity.noor_perfumery.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.brand_identity.noor_perfumery.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.brand_identity.noor_perfumery.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.brand_identity.vella_cosmetics": {
+    "id": "work.brand_identity.vella_cosmetics",
+    "path": "work/brand-identity/vella-cosmetics.html",
+    "title": "Vella Cosmetics Brand Identity — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Vella Cosmetics Identity .",
+      "description": "A playful yet precise identity system with a modular logo mark designed to scale across tubes, compacts, bottles, and digital — without losing recognisability.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.brand_identity.vella_cosmetics.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.brand_identity.vella_cosmetics.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.brand_identity.vella_cosmetics.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.brand_identity.vella_cosmetics.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.brand_identity.vella_cosmetics.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.brand_identity.vella_cosmetics.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.marketing_print.noor_holiday": {
+    "id": "work.marketing_print.noor_holiday",
+    "path": "work/marketing-print/noor-holiday.html",
+    "title": "Noor Holiday Collection Campaign — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Noor Holiday Collection .",
+      "description": "A seasonal gifting campaign with editorial photography direction, a printed catalogue, and an in-store display system — built for both direct-to-consumer and wholesale activation.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.marketing_print.noor_holiday.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.marketing_print.noor_holiday.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.marketing_print.noor_holiday.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.marketing_print.noor_holiday.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.marketing_print.noor_holiday.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.marketing_print.noor_holiday.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.marketing_print.terra_grove": {
+    "id": "work.marketing_print.terra_grove",
+    "path": "work/marketing-print/terra-grove.html",
+    "title": "Terra & Grove Harvest Print — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Terra & Grove Harvest Print .",
+      "description": "Farmers market collateral, seasonal mailers, and branded packaging inserts that reinforce provenance at every physical touchpoint.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.marketing_print.terra_grove.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.marketing_print.terra_grove.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.marketing_print.terra_grove.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.marketing_print.terra_grove.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.marketing_print.terra_grove.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.marketing_print.terra_grove.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.marketing_print.vella_campaign": {
+    "id": "work.marketing_print.vella_campaign",
+    "path": "work/marketing-print/vella-campaign.html",
+    "title": "Vella Cosmetics Campaign — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Vella Cosmetics Campaign .",
+      "description": "A product launch campaign across social, email, and print — from concept to 60+ deliverable assets — built around a single campaign idea executed at every touchpoint.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.marketing_print.vella_campaign.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.marketing_print.vella_campaign.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.marketing_print.vella_campaign.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.marketing_print.vella_campaign.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.marketing_print.vella_campaign.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.marketing_print.vella_campaign.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.packaging_design.atelier_marbre": {
+    "id": "work.packaging_design.atelier_marbre",
+    "path": "work/packaging-design/atelier-marbre.html",
+    "title": "Atelier Marbre Packaging Design — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Atelier Marbre Packaging .",
+      "description": "Tactile product packaging for marble objets — matte laminate, silk-screen print, custom tissue insert — designed for retail, gifting, and DHL Worlwide.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.packaging_design.atelier_marbre.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.packaging_design.atelier_marbre.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.packaging_design.atelier_marbre.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.packaging_design.atelier_marbre.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.packaging_design.atelier_marbre.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.packaging_design.atelier_marbre.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.packaging_design.noor_no03": {
+    "id": "work.packaging_design.noor_no03",
+    "path": "work/packaging-design/noor-no03.html",
+    "title": "Noor No.03 Packaging Design — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Noor No.03 Packaging .",
+      "description": "Bespoke outer box and bottle sleeve for a limited-edition oud fragrance — embossed, foiled, and production-ready for 500 units.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.packaging_design.noor_no03.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.packaging_design.noor_no03.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.packaging_design.noor_no03.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.packaging_design.noor_no03.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.packaging_design.noor_no03.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.packaging_design.noor_no03.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.packaging_design.terra_grove": {
+    "id": "work.packaging_design.terra_grove",
+    "path": "work/packaging-design/terra-grove.html",
+    "title": "Terra & Grove Packaging Design — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Terra & Grove Packaging .",
+      "description": "A seasonal harvest box system with interchangeable label inserts — designed for repeat gifting and CSA subscription, printed on kraft and recycled board.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.packaging_design.terra_grove.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.packaging_design.terra_grove.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.packaging_design.terra_grove.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.packaging_design.terra_grove.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.packaging_design.terra_grove.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.packaging_design.terra_grove.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.shopify_stores.atelier_marbre": {
+    "id": "work.shopify_stores.atelier_marbre",
+    "path": "work/shopify-stores/atelier-marbre.html",
+    "title": "Atelier Marbre Shopify Store — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Atelier Marbre .",
+      "description": "A high-end marble homewares store built around bespoke made-to-order pieces, a collection configurator, and an exclusive waitlist for limited editions.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.shopify_stores.atelier_marbre.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.atelier_marbre.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.atelier_marbre.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.atelier_marbre.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.atelier_marbre.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.atelier_marbre.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.shopify_stores.noor_perfumery": {
+    "id": "work.shopify_stores.noor_perfumery",
+    "path": "work/shopify-stores/noor-perfumery.html",
+    "title": "Noor Perfumery Shopify Store — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Noor Perfumery .",
+      "description": "An editorial Shopify store for an artisan fragrance house that doubled average order value through narrative-led product pages and a streamlined purchase journey.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.shopify_stores.noor_perfumery.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.noor_perfumery.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.noor_perfumery.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.noor_perfumery.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.noor_perfumery.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.noor_perfumery.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.shopify_stores.terra_grove": {
+    "id": "work.shopify_stores.terra_grove",
+    "path": "work/shopify-stores/terra-grove.html",
+    "title": "Terra & Grove Shopify Store — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Terra & Grove .",
+      "description": "A farm-to-table subscription store with seasonal harvest bundles, CSA member management, and provenance storytelling at every step.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.shopify_stores.terra_grove.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.terra_grove.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.terra_grove.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.terra_grove.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.terra_grove.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.terra_grove.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.shopify_stores.vella_cosmetics": {
+    "id": "work.shopify_stores.vella_cosmetics",
+    "path": "work/shopify-stores/vella-cosmetics.html",
+    "title": "Vella Cosmetics Shopify Store — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Vella Cosmetics .",
+      "description": "A shade-discovery experience and routine builder that turned a cluttered beauty store into a streamlined conversion machine.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.shopify_stores.vella_cosmetics.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.vella_cosmetics.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.vella_cosmetics.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.vella_cosmetics.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.vella_cosmetics.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.shopify_stores.vella_cosmetics.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.websites.atelier_marbre": {
+    "id": "work.websites.atelier_marbre",
+    "path": "work/websites/atelier-marbre.html",
+    "title": "Atelier Marbre Website — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Atelier Marbre Website .",
+      "description": "A bespoke brand website with editorial photography direction, collection pages, and a custom bespoke enquiry system — built to match the product's price point.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.websites.atelier_marbre.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.websites.atelier_marbre.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.websites.atelier_marbre.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.websites.atelier_marbre.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.websites.atelier_marbre.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.websites.atelier_marbre.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.websites.dune_studio": {
+    "id": "work.websites.dune_studio",
+    "path": "work/websites/dune-studio.html",
+    "title": "Dune Studio Website — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Dune Studio Website .",
+      "description": "A portfolio and studio presence for an interior design firm — project galleries, services pages, press coverage, and a new client enquiry flow.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.websites.dune_studio.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.websites.dune_studio.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.websites.dune_studio.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.websites.dune_studio.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.websites.dune_studio.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.websites.dune_studio.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  },
+  "work.websites.hasat_organics": {
+    "id": "work.websites.hasat_organics",
+    "path": "work/websites/hasat-organics.html",
+    "title": "Hasat Organics Website — GROWVA",
+    "hero": {
+      "eyebrow": "",
+      "headline": "Hasat Organics Website .",
+      "description": "A farm brand website with a CSA onboarding flow, seasonal market calendar, wholesale enquiry system, and provenance storytelling throughout.",
+      "buttons": [
+        {
+          "id": "button_1",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "button_2",
+          "label": "Start a Project",
+          "href": "../../contact.html",
+          "isVisible": true,
+          "order": 2
+        }
+      ]
+    },
+    "sections": [
+      {
+        "id": "work.websites.hasat_organics.page_hero_1",
+        "type": "page_hero",
+        "order": 1,
+        "isVisible": true
+      },
+      {
+        "id": "work.websites.hasat_organics.section_2",
+        "type": "section",
+        "order": 2,
+        "isVisible": true
+      },
+      {
+        "id": "work.websites.hasat_organics.section_3",
+        "type": "section",
+        "order": 3,
+        "isVisible": true
+      },
+      {
+        "id": "work.websites.hasat_organics.section_4",
+        "type": "section",
+        "order": 4,
+        "isVisible": true
+      },
+      {
+        "id": "work.websites.hasat_organics.section_5",
+        "type": "section",
+        "order": 5,
+        "isVisible": true
+      },
+      {
+        "id": "work.websites.hasat_organics.cta_band_6",
+        "type": "cta_band",
+        "order": 6,
+        "isVisible": true
+      }
+    ]
+  }
+}

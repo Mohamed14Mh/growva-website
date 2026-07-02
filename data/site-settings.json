@@ -1,0 +1,24 @@
+{
+  "brand": {
+    "name": "GROWVA",
+    "tagline": "Growth By Design",
+    "primaryColor": "#B1FA20",
+    "backgroundColor": "#0A0A0A",
+    "black": "#111111",
+    "ivory": "#F6F6F6",
+    "textColor": "#F6F6F6",
+    "logoText": "GROWVA.",
+    "logo": null
+  },
+  "global": {
+    "primaryCta": "Start a Project",
+    "secondaryCta": "View Work",
+    "contactEmail": "hello@growva.com",
+    "whatsappUrl": "https://wa.me/1234567890"
+  },
+  "admin": {
+    "phase": 1,
+    "dataLayerOnly": true,
+    "jsonRenderingEnabled": false
+  }
+}
