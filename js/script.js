@@ -377,6 +377,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  (function initHashAnchorLanding() {
+    const scrollToHashTarget = () => {
+      const hash = decodeURIComponent(window.location.hash || '').replace(/^#/, '');
+      if (!hash) return;
+      const target = document.getElementById(hash);
+      if (!target) return;
+      const offset = -96;
+      const run = () => {
+        if (window._lenis) {
+          window._lenis.scrollTo(target, { offset });
+        } else {
+          const top = target.getBoundingClientRect().top + window.scrollY + offset;
+          window.scrollTo({ top, behavior: 'auto' });
+        }
+      };
+      requestAnimationFrame(() => setTimeout(run, 120));
+    };
+    scrollToHashTarget();
+    window.addEventListener('load', scrollToHashTarget);
+    window.addEventListener('hashchange', scrollToHashTarget);
+  })();
+
   /* ---------- Year ---------- */
   const yearEl = document.getElementById('year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
@@ -505,7 +527,18 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', () => applyFilter(btn.dataset.filter, true));
     });
 
-    const applyHashFilter = () => applyFilter(normalizeFilter(window.location.hash), false);
+    const applyHashFilter = () => {
+      const rawHash = decodeURIComponent(window.location.hash || '').replace(/^#/, '');
+      const normalized = normalizeFilter(rawHash);
+      if (!validFilters.has(normalized) && rawHash && document.getElementById(rawHash)) {
+        applyFilter('all', false);
+        requestAnimationFrame(() => {
+          document.getElementById(rawHash)?.scrollIntoView({ block: 'start' });
+        });
+        return;
+      }
+      applyFilter(normalized, false);
+    };
     applyHashFilter();
     window.addEventListener('hashchange', applyHashFilter);
   })();
@@ -515,6 +548,101 @@ document.addEventListener('DOMContentLoaded', () => {
     const gsapPlugins = [ScrollTrigger];
     if (window.Flip) gsapPlugins.push(Flip);
     gsap.registerPlugin(...gsapPlugins);
+
+    function initIntroBentoGalleries() {
+      document.querySelectorAll('.gallery--switch').forEach(galleryElement => {
+        const galleryItems = galleryElement.querySelectorAll('.gallery__item');
+        const galleryLabels = galleryElement.querySelectorAll('.gallery-caption');
+        if (!galleryItems.length) return;
+
+        const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const desktopQuery = window.matchMedia('(min-width: 900px)');
+        let flipCtx;
+        let resizeFrame = null;
+
+        const createTween = () => {
+          flipCtx && flipCtx.revert();
+          galleryElement.classList.remove('gallery--final', 'gallery--static');
+          gsap.set(galleryItems, { clearProps: 'all' });
+          gsap.set(galleryLabels, { clearProps: 'all' });
+          gsap.set(galleryLabels, { autoAlpha: 0, y: 8 });
+
+          if (!window.Flip || reduceMotionQuery.matches || !desktopQuery.matches) {
+            galleryElement.classList.add('gallery--static');
+            flipCtx = gsap.context(() => {
+              if (reduceMotionQuery.matches) {
+                gsap.set([...galleryItems, ...galleryLabels], { autoAlpha: 1, y: 0 });
+                return () => gsap.set([...galleryItems, ...galleryLabels], { clearProps: 'all' });
+              }
+
+              gsap.fromTo(galleryItems,
+                { autoAlpha: 0, y: reduceMotionQuery.matches ? 0 : 18 },
+                {
+                  autoAlpha: 1,
+                  y: 0,
+                  duration: reduceMotionQuery.matches ? 0.18 : 0.45,
+                  stagger: 0.035,
+                  ease: 'power1.out',
+                  scrollTrigger: {
+                    trigger: galleryElement.parentNode,
+                    start: 'top 82%',
+                    once: true
+                  }
+                }
+              );
+              gsap.set(galleryLabels, { autoAlpha: 1, y: 0 });
+              return () => gsap.set([...galleryItems, ...galleryLabels], { clearProps: 'all' });
+            }, galleryElement.parentNode);
+            if (window._lenis) window._lenis.resize();
+            ScrollTrigger.refresh();
+            return;
+          }
+
+          flipCtx = gsap.context(() => {
+            const flipState = Flip.getState(galleryItems);
+            galleryElement.classList.add('gallery--final');
+            const flip = Flip.from(flipState, {
+              simple: true,
+              ease: 'expoScale(1, 5)',
+              duration: 1
+            });
+            const tl = gsap.timeline({
+              scrollTrigger: {
+                trigger: galleryElement,
+                start: 'center center',
+                end: '+=100%',
+                scrub: true,
+                pin: galleryElement.parentNode,
+                invalidateOnRefresh: true
+              }
+            });
+            tl.add(flip, 0);
+            tl.to(galleryLabels, {
+              autoAlpha: 1,
+              y: 0,
+              duration: 0.12,
+              stagger: 0.02,
+              ease: 'none'
+            }, 0.84);
+            return () => gsap.set([...galleryItems, ...galleryLabels], { clearProps: 'all' });
+          }, galleryElement.parentNode);
+
+          if (window._lenis) window._lenis.resize();
+          ScrollTrigger.refresh();
+        };
+
+        createTween();
+        window.addEventListener('resize', () => {
+          if (resizeFrame) cancelAnimationFrame(resizeFrame);
+          resizeFrame = requestAnimationFrame(() => {
+            resizeFrame = null;
+            createTween();
+          });
+        });
+      });
+    }
+
+    initIntroBentoGalleries();
 
     function initBentoGallery() {
       const galleryElement = document.querySelector('#bentoGallery');
@@ -1142,7 +1270,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const SEL = [
       '.why-card', '.service-compact-item', '.case-card',
       '.shopify-pillar', '.process-stage', '.pricing-card',
-      '.value-card', '.faq-item', '.shopify-process-step'
+      '.value-card', '.faq-item', '.shopify-process-step',
+      '.latest-project-card'
     ].join(',');
     document.querySelectorAll(SEL).forEach(card => {
       card.classList.add('has-tilt');
