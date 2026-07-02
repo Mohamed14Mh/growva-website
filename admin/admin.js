@@ -18,6 +18,8 @@
   let adminRoot = null;
   let modal = null;
   let panel = null;
+  let dashboard = null;
+  let publishDialog = null;
   let hoverBadge = null;
   let entryEventsBound = false;
   let supabaseClient = null;
@@ -42,6 +44,16 @@
   let saveInFlight = false;
   let publishInFlight = false;
   let resetInFlight = false;
+  let dashboardTab = 'overview';
+  let dashboardDraftRows = [];
+  let dashboardPublishedRows = [];
+  let dashboardAuditRows = [];
+  let dashboardPublishRows = [];
+  let dashboardMessage = '';
+  let lastHealthResult = 'Health check has not run yet.';
+  let pendingPublishRows = [];
+  let inspectorDirty = false;
+  let inspectorBaselineValue = '';
 
   function $(selector, root = document) {
     return root.querySelector(selector);
@@ -248,6 +260,8 @@
     buildModal();
     buildTopbar();
     buildPanel();
+    buildDashboard();
+    buildPublishDialog();
     buildHoverBadge();
     bindGlobalEvents();
     return adminRoot;
@@ -310,6 +324,7 @@
       <div class="gv-admin-actions">
         <span class="gv-admin-state" data-admin-counts>Unsaved 0 / Drafts 0</span>
         <span class="gv-admin-state" data-admin-connection><span class="gv-admin-status-dot"></span>Offline</span>
+        <button class="gv-admin-action" type="button" data-admin-action="open-dashboard">CMS Dashboard</button>
         <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="publish-page">Publish</button>
         <button class="gv-admin-action" type="button" data-admin-action="exit-admin">Exit Admin</button>
         <button class="gv-admin-action" type="button" data-admin-action="logout">Logout</button>
@@ -333,6 +348,55 @@
       <div class="gv-admin-panel-body" data-admin-panel-body></div>
     `;
     adminRoot.appendChild(panel);
+  }
+
+  function buildDashboard() {
+    dashboard = document.createElement('section');
+    dashboard.className = 'gv-admin-dashboard';
+    dashboard.dataset.adminUi = 'true';
+    dashboard.setAttribute('data-lenis-prevent', '');
+    dashboard.setAttribute('aria-label', 'GROWVA CMS dashboard');
+    dashboard.hidden = true;
+    dashboard.innerHTML = `
+      <div class="gv-admin-dashboard-shell">
+        <div class="gv-admin-dashboard-head">
+          <div>
+            <span class="gv-admin-pill">CMS Dashboard</span>
+            <h2>Content Control Room</h2>
+            <p>Manage this page's drafts, published overrides, audit history, role access, and system health.</p>
+          </div>
+          <button class="gv-admin-close" type="button" aria-label="Close dashboard" data-admin-action="close-dashboard">x</button>
+        </div>
+        <div class="gv-admin-dashboard-tabs" role="tablist" data-dashboard-tabs></div>
+        <div class="gv-admin-dashboard-body" data-dashboard-body></div>
+      </div>
+    `;
+    adminRoot.appendChild(dashboard);
+  }
+
+  function buildPublishDialog() {
+    publishDialog = document.createElement('div');
+    publishDialog.className = 'gv-admin-confirm';
+    publishDialog.dataset.adminUi = 'true';
+    publishDialog.hidden = true;
+    publishDialog.innerHTML = `
+      <div class="gv-admin-confirm-card">
+        <div class="gv-admin-dashboard-head">
+          <div>
+            <span class="gv-admin-pill">Publish Current Page</span>
+            <h2>Review draft changes</h2>
+            <p>This publishes current page only.</p>
+          </div>
+          <button class="gv-admin-close" type="button" aria-label="Cancel publish" data-admin-action="cancel-publish">x</button>
+        </div>
+        <div data-publish-confirm-body></div>
+        <div class="gv-admin-confirm-actions">
+          <button class="gv-admin-action" type="button" data-admin-action="cancel-publish">Cancel</button>
+          <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="confirm-publish-page">Publish Current Page</button>
+        </div>
+      </div>
+    `;
+    adminRoot.appendChild(publishDialog);
   }
 
   function buildHoverBadge() {
@@ -381,7 +445,9 @@
         setMode(mode === 'edit' ? 'preview' : 'edit');
       }
       if (event.key === 'Escape') {
-        if (modal && modal.classList.contains('is-open')) closeModal();
+        if (publishDialog && !publishDialog.hidden) closePublishDialog();
+        else if (dashboard && !dashboard.hidden) closeDashboard();
+        else if (modal && modal.classList.contains('is-open')) closeModal();
         else if (selectedElement) clearSelection();
       }
     });
@@ -518,6 +584,342 @@
     error.classList.toggle('is-visible', Boolean(message));
   }
 
+  async function openDashboard() {
+    if (!adminProfile && !mockAdminEnabled) return;
+    ensureRoot();
+    dashboard.hidden = false;
+    document.body.classList.add('admin-dashboard-open');
+    dashboardMessage = 'Loading dashboard...';
+    renderDashboard();
+    await refreshDashboardData();
+    dashboardMessage = '';
+    renderDashboard();
+    logCmsDebug('dashboard-opened');
+  }
+
+  function closeDashboard() {
+    if (!dashboard) return;
+    dashboard.hidden = true;
+    document.body.classList.remove('admin-dashboard-open');
+  }
+
+  function switchDashboardTab(tab) {
+    dashboardTab = tab || 'overview';
+    renderDashboard();
+  }
+
+  async function refreshDashboardData() {
+    await loadDraftEdits();
+    await loadPublishedEdits();
+    dashboardDraftRows = Object.values(draftRows);
+    dashboardPublishedRows = Object.values(publishedRows);
+    dashboardAuditRows = await loadAuditRows();
+    dashboardPublishRows = await loadPublishRows();
+    logCmsDebug('dashboard-data-loaded');
+  }
+
+  async function loadAuditRows() {
+    if (mockAdminEnabled && !supabaseClient) return [];
+    if (!supabaseClient || !currentUser || !adminProfile) return [];
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_audit_log')
+        .select('action,page_path,edit_key,old_value,new_value,user_id,created_at')
+        .eq('page_path', pagePath);
+      if (error || !Array.isArray(data)) return [];
+      return data.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))).slice(0, 30);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  async function loadPublishRows() {
+    if (mockAdminEnabled && !supabaseClient) return [];
+    if (!supabaseClient || !currentUser || !adminProfile) return [];
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_publish_log')
+        .select('page_path,published_by,published_count,created_at')
+        .eq('page_path', pagePath);
+      if (error || !Array.isArray(data)) return [];
+      return data.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))).slice(0, 10);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function renderDashboard() {
+    if (!dashboard || dashboard.hidden) return;
+    const tabs = [
+      ['overview', 'Overview'],
+      ['drafts', 'Current Page Drafts'],
+      ['published', 'Published Content'],
+      ['audit', 'Revision / Audit Log'],
+      ['session', 'Role & Session'],
+      ['health', 'System Health']
+    ];
+    $('[data-dashboard-tabs]', dashboard).innerHTML = tabs.map(([id, label]) => `
+      <button type="button" class="${dashboardTab === id ? 'is-active' : ''}" data-admin-action="dashboard-tab" data-dashboard-tab="${id}">${escapeHtml(label)}</button>
+    `).join('');
+    $('[data-dashboard-body]', dashboard).innerHTML = `
+      ${dashboardMessage ? `<div class="gv-admin-dashboard-message">${escapeHtml(dashboardMessage)}</div>` : ''}
+      ${renderDashboardTab()}
+    `;
+  }
+
+  function renderDashboardTab() {
+    if (dashboardTab === 'drafts') return renderDraftRows();
+    if (dashboardTab === 'published') return renderPublishedRows();
+    if (dashboardTab === 'audit') return renderAuditRows();
+    if (dashboardTab === 'session') return renderSessionTab();
+    if (dashboardTab === 'health') return renderHealthTab();
+    return renderOverviewTab();
+  }
+
+  function renderOverviewTab() {
+    const registry = getRegistry();
+    const lastPublish = dashboardPublishRows[0]?.created_at || 'No publish log yet';
+    return `
+      <div class="gv-admin-dashboard-grid">
+        ${renderMetricCard('Page path', pagePath)}
+        ${renderMetricCard('Role', adminProfile?.role || (mockAdminEnabled ? 'owner' : 'logged out'))}
+        ${renderMetricCard('Editable fields', registry.keys().length)}
+        ${renderMetricCard('Drafts on page', dashboardDraftRows.length)}
+        ${renderMetricCard('Published overrides', dashboardPublishedRows.length)}
+        ${renderMetricCard('Last publish', formatDate(lastPublish))}
+        ${renderMetricCard('Supabase', getConnectionLabel())}
+        ${renderMetricCard('Unsafe key', supabaseState.unsafeKey ? 'Yes' : 'No')}
+      </div>
+      ${isLocalFileMode() ? '<div class="gv-admin-warning">For best CMS behavior, use Live Server or a deployed URL.</div>' : ''}
+    `;
+  }
+
+  function renderMetricCard(label, value) {
+    return `
+      <div class="gv-admin-metric">
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(value)}</strong>
+      </div>
+    `;
+  }
+
+  function renderDraftRows() {
+    if (!dashboardDraftRows.length) return '<p class="gv-admin-empty">No draft changes for this page.</p>';
+    return `
+      <div class="gv-admin-row-list">
+        ${dashboardDraftRows.map(row => renderContentRow(row, 'draft')).join('')}
+      </div>
+    `;
+  }
+
+  function renderPublishedRows() {
+    if (!dashboardPublishedRows.length) return '<p class="gv-admin-empty">No published overrides for this page.</p>';
+    return `
+      <div class="gv-admin-row-list">
+        ${dashboardPublishedRows.map(row => renderContentRow(row, 'published')).join('')}
+      </div>
+    `;
+  }
+
+  function renderContentRow(row, status) {
+    const value = row.value_text || '';
+    const key = row.edit_key || '';
+    const isDraft = status === 'draft';
+    return `
+      <article class="gv-admin-content-row">
+        <div>
+          <strong>${escapeHtml(key)}</strong>
+          <span>${escapeHtml(row.section_id || 'No section')} / ${escapeHtml(row.edit_type || 'text')} / ${escapeHtml(formatDate(row.updated_at || ''))}</span>
+          <p>${escapeHtml(value.slice(0, 180) || 'Empty value')}</p>
+        </div>
+        <div class="gv-admin-row-actions">
+          <button class="gv-admin-action" type="button" data-admin-action="dashboard-focus" data-edit-key="${escapeHtml(key)}">Focus</button>
+          ${isDraft ? `<button class="gv-admin-action" type="button" data-admin-action="dashboard-apply-draft" data-edit-key="${escapeHtml(key)}">Apply</button>` : ''}
+          ${isDraft ? `<button class="gv-admin-action" type="button" data-admin-action="dashboard-open-inspector" data-edit-key="${escapeHtml(key)}">Inspector</button>` : ''}
+          ${isDraft ? `<button class="gv-admin-action" type="button" data-admin-action="dashboard-delete-draft" data-edit-key="${escapeHtml(key)}">Delete Draft</button>` : ''}
+          ${!isDraft ? `<button class="gv-admin-action" type="button" data-admin-action="dashboard-compare" data-edit-key="${escapeHtml(key)}">Compare</button>` : ''}
+          ${!isDraft ? `<button class="gv-admin-action" type="button" data-admin-action="dashboard-copy" data-row-status="published" data-edit-key="${escapeHtml(key)}">Copy</button>` : ''}
+        </div>
+      </article>
+    `;
+  }
+
+  function renderAuditRows() {
+    if (!dashboardAuditRows.length) return '<p class="gv-admin-empty">No audit history yet.</p>';
+    return `
+      <div class="gv-admin-row-list">
+        ${dashboardAuditRows.map(row => `
+          <article class="gv-admin-content-row">
+            <div>
+              <strong>${escapeHtml(row.action || 'audit')}</strong>
+              <span>${escapeHtml(row.edit_key || 'page')} / ${escapeHtml(formatDate(row.created_at || ''))}</span>
+              <p><b>Old:</b> ${escapeHtml((row.old_value || '').slice(0, 90) || 'None')}</p>
+              <p><b>New:</b> ${escapeHtml((row.new_value || '').slice(0, 120) || 'None')}</p>
+              <small>${escapeHtml(row.user_id || 'unknown user')}</small>
+            </div>
+          </article>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function renderSessionTab() {
+    const role = adminProfile?.role || (mockAdminEnabled ? 'owner' : 'logged out');
+    const permissions = {
+      viewer: 'Can view dashboard, drafts, published content, and inspector metadata.',
+      editor: 'Can save drafts and delete current-page drafts when RLS allows it. Cannot publish.',
+      owner: 'Can save drafts, reset drafts, and publish the current page.'
+    };
+    return `
+      <div class="gv-admin-dashboard-grid">
+        ${renderMetricCard('Email', currentUser?.email || adminProfile?.email || (mockAdminEnabled ? MOCK_EMAIL : 'Logged out'))}
+        ${renderMetricCard('User ID', currentUser?.id || adminProfile?.id || 'None')}
+        ${renderMetricCard('Role', role)}
+        ${renderMetricCard('Security', 'RLS remains source of truth')}
+      </div>
+      <div class="gv-admin-dashboard-message">${escapeHtml(permissions[role] || 'Sign in to view permissions.')}</div>
+    `;
+  }
+
+  function renderHealthTab() {
+    const registry = getRegistry();
+    return `
+      <div class="gv-admin-dashboard-grid">
+        ${renderMetricCard('Supabase configured', supabaseState.configured ? 'Yes' : 'No')}
+        ${renderMetricCard('Unsafe key detected', supabaseState.unsafeKey ? 'Yes' : 'No')}
+        ${renderMetricCard('Current page path', pagePath)}
+        ${renderMetricCard('Registry available', window.GROWVA_CONTENT_REGISTRY ? 'Yes' : 'No')}
+        ${renderMetricCard('Editable fields', registry.keys().length)}
+        ${renderMetricCard('Sections', registry.sections.length)}
+        ${renderMetricCard('Published loaded', publishedRowsLoadedCount)}
+        ${renderMetricCard('Drafts loaded', draftRowsLoadedCount)}
+      </div>
+      <div class="gv-admin-dashboard-message">${escapeHtml(lastHealthResult)}</div>
+      <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="run-health-check">Run CMS Health Check</button>
+    `;
+  }
+
+  function formatDate(value) {
+    if (!value) return 'None';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleString();
+  }
+
+  function getElementByEditKey(key) {
+    if (!key) return null;
+    return document.querySelector(`[data-edit-key="${cssEscape(key)}"]`);
+  }
+
+  function focusEditableByKey(key) {
+    const element = getElementByEditKey(key);
+    if (!element) {
+      dashboardMessage = 'This field is not present in the current DOM.';
+      renderDashboard();
+      return;
+    }
+    if (window._lenis && typeof window._lenis.scrollTo === 'function') {
+      window._lenis.scrollTo(element, { offset: -120 });
+    } else {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    element.classList.add('gv-admin-selected');
+    setTimeout(() => {
+      if (element !== selectedElement) element.classList.remove('gv-admin-selected');
+    }, 1200);
+  }
+
+  function applyDashboardDraft(key) {
+    const row = dashboardDraftRows.find(item => item.edit_key === key) || draftRows[key];
+    if (!row) return;
+    applyRowToElement(row);
+    dashboardMessage = `Draft applied to DOM: ${key}`;
+    renderDashboard();
+  }
+
+  async function deleteDashboardDraft(key) {
+    if (!key) return;
+    if (!window.confirm('Delete this draft row? Published content will not be deleted.')) return;
+    if (mockAdminEnabled && !supabaseClient) {
+      delete mockDraft[key];
+      saveMockDraft();
+      delete draftRows[key];
+    } else if (supabaseClient && currentUser && adminProfile && ['owner', 'editor'].includes(adminProfile.role)) {
+      const { error } = await supabaseClient
+        .from('cms_content')
+        .delete()
+        .eq('page_path', pagePath)
+        .eq('edit_key', key)
+        .eq('status', 'draft');
+      if (error) {
+        dashboardMessage = 'Delete failed. Check Supabase policies and role.';
+        renderDashboard();
+        return;
+      }
+      await insertAuditLog('delete_draft', key, draftRows[key]?.value_text || '', '');
+      delete draftRows[key];
+    } else {
+      dashboardMessage = 'Delete failed. Your role cannot delete drafts.';
+      renderDashboard();
+      return;
+    }
+    await refreshDashboardData();
+    dashboardMessage = 'Draft deleted. Published content was not changed.';
+    renderDashboard();
+  }
+
+  function openDashboardInspector(key) {
+    const element = getElementByEditKey(key);
+    if (!element) {
+      dashboardMessage = 'This field is not present in the current DOM.';
+      renderDashboard();
+      return;
+    }
+    closeDashboard();
+    setMode('edit');
+    selectElement(element);
+    focusEditableByKey(key);
+  }
+
+  function comparePublishedRow(key) {
+    const row = dashboardPublishedRows.find(item => item.edit_key === key) || publishedRows[key];
+    if (!row) return;
+    dashboardMessage = `Published: "${(row.value_text || '').slice(0, 120)}" / Hardcoded: "${(originalValues[key] || '').slice(0, 120)}"`;
+    renderDashboard();
+  }
+
+  async function copyDashboardValue(key, status) {
+    const rowMap = status === 'draft' ? draftRows : publishedRows;
+    const row = rowMap[key];
+    const value = row?.value_text || '';
+    if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+      dashboardMessage = 'Copy is not available in this browser context.';
+      renderDashboard();
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(value);
+      dashboardMessage = 'Value copied.';
+    } catch (error) {
+      dashboardMessage = 'Copy failed. Browser clipboard permission was denied.';
+    }
+    renderDashboard();
+  }
+
+  async function runCmsHealthCheck() {
+    dashboardMessage = 'Running CMS health check...';
+    renderDashboard();
+    if (supabaseClient && currentUser) {
+      await hasActiveAdminSession();
+    }
+    await refreshDashboardData();
+    const registry = getRegistry();
+    lastHealthResult = `Checked ${registry.keys().length} fields, ${dashboardDraftRows.length} drafts, ${dashboardPublishedRows.length} published overrides, ${dashboardAuditRows.length} audit entries.`;
+    dashboardMessage = 'Health check complete.';
+    renderDashboard();
+    logCmsDebug('dashboard-health-check');
+  }
+
   function handleAdminClick(event) {
     const actionElement = event.target.closest('[data-admin-action]');
     if (!actionElement) return;
@@ -536,6 +938,18 @@
     if (action === 'reset-field') resetSelectedField();
     if (action === 'scroll-section') scrollToSection(actionElement.dataset.sectionTarget);
     if (action === 'publish-page') publishCurrentPage();
+    if (action === 'open-dashboard') openDashboard();
+    if (action === 'close-dashboard') closeDashboard();
+    if (action === 'dashboard-tab') switchDashboardTab(actionElement.dataset.dashboardTab);
+    if (action === 'dashboard-focus') focusEditableByKey(actionElement.dataset.editKey);
+    if (action === 'dashboard-apply-draft') applyDashboardDraft(actionElement.dataset.editKey);
+    if (action === 'dashboard-delete-draft') deleteDashboardDraft(actionElement.dataset.editKey);
+    if (action === 'dashboard-open-inspector') openDashboardInspector(actionElement.dataset.editKey);
+    if (action === 'dashboard-compare') comparePublishedRow(actionElement.dataset.editKey);
+    if (action === 'dashboard-copy') copyDashboardValue(actionElement.dataset.editKey, actionElement.dataset.rowStatus);
+    if (action === 'run-health-check') runCmsHealthCheck();
+    if (action === 'cancel-publish') closePublishDialog();
+    if (action === 'confirm-publish-page') executePublishCurrentPage();
   }
 
   function openModal() {
@@ -588,6 +1002,9 @@
   }
 
   function exitAdminMode() {
+    if (inspectorDirty && !window.confirm('You have unsaved inspector changes. Exit Admin Mode anyway?')) return;
+    inspectorDirty = false;
+    unsavedCount = 0;
     clearSelection();
     document.body.classList.remove('admin-mode', 'admin-edit-mode', 'admin-preview-mode');
     setAdminInteractionIsolation(false);
@@ -625,12 +1042,19 @@
   }
 
   function setMode(nextMode) {
+    const previousMode = mode;
     mode = nextMode === 'edit' ? 'edit' : 'preview';
     document.body.classList.toggle('admin-edit-mode', mode === 'edit');
     document.body.classList.toggle('admin-preview-mode', mode !== 'edit');
     if (mode !== 'edit') {
       hideHoverBadge();
-      clearSelection(false);
+      if (!clearSelection(false)) {
+        mode = previousMode;
+        document.body.classList.toggle('admin-edit-mode', mode === 'edit');
+        document.body.classList.toggle('admin-preview-mode', mode !== 'edit');
+        updateTopbar();
+        return;
+      }
     }
     updateTopbar();
     if (!selectedElement) renderPanelEmpty();
@@ -678,6 +1102,18 @@
     `;
   }
 
+  function bindInspectorDirtyTracker(initialValue) {
+    inspectorBaselineValue = initialValue || '';
+    inspectorDirty = false;
+    const input = $('#gvAdminFieldValue', panel);
+    if (!input) return;
+    input.addEventListener('input', () => {
+      inspectorDirty = input.value !== inspectorBaselineValue;
+      unsavedCount = inspectorDirty ? 1 : 0;
+      updateTopbar();
+    });
+  }
+
   function selectElement(element) {
     if (selectedElement) selectedElement.classList.remove('gv-admin-selected');
     selectedElement = element;
@@ -686,10 +1122,16 @@
   }
 
   function clearSelection(renderEmpty = true) {
+    if (inspectorDirty && !window.confirm('You have unsaved inspector changes. Close the inspector anyway?')) return false;
     if (selectedElement) selectedElement.classList.remove('gv-admin-selected');
     selectedElement = null;
+    inspectorDirty = false;
+    inspectorBaselineValue = '';
+    unsavedCount = 0;
     hideHoverBadge();
+    updateTopbar();
     if (renderEmpty && document.body.classList.contains('admin-mode')) renderPanelEmpty();
+    return true;
   }
 
   function renderInspector(element) {
@@ -730,6 +1172,7 @@
       <div class="gv-admin-divider"></div>
       ${renderSectionNavigator(registry)}
     `;
+    bindInspectorDirtyTracker(currentValue);
   }
 
   function renderSectionNavigator(registry) {
@@ -823,13 +1266,14 @@
       unsavedCount = 0;
       setSaveState(note, 'Draft saved locally in mock mode.');
       updateTopbar();
+      if (dashboard && !dashboard.hidden) await refreshDashboardData();
       renderInspector(selectedElement);
       finishSave();
       return;
     }
 
     if (!supabaseClient || !currentUser || !adminProfile || !['owner', 'editor'].includes(adminProfile.role)) {
-      unsavedCount = 0;
+      unsavedCount = inspectorDirty ? 1 : 0;
       setSaveState(note, adminProfile && adminProfile.role === 'viewer' ? 'Save failed. Viewers can inspect but cannot save drafts.' : 'Save failed. Supabase admin access is required.');
       updateTopbar();
       finishSave();
@@ -851,6 +1295,8 @@
 
     unsavedCount = 0;
     if (error) {
+      inspectorDirty = true;
+      unsavedCount = 1;
       setSaveState(note, 'Save failed. Check Supabase policies and schema.');
       updateTopbar();
       finishSave();
@@ -860,6 +1306,7 @@
     await insertAuditLog('save_draft', key, originalValues[key] || '', value);
     setSaveState(note, 'Draft saved.');
     updateTopbar();
+    if (dashboard && !dashboard.hidden) await refreshDashboardData();
     renderInspector(selectedElement);
     finishSave();
   }
@@ -916,6 +1363,7 @@
       delete draftRows[key];
       saveMockDraft();
       restoreSelectedFromPublishedOrOriginal(key);
+      if (dashboard && !dashboard.hidden) await refreshDashboardData();
       renderInspector(selectedElement);
       updateTopbar();
       finishReset();
@@ -954,6 +1402,7 @@
     }
     delete draftRows[key];
     restoreSelectedFromPublishedOrOriginal(key);
+    if (dashboard && !dashboard.hidden) await refreshDashboardData();
     renderInspector(selectedElement);
     updateTopbar();
     finishReset();
@@ -1038,6 +1487,12 @@
       current_role: adminProfile ? adminProfile.role : null,
       published_rows_loaded_count: publishedRowsLoadedCount,
       draft_rows_loaded_count: draftRowsLoadedCount,
+      dashboard_open: Boolean(dashboard && !dashboard.hidden),
+      dashboard_tab: dashboardTab,
+      dashboard_draft_rows: dashboardDraftRows.length,
+      dashboard_published_rows: dashboardPublishedRows.length,
+      dashboard_audit_rows: dashboardAuditRows.length,
+      health_check_result: lastHealthResult,
       file_protocol: isLocalFileMode()
     });
   }
@@ -1054,45 +1509,24 @@
   }
 
   async function publishCurrentPage() {
-    if (publishInFlight) return;
-    publishInFlight = true;
-    const publishButton = adminRoot ? $('[data-admin-action="publish-page"]', adminRoot) : null;
-    if (publishButton) {
-      publishButton.disabled = true;
-      publishButton.textContent = 'Publishing...';
-    }
-    const finishPublish = () => {
-      publishInFlight = false;
-      if (publishButton) {
-        publishButton.disabled = false;
-        publishButton.textContent = 'Publish';
-      }
-    };
     if (mockAdminEnabled && !supabaseClient) {
-      if (!window.confirm('Publish all draft changes for this page only?')) {
-        finishPublish();
+      pendingPublishRows = Object.values(draftRows);
+      if (!pendingPublishRows.length) {
+        statusMessage = 'No draft changes to publish.';
+        renderPanelEmpty();
         return;
       }
-      publishedRows = Object.assign({}, publishedRows, draftRows);
-      statusMessage = `Published ${Object.keys(draftRows).length} mock changes.`;
-      renderPanelEmpty();
-      finishPublish();
+      openPublishDialog();
       return;
     }
     if (!supabaseClient || !currentUser || !adminProfile) {
       statusMessage = 'Publish failed. Supabase admin access is required.';
       renderPanelEmpty();
-      finishPublish();
       return;
     }
     if (adminProfile.role !== 'owner') {
       statusMessage = adminProfile.role === 'editor' ? 'Publish failed. Editors can save drafts, but only owners can publish.' : 'Publish failed. Only owners can publish.';
       renderPanelEmpty();
-      finishPublish();
-      return;
-    }
-    if (!window.confirm('Publish all draft changes for this page only?')) {
-      finishPublish();
       return;
     }
     let drafts = null;
@@ -1109,16 +1543,100 @@
     if (error || !Array.isArray(drafts)) {
       statusMessage = 'Publish failed while loading drafts.';
       renderPanelEmpty();
-      finishPublish();
       return;
     }
     if (!drafts.length) {
       statusMessage = 'No draft changes to publish.';
       renderPanelEmpty();
+      return;
+    }
+    pendingPublishRows = drafts;
+    openPublishDialog();
+  }
+
+  function openPublishDialog() {
+    ensureRoot();
+    const body = $('[data-publish-confirm-body]', publishDialog);
+    body.innerHTML = `
+      <div class="gv-admin-meta">
+        <div>Page path: <code>${escapeHtml(pagePath)}</code></div>
+        <div>Draft changes: <code>${pendingPublishRows.length}</code></div>
+        <div>Scope: <code>Current page only</code></div>
+      </div>
+      <div class="gv-admin-warning">This publishes current page only.</div>
+      <div class="gv-admin-row-list gv-admin-row-list--compact">
+        ${pendingPublishRows.map(row => `
+          <article class="gv-admin-content-row">
+            <div>
+              <strong>${escapeHtml(row.edit_key || '')}</strong>
+              <span>${escapeHtml(row.section_id || 'No section')}</span>
+              <p>${escapeHtml((row.value_text || '').slice(0, 140))}</p>
+            </div>
+          </article>
+        `).join('') || '<p class="gv-admin-empty">No draft rows to publish.</p>'}
+      </div>
+    `;
+    publishDialog.hidden = false;
+  }
+
+  function closePublishDialog() {
+    if (!publishDialog) return;
+    publishDialog.hidden = true;
+    if (!publishInFlight) pendingPublishRows = [];
+  }
+
+  async function executePublishCurrentPage() {
+    if (publishInFlight) return;
+    if (!pendingPublishRows.length) {
+      statusMessage = 'No draft changes to publish.';
+      closePublishDialog();
+      renderPanelEmpty();
+      return;
+    }
+    publishInFlight = true;
+    const publishButton = adminRoot ? $('[data-admin-action="publish-page"]', adminRoot) : null;
+    const confirmButton = publishDialog ? $('[data-admin-action="confirm-publish-page"]', publishDialog) : null;
+    if (publishButton) {
+      publishButton.disabled = true;
+      publishButton.textContent = 'Publishing...';
+    }
+    if (confirmButton) {
+      confirmButton.disabled = true;
+      confirmButton.textContent = 'Publishing...';
+    }
+    const finishPublish = () => {
+      publishInFlight = false;
+      if (publishButton) {
+        publishButton.disabled = false;
+        publishButton.textContent = 'Publish';
+      }
+      if (confirmButton) {
+        confirmButton.disabled = false;
+        confirmButton.textContent = 'Publish Current Page';
+      }
+    };
+    if (mockAdminEnabled && !supabaseClient) {
+      publishedRows = Object.assign({}, publishedRows, draftRows);
+      pendingPublishRows.forEach(applyRowToElement);
+      statusMessage = `Published ${pendingPublishRows.length} mock changes.`;
+      closePublishDialog();
+      renderPanelEmpty();
+      if (dashboard && !dashboard.hidden) {
+        await refreshDashboardData();
+        renderDashboard();
+      }
+      pendingPublishRows = [];
       finishPublish();
       return;
     }
-    const publishedPayload = drafts.map(row => ({
+    if (!supabaseClient || !currentUser || !adminProfile || adminProfile.role !== 'owner') {
+      statusMessage = 'Publish failed. Only owners can publish current-page drafts.';
+      closePublishDialog();
+      renderPanelEmpty();
+      finishPublish();
+      return;
+    }
+    const publishedPayload = pendingPublishRows.map(row => ({
       page_path: row.page_path,
       page_id: row.page_id,
       edit_key: row.edit_key,
@@ -1157,11 +1675,18 @@
     } catch (error) {
       // Publishing succeeded; log write is best-effort and also protected by RLS.
     }
-    publishedRows = indexRows(published || publishedPayload);
+    await insertAuditLog('publish_page', 'page', '', `Published ${publishedPayload.length} changes on ${pagePath}`);
+    publishedRows = Object.assign({}, publishedRows, indexRows(published || publishedPayload));
     publishedPayload.forEach(applyRowToElement);
     statusMessage = `Published ${publishedPayload.length} changes.`;
     updateTopbar();
+    closePublishDialog();
     renderPanelEmpty();
+    if (dashboard && !dashboard.hidden) {
+      await refreshDashboardData();
+      renderDashboard();
+    }
+    pendingPublishRows = [];
     finishPublish();
   }
 
