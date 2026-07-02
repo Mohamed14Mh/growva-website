@@ -54,6 +54,10 @@
   let pendingPublishRows = [];
   let inspectorDirty = false;
   let inspectorBaselineValue = '';
+  let mediaAssets = [];
+  let mediaUploadInFlight = false;
+  let mediaSelectedAssetId = null;
+  let mediaLibraryLoaded = false;
 
   function $(selector, root = document) {
     return root.querySelector(selector);
@@ -610,6 +614,7 @@
     await refreshDashboardData();
     dashboardMessage = '';
     renderDashboard();
+    setTimeout(bindMediaUploadAreaEvents, 0);
     logCmsDebug('dashboard-opened');
   }
 
@@ -622,6 +627,7 @@
   function switchDashboardTab(tab) {
     dashboardTab = tab || 'overview';
     renderDashboard();
+    if (dashboardTab === 'media') setTimeout(bindMediaUploadAreaEvents, 0);
   }
 
   async function refreshDashboardData() {
@@ -631,6 +637,7 @@
     dashboardPublishedRows = Object.values(publishedRows);
     dashboardAuditRows = await loadAuditRows();
     dashboardPublishRows = await loadPublishRows();
+    await loadMediaAssets();
     logCmsDebug('dashboard-data-loaded');
   }
 
@@ -674,7 +681,8 @@
       ['published', 'Published Content'],
       ['audit', 'Revision / Audit Log'],
       ['session', 'Role & Session'],
-      ['health', 'System Health']
+      ['health', 'System Health'],
+      ['media', 'Media Library']
     ];
     $('[data-dashboard-tabs]', dashboard).innerHTML = tabs.map(([id, label]) => `
       <button type="button" class="${dashboardTab === id ? 'is-active' : ''}" data-admin-action="dashboard-tab" data-dashboard-tab="${id}">${escapeHtml(label)}</button>
@@ -691,6 +699,7 @@
     if (dashboardTab === 'audit') return renderAuditRows();
     if (dashboardTab === 'session') return renderSessionTab();
     if (dashboardTab === 'health') return renderHealthTab();
+    if (dashboardTab === 'media') return renderMediaLibraryTab();
     return renderOverviewTab();
   }
 
@@ -743,12 +752,19 @@
     const value = row.value_text || '';
     const key = row.edit_key || '';
     const isDraft = status === 'draft';
+    const isImage = row.edit_type === 'image' || row.edit_type === 'background-image';
+    const imgVal = isImage ? getImageValueFromRow(row) : null;
+    const thumbUrl = (imgVal && imgVal.url) ? imgVal.url : (isImage ? value : '');
+    const thumbHtml = isImage && thumbUrl && isSafeImageUrl(thumbUrl)
+      ? `<img class="gv-admin-row-thumb-img" src="${escapeHtml(thumbUrl)}" alt="" loading="lazy">`
+      : '';
     return `
       <article class="gv-admin-content-row">
         <div>
+          ${thumbHtml}
           <strong>${escapeHtml(key)}</strong>
           <span>${escapeHtml(row.section_id || 'No section')} / ${escapeHtml(row.edit_type || 'text')} / ${escapeHtml(formatDate(row.updated_at || ''))}</span>
-          <p>${escapeHtml(value.slice(0, 180) || 'Empty value')}</p>
+          <p>${escapeHtml(isImage ? (thumbUrl.slice(0, 120) || 'No URL') : value.slice(0, 180) || 'Empty value')}</p>
         </div>
         <div class="gv-admin-row-actions">
           <button class="gv-admin-action" type="button" data-admin-action="dashboard-focus" data-edit-key="${escapeHtml(key)}">Focus</button>
@@ -972,6 +988,14 @@
     if (action === 'run-health-check') runCmsHealthCheck();
     if (action === 'cancel-publish') closePublishDialog();
     if (action === 'confirm-publish-page') executePublishCurrentPage();
+    if (action === 'media-upload-trigger') { const fi = $('[data-admin-media-input]', dashboard); if (fi) fi.click(); }
+    if (action === 'media-refresh') { loadMediaAssets().then(() => { renderDashboard(); setTimeout(bindMediaUploadAreaEvents, 0); }); }
+    if (action === 'media-select-asset') selectMediaAsset(actionElement.dataset.assetId);
+    if (action === 'media-copy-url') copyMediaUrl(actionElement.dataset.assetUrl);
+    if (action === 'image-save-draft') saveImageDraft();
+    if (action === 'image-reset-draft') resetImageDraft();
+    if (action === 'image-choose-media') { switchDashboardTab('media'); openDashboard(); }
+    if (action === 'image-upload-new') { const fi = $('#gvImageFileInput', panel); if (fi) fi.click(); }
   }
 
   function openModal() {
@@ -1017,6 +1041,7 @@
     setAdminInteractionIsolation(true);
     mode = 'preview';
     await loadDraftEdits();
+    await loadMediaAssets();
     applyDraftRows();
     updateTopbar();
     renderPanelEmpty();
@@ -1157,9 +1182,10 @@
   }
 
   function renderInspector(element) {
+    const type = element.dataset.editType || 'text';
+    if (type === 'image' || type === 'background-image') { renderImageInspector(element); return; }
     const registry = getRegistry();
     const key = element.dataset.editKey || '';
-    const type = element.dataset.editType || 'text';
     const sectionId = element.dataset.sectionId || '';
     const currentValue = getEditableValue(element);
     const draftValue = draftRows[key] ? draftRows[key].value_text || '' : '';
@@ -1517,7 +1543,10 @@
       dashboard_published_rows: dashboardPublishedRows.length,
       dashboard_audit_rows: dashboardAuditRows.length,
       health_check_result: lastHealthResult,
-      file_protocol: isLocalFileMode()
+      file_protocol: isLocalFileMode(),
+      media_assets_count: mediaAssets.length,
+      media_library_loaded: mediaLibraryLoaded,
+      selected_asset_id: mediaSelectedAssetId
     });
   }
 
@@ -1774,6 +1803,499 @@
     });
   }
 
+  // ─── Phase 6: Media Library ───────────────────────────────────────────────
+
+  function sanitizeFileName(name) {
+    const parts = String(name || 'file').split('.');
+    const ext = parts.length > 1 ? '.' + parts.pop().toLowerCase() : '';
+    const base = parts.join('.').toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+    return (base || 'file') + ext;
+  }
+
+  function detectImageDimensions(file) {
+    return new Promise(resolve => {
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(objectUrl); resolve({ width: img.naturalWidth, height: img.naturalHeight }); };
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve({ width: null, height: null }); };
+      img.src = objectUrl;
+    });
+  }
+
+  function isSafeImageUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    const v = url.trim().toLowerCase();
+    if (v.startsWith('javascript:')) return false;
+    if (v.startsWith('data:')) return false;
+    const supabaseHost = (getSupabaseConfig().url || '').replace(/\/$/, '').toLowerCase();
+    if (supabaseHost && url.toLowerCase().startsWith(supabaseHost + '/storage/')) return true;
+    if (url.startsWith('https://')) return true;
+    if (url.startsWith('/') || url.startsWith('./') || url.startsWith('../')) return true;
+    return false;
+  }
+
+  function getImageValueFromRow(row) {
+    if (!row) return null;
+    if (row.value_json && typeof row.value_json === 'object' && !Array.isArray(row.value_json)) return row.value_json;
+    if (row.value_json && typeof row.value_json === 'string') {
+      try { return JSON.parse(row.value_json); } catch (e) { return null; }
+    }
+    return null;
+  }
+
+  function formatFileSize(bytes) {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
+  async function loadMediaAssets() {
+    if (!supabaseClient || !currentUser || !adminProfile) { mediaAssets = []; return; }
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_media_assets')
+        .select('id,storage_path,public_url,file_name,file_type,file_size,width,height,alt_text,caption,folder,uploaded_by,created_at')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (error || !Array.isArray(data)) { mediaAssets = []; logCmsMediaDebug('load-assets-error', { error: error ? error.message : 'unknown' }); return; }
+      mediaAssets = data;
+      mediaLibraryLoaded = true;
+      logCmsMediaDebug('load-assets-ok', { count: data.length });
+    } catch (e) {
+      mediaAssets = [];
+    }
+  }
+
+  async function uploadMediaFile(file) {
+    if (!supabaseClient || !currentUser || !adminProfile) return { error: 'Not authenticated.' };
+    if (!['owner', 'editor'].includes(adminProfile.role)) return { error: 'Upload requires owner or editor role.' };
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) return { error: 'File type not allowed. Use JPEG, PNG, or WebP. (SVG is disabled for security.)' };
+    if (file.size > 5 * 1024 * 1024) return { error: 'File too large. Max 5 MB. Your file: ' + (file.size / 1024 / 1024).toFixed(1) + ' MB.' };
+    const safeName = sanitizeFileName(file.name);
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const ts = now.getTime();
+    const storagePath = 'cms/' + yyyy + '/' + mm + '/' + ts + '-' + safeName;
+    const dims = await detectImageDimensions(file);
+    let uploadError = null;
+    try {
+      const up = await supabaseClient.storage.from('cms-media').upload(storagePath, file, { upsert: false, contentType: file.type });
+      uploadError = up.error;
+    } catch (e) { return { error: 'Storage upload failed: ' + (e.message || String(e)) }; }
+    if (uploadError) return { error: 'Storage upload failed: ' + (uploadError.message || String(uploadError)) };
+    const urlResult = supabaseClient.storage.from('cms-media').getPublicUrl(storagePath);
+    const publicUrl = (urlResult.data && urlResult.data.publicUrl) ? urlResult.data.publicUrl : '';
+    let assetData = null, insertError = null;
+    try {
+      const ins = await supabaseClient.from('cms_media_assets').insert({
+        storage_path: storagePath, public_url: publicUrl,
+        file_name: safeName, file_type: file.type, file_size: file.size,
+        width: dims.width || null, height: dims.height || null,
+        alt_text: '', caption: '', folder: 'cms', uploaded_by: currentUser.id
+      }).select().single();
+      assetData = ins.data; insertError = ins.error;
+    } catch (e) { return { error: 'Asset record insert failed: ' + (e.message || String(e)) }; }
+    if (insertError) return { error: 'Asset record insert failed: ' + (insertError.message || String(insertError)) };
+    await insertMediaAuditLog('media_upload', assetData ? assetData.id : storagePath, { file_name: safeName, file_size: file.size });
+    logCmsMediaDebug('upload-ok', { storagePath, publicUrl, width: dims.width, height: dims.height });
+    return { data: assetData };
+  }
+
+  async function insertMediaAuditLog(action, key, details) {
+    if (!supabaseClient || !currentUser) return;
+    try {
+      await supabaseClient.from('cms_audit_log').insert({
+        action, page_path: pagePath, edit_key: String(key || ''),
+        old_value: '', new_value: typeof details === 'string' ? details : JSON.stringify(details || {}),
+        user_id: currentUser.id
+      });
+    } catch (e) { /* best-effort */ }
+  }
+
+  function renderMediaLibraryTab() {
+    const canUpload = adminProfile && ['owner', 'editor'].includes(adminProfile.role);
+    const fileWarning = isLocalFileMode()
+      ? '<div class="gv-admin-warning">Media upload requires Live Server or a deployed URL. The <code>file://</code> protocol cannot reach Supabase Storage.</div>'
+      : '';
+    if (!supabaseClient || !currentUser || !adminProfile) {
+      return '<p class="gv-admin-empty">Sign in to access the Media Library.</p>';
+    }
+    const uploadArea = canUpload ? `
+      <div class="gv-admin-media-upload-area" data-admin-action="media-upload-area">
+        <input type="file" id="gvMediaFileInput" accept="image/jpeg,image/png,image/webp" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;" multiple data-admin-media-input>
+        <div class="gv-admin-media-upload-icon">&#8593;</div>
+        <p>Drag &amp; drop images here, or <button class="gv-admin-media-upload-link" type="button" data-admin-action="media-upload-trigger">browse files</button></p>
+        <p class="gv-admin-media-upload-hint">JPEG, PNG, WebP &mdash; max 5 MB &mdash; SVG disabled</p>
+      </div>
+      <div class="gv-admin-media-upload-status" data-media-upload-status hidden></div>
+    ` : '<div class="gv-admin-warning">Browsing only. Upload requires owner or editor role.</div>';
+    return `
+      <div class="gv-admin-media-library">
+        ${fileWarning}
+        ${uploadArea}
+        <div class="gv-admin-media-toolbar">
+          <span class="gv-admin-pill">Media Library</span>
+          <span class="gv-admin-media-count">${mediaAssets.length} asset${mediaAssets.length !== 1 ? 's' : ''}</span>
+          <button class="gv-admin-action" type="button" data-admin-action="media-refresh">Refresh</button>
+        </div>
+        ${renderMediaGrid()}
+      </div>
+    `;
+  }
+
+  function renderMediaGrid() {
+    if (!mediaLibraryLoaded) return '<p class="gv-admin-empty">Loading media assets&hellip;</p>';
+    if (!mediaAssets.length) return `
+      <div class="gv-admin-media-empty">
+        <p class="gv-admin-empty">No images uploaded yet.</p>
+        <p class="gv-admin-note">Upload your first image above and it will appear here.</p>
+      </div>
+    `;
+    return `
+      <div class="gv-admin-media-grid">
+        ${mediaAssets.map(asset => `
+          <div class="gv-admin-media-item${mediaSelectedAssetId === asset.id ? ' is-selected' : ''}" data-admin-action="media-select-asset" data-asset-id="${escapeHtml(asset.id)}" title="${escapeHtml(asset.file_name)}">
+            <div class="gv-admin-media-thumb" style="background-image:url(${escapeHtml(asset.public_url)})"></div>
+            <div class="gv-admin-media-info">
+              <strong>${escapeHtml(asset.file_name.length > 28 ? asset.file_name.slice(0, 26) + '…' : asset.file_name)}</strong>
+              <span>${escapeHtml(asset.width && asset.height ? asset.width + '\xd7' + asset.height + ' · ' : '') + escapeHtml(formatFileSize(asset.file_size))}</span>
+              ${asset.alt_text ? '<span>' + escapeHtml(asset.alt_text.slice(0, 36)) + '</span>' : ''}
+            </div>
+            <div class="gv-admin-media-item-actions">
+              <button class="gv-admin-action" type="button" data-admin-action="media-copy-url" data-asset-id="${escapeHtml(asset.id)}" data-asset-url="${escapeHtml(asset.public_url)}">Copy URL</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function bindMediaUploadAreaEvents() {
+    const area = $('[data-admin-action="media-upload-area"]', dashboard);
+    if (!area || area._mediaBound) return;
+    area._mediaBound = true;
+    const fileInput = $('[data-admin-media-input]', dashboard);
+    area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('is-drag-over'); });
+    area.addEventListener('dragleave', () => area.classList.remove('is-drag-over'));
+    area.addEventListener('drop', e => {
+      e.preventDefault();
+      area.classList.remove('is-drag-over');
+      if (e.dataTransfer && e.dataTransfer.files) handleMediaFileInput(e.dataTransfer.files);
+    });
+    if (fileInput) {
+      fileInput.addEventListener('change', () => { if (fileInput.files) handleMediaFileInput(fileInput.files); });
+    }
+  }
+
+  async function handleMediaFileInput(files) {
+    if (!files || !files.length) return;
+    mediaUploadInFlight = true;
+    const statusEl = $('[data-media-upload-status]', dashboard);
+    if (statusEl) { statusEl.hidden = false; statusEl.textContent = 'Uploading ' + files.length + ' file' + (files.length !== 1 ? 's' : '') + '…'; }
+    let success = 0, fail = 0;
+    const errors = [];
+    for (const file of Array.from(files)) {
+      const result = await uploadMediaFile(file);
+      if (result.error) { fail++; errors.push(file.name + ': ' + result.error); }
+      else { success++; if (result.data) mediaAssets.unshift(result.data); }
+    }
+    mediaUploadInFlight = false;
+    if (statusEl) {
+      statusEl.textContent = [
+        success ? success + ' file' + (success !== 1 ? 's' : '') + ' uploaded.' : '',
+        fail ? fail + ' failed — ' + errors.slice(0, 2).join('; ') : ''
+      ].filter(Boolean).join(' ');
+    }
+    renderDashboard();
+    setTimeout(bindMediaUploadAreaEvents, 0);
+  }
+
+  function selectMediaAsset(assetId) {
+    mediaSelectedAssetId = assetId;
+    const asset = mediaAssets.find(a => a.id === assetId);
+    logCmsMediaDebug('asset-selected', { assetId: assetId, url: asset ? asset.public_url : null });
+    if (selectedElement && (selectedElement.dataset.editType === 'image' || selectedElement.dataset.editType === 'background-image')) {
+      const urlInput = $('#gvImageUrl', panel);
+      if (urlInput && asset) urlInput.value = asset.public_url;
+      const previewWrap = $('.gv-admin-image-preview-wrap', panel);
+      if (previewWrap && asset && isSafeImageUrl(asset.public_url)) {
+        previewWrap.innerHTML = '<img class="gv-admin-image-preview" src="' + escapeHtml(asset.public_url) + '" alt="' + escapeHtml(asset.alt_text || '') + '" data-image-preview>';
+      }
+      const note = $('[data-image-save-state]', panel);
+      if (note && asset) note.textContent = 'Selected: ' + asset.file_name + '. Click Save Draft Image to apply.';
+    }
+    renderDashboard();
+    setTimeout(bindMediaUploadAreaEvents, 0);
+  }
+
+  async function copyMediaUrl(url) {
+    if (!url) return;
+    if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+      dashboardMessage = 'Copy not available in this browser context.';
+      renderDashboard();
+      setTimeout(bindMediaUploadAreaEvents, 0);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      dashboardMessage = 'URL copied to clipboard.';
+    } catch (e) {
+      dashboardMessage = 'Copy failed. Check browser clipboard permission.';
+    }
+    renderDashboard();
+    setTimeout(bindMediaUploadAreaEvents, 0);
+  }
+
+  function renderImageInspector(element) {
+    const key = element.dataset.editKey || '';
+    const type = element.dataset.editType || 'image';
+    const sectionId = element.dataset.sectionId || '';
+    const draftRow = draftRows[key];
+    const publishedRow = publishedRows[key];
+    const draftVal = getImageValueFromRow(draftRow) || {};
+    const publishedVal = getImageValueFromRow(publishedRow) || {};
+    const currentSrc = type === 'background-image'
+      ? (element.dataset.mediaCurrentUrl || element.style.backgroundImage.replace(/^url\(["']?|["']?\)$/g, ''))
+      : (element.getAttribute('src') || '');
+    const currentAlt = element.getAttribute ? (element.getAttribute('alt') || '') : '';
+    const previewUrl = draftVal.url || currentSrc || '';
+    $('[data-admin-panel-title]', panel).textContent = draftRow ? 'Editing image draft' : 'Editing image field';
+    $('[data-admin-panel-body]', panel).innerHTML = `
+      <div class="gv-admin-meta">
+        <div>Edit key: <code>${escapeHtml(key)}</code></div>
+        <div>Edit type: <code>${escapeHtml(type)}</code></div>
+        <div>Section: <code>${escapeHtml(sectionId || 'none')}</code></div>
+        <div>Draft override: <code>${draftRow ? 'yes' : 'no'}</code></div>
+      </div>
+      <div class="gv-admin-image-preview-wrap">
+        ${previewUrl && isSafeImageUrl(previewUrl)
+          ? `<img class="gv-admin-image-preview" src="${escapeHtml(previewUrl)}" alt="${escapeHtml(currentAlt)}" data-image-preview>`
+          : '<div class="gv-admin-image-placeholder">No image set</div>'}
+      </div>
+      <div class="gv-admin-value-stack">
+        <div><strong>Published URL</strong><span>${escapeHtml(publishedVal.url || 'No published override')}</span></div>
+        <div><strong>Draft URL</strong><span>${escapeHtml(draftVal.url || 'No draft override')}</span></div>
+      </div>
+      <div class="gv-admin-field">
+        <label for="gvImageUrl">Image URL</label>
+        <input id="gvImageUrl" type="text" value="${escapeHtml(draftVal.url || currentSrc || '')}" placeholder="https://&hellip;">
+      </div>
+      <div class="gv-admin-field">
+        <label for="gvImageAlt">Alt text</label>
+        <input id="gvImageAlt" type="text" value="${escapeHtml(draftVal.alt !== undefined ? draftVal.alt : currentAlt)}" placeholder="Describe the image">
+      </div>
+      <input type="file" id="gvImageFileInput" accept="image/jpeg,image/png,image/webp" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;" data-admin-image-file-input>
+      <p class="gv-admin-note" data-image-save-state>Select from library or paste a URL, then Save Draft Image.</p>
+      <div class="gv-admin-panel-actions" style="grid-template-columns:1fr 1fr;">
+        <button class="gv-admin-action" type="button" data-admin-action="image-choose-media">Media Library</button>
+        <button class="gv-admin-action" type="button" data-admin-action="image-upload-new">Upload New</button>
+      </div>
+      <div class="gv-admin-panel-actions">
+        <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="image-save-draft">Save Draft</button>
+        <button class="gv-admin-action" type="button" data-admin-action="image-reset-draft">Reset</button>
+        <button class="gv-admin-action" type="button" data-admin-action="close-panel">Close</button>
+      </div>
+      <div class="gv-admin-divider"></div>
+      ${renderSectionNavigator(getRegistry())}
+    `;
+    bindImageInspectorFileInput();
+    bindImageUrlLivePreview();
+  }
+
+  function bindImageUrlLivePreview() {
+    const urlInput = $('#gvImageUrl', panel);
+    if (!urlInput) return;
+    urlInput.addEventListener('input', () => {
+      const url = urlInput.value.trim();
+      if (!isSafeImageUrl(url)) return;
+      const existing = $('[data-image-preview]', panel);
+      const wrap = $('.gv-admin-image-preview-wrap', panel);
+      if (existing) { existing.src = url; }
+      else if (wrap) { wrap.innerHTML = '<img class="gv-admin-image-preview" src="' + escapeHtml(url) + '" alt="" data-image-preview>'; }
+    });
+  }
+
+  function bindImageInspectorFileInput() {
+    const fi = $('#gvImageFileInput', panel);
+    if (!fi || fi._bound) return;
+    fi._bound = true;
+    fi.addEventListener('change', () => { if (fi.files && fi.files[0]) handleInspectorImageUpload(fi.files[0]); });
+  }
+
+  async function handleInspectorImageUpload(file) {
+    const note = $('[data-image-save-state]', panel);
+    if (note) note.textContent = 'Uploading…';
+    const result = await uploadMediaFile(file);
+    if (result.error) { if (note) note.textContent = 'Upload failed: ' + result.error; return; }
+    const asset = result.data;
+    if (asset && asset.public_url) {
+      const urlInput = $('#gvImageUrl', panel);
+      if (urlInput) urlInput.value = asset.public_url;
+      mediaSelectedAssetId = asset.id;
+      mediaAssets.unshift(asset);
+      const wrap = $('.gv-admin-image-preview-wrap', panel);
+      if (wrap && isSafeImageUrl(asset.public_url)) {
+        wrap.innerHTML = '<img class="gv-admin-image-preview" src="' + escapeHtml(asset.public_url) + '" alt="" data-image-preview>';
+      }
+      if (note) note.textContent = 'Uploaded: ' + asset.file_name + '. Click Save Draft Image to apply.';
+    }
+  }
+
+  async function saveImageDraft() {
+    if (!selectedElement) return;
+    const key = selectedElement.dataset.editKey;
+    const type = selectedElement.dataset.editType || 'image';
+    const urlInput = $('#gvImageUrl', panel);
+    const altInput = $('#gvImageAlt', panel);
+    const note = $('[data-image-save-state]', panel);
+    const url = urlInput ? urlInput.value.trim() : '';
+    const alt = altInput ? altInput.value.trim() : '';
+    if (url && !isSafeImageUrl(url)) {
+      if (note) note.textContent = 'Invalid URL. Only Supabase storage, https://, or relative paths allowed.';
+      return;
+    }
+    const valueJson = { url: url, alt: alt, media_asset_id: mediaSelectedAssetId || null, field: type === 'background-image' ? 'background-image' : 'src' };
+    applyImageValueToElement(selectedElement, valueJson);
+    if (note) note.textContent = 'Saving…';
+    if (mockAdminEnabled && !supabaseClient) {
+      mockDraft[key] = url;
+      saveMockDraft();
+      draftRows[key] = { page_path: pagePath, page_id: getRegistry().pageId || '', edit_key: key, edit_type: type, section_id: selectedElement.dataset.sectionId || '', value_text: url, value_json: valueJson, status: 'draft' };
+      if (note) note.textContent = 'Image draft saved (mock mode).';
+      logCmsMediaDebug('image-draft-save-mock', { key: key, url: url });
+      renderImageInspector(selectedElement);
+      return;
+    }
+    if (!supabaseClient || !currentUser || !adminProfile || !['owner', 'editor'].includes(adminProfile.role)) {
+      if (note) note.textContent = adminProfile && adminProfile.role === 'viewer' ? 'Viewers cannot save image drafts.' : 'Image draft save requires owner or editor role.';
+      return;
+    }
+    const payload = {
+      page_path: pagePath, page_id: getRegistry().pageId || '',
+      edit_key: key, edit_type: type,
+      section_id: selectedElement.dataset.sectionId || '',
+      section_type: (selectedElement.closest('[data-section-type]') || {}).dataset && (selectedElement.closest('[data-section-type]')).dataset.sectionType || '',
+      value_text: url, value_json: valueJson, status: 'draft',
+      updated_by: currentUser.id, updated_at: new Date().toISOString()
+    };
+    let data = null, error = null;
+    try {
+      const res = await supabaseClient.from('cms_content').upsert(payload, { onConflict: 'page_path,edit_key,status' }).select().single();
+      data = res.data; error = res.error;
+    } catch (e) { error = e; }
+    if (error) { if (note) note.textContent = 'Image draft save failed. Check Supabase policies.'; return; }
+    draftRows[key] = data || payload;
+    await insertMediaAuditLog('image_draft_save', key, { url: url, alt: alt, media_asset_id: valueJson.media_asset_id });
+    logCmsMediaDebug('image-draft-save-ok', { key: key, url: url });
+    if (note) note.textContent = 'Image draft saved.';
+    updateTopbar();
+    renderImageInspector(selectedElement);
+  }
+
+  async function resetImageDraft() {
+    if (!selectedElement) return;
+    const key = selectedElement.dataset.editKey;
+    const note = $('[data-image-save-state]', panel);
+    if (!window.confirm('Reset this image draft? Published image will not be deleted.')) return;
+    if (mockAdminEnabled && !supabaseClient) {
+      delete mockDraft[key]; delete draftRows[key]; saveMockDraft();
+      restoreImageFromPublishedOrOriginal(key);
+      renderImageInspector(selectedElement);
+      return;
+    }
+    if (supabaseClient && currentUser && adminProfile && ['owner', 'editor'].includes(adminProfile.role)) {
+      try {
+        const res = await supabaseClient.from('cms_content').delete().eq('page_path', pagePath).eq('edit_key', key).eq('status', 'draft');
+        if (res.error) { if (note) note.textContent = 'Reset failed. Check Supabase policies.'; return; }
+        await insertMediaAuditLog('image_reset', key, { previous_url: draftRows[key] ? draftRows[key].value_text || '' : '' });
+      } catch (e) { if (note) note.textContent = 'Reset failed. Supabase connection error.'; return; }
+    } else if (adminProfile && adminProfile.role === 'viewer') {
+      if (note) note.textContent = 'Viewers cannot reset image drafts.';
+      return;
+    }
+    delete draftRows[key];
+    restoreImageFromPublishedOrOriginal(key);
+    updateTopbar();
+    renderImageInspector(selectedElement);
+  }
+
+  function restoreImageFromPublishedOrOriginal(key) {
+    if (!selectedElement) return;
+    const publishedRow = publishedRows[key];
+    const publishedVal = getImageValueFromRow(publishedRow);
+    if (publishedVal && publishedVal.url && isSafeImageUrl(publishedVal.url)) {
+      applyImageValueToElement(selectedElement, publishedVal);
+    } else {
+      const origSrc = selectedElement.dataset.adminOriginalSrc || '';
+      const origAlt = selectedElement.dataset.adminOriginalAlt || '';
+      if (selectedElement.tagName === 'IMG') {
+        if (origSrc) selectedElement.setAttribute('src', origSrc);
+        selectedElement.setAttribute('alt', origAlt);
+      } else if (selectedElement.dataset.editType === 'background-image' && origSrc) {
+        selectedElement.style.backgroundImage = 'url("' + origSrc.replace(/"/g, '%22') + '")';
+      }
+    }
+  }
+
+  function applyImageValueToElement(element, valueJson) {
+    if (!element || !valueJson) return;
+    const url = valueJson.url || '';
+    const alt = typeof valueJson.alt === 'string' ? valueJson.alt : '';
+    const type = element.dataset.editType || 'image';
+    if (url && !isSafeImageUrl(url)) return;
+    if (type === 'background-image') {
+      if (!element.dataset.mediaCurrentUrl) element.dataset.mediaCurrentUrl = element.style.backgroundImage.replace(/^url\(["']?|["']?\)$/g, '');
+      if (url) element.style.backgroundImage = 'url("' + url.replace(/"/g, '%22') + '")';
+      element.dataset.mediaCurrentUrl = url;
+    } else {
+      if (!element.dataset.adminOriginalSrc) element.dataset.adminOriginalSrc = element.getAttribute('src') || '';
+      if (!element.dataset.adminOriginalAlt) element.dataset.adminOriginalAlt = element.getAttribute('alt') || '';
+      if (url) element.setAttribute('src', url);
+      element.setAttribute('alt', alt);
+    }
+  }
+
+  async function applyPublishedImageEdits() {
+    if (!supabaseClient) return;
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_content')
+        .select('edit_key,edit_type,value_text,value_json,status')
+        .eq('page_path', pagePath)
+        .eq('status', 'published')
+        .in('edit_type', ['image', 'background-image'])
+        .lt('created_at', cmsFreshReadCutoff());
+      if (error || !Array.isArray(data)) return;
+      let count = 0;
+      data.forEach(row => {
+        const element = document.querySelector('[data-edit-key="' + cssEscape(row.edit_key) + '"]');
+        if (!element) return;
+        const val = getImageValueFromRow(row) || (row.value_text ? { url: row.value_text, alt: '' } : null);
+        if (val && val.url && isSafeImageUrl(val.url)) {
+          applyImageValueToElement(element, val);
+          publishedRows[row.edit_key] = row;
+          count++;
+        }
+      });
+      logCmsMediaDebug('hydration-ok', { count: count });
+    } catch (e) { /* best-effort */ }
+  }
+
+  function logCmsMediaDebug(context, extra) {
+    if (!cmsDebug) return;
+    console.info('[GROWVA CMS Media Debug]', Object.assign({
+      context: context,
+      supabase_configured: supabaseState.configured,
+      media_assets_count: mediaAssets.length,
+      media_library_loaded: mediaLibraryLoaded,
+      selected_asset_id: mediaSelectedAssetId
+    }, extra || {}));
+  }
+
   async function boot() {
     ensureEntryButtonsAreSafe();
     bindEntryEvents();
@@ -1781,9 +2303,11 @@
     initSupabase();
     setupAuthStateListener();
     await loadPublishedEdits();
+    await applyPublishedImageEdits();
     logCmsDebug('boot');
     if (await hasActiveAdminSession()) {
       await loadPublishedEdits();
+      await applyPublishedImageEdits();
       await enterAdminMode();
     }
   }

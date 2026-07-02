@@ -755,3 +755,179 @@ body.admin-edit-mode [data-edit-key].gv-admin-selected{
   .gv-admin-panel,
   .admin-entry-btn{transition:none!important;}
 }
+
+/* ── Phase 6: Media Library ─────────────────────────────────────────────── */
+
+.gv-admin-media-library{display:grid;gap:18px;}
+
+.gv-admin-media-upload-area{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:120px;
+  padding:24px 16px;
+  border:2px dashed rgba(177,250,32,.3);
+  border-radius:8px;
+  background:rgba(177,250,32,.03);
+  text-align:center;
+  transition:border-color .2s var(--gv-admin-ease),background .2s var(--gv-admin-ease);
+  cursor:pointer;
+}
+.gv-admin-media-upload-area:hover,
+.gv-admin-media-upload-area.is-drag-over{
+  border-color:rgba(177,250,32,.72);
+  background:rgba(177,250,32,.07);
+}
+.gv-admin-media-upload-icon{
+  font-size:2rem;
+  line-height:1;
+  color:var(--gv-admin-mint);
+  opacity:.7;
+}
+.gv-admin-media-upload-area p{
+  color:var(--gv-admin-muted);
+  font-size:.86rem;
+  line-height:1.45;
+  margin:0;
+}
+.gv-admin-media-upload-link{
+  border:0;
+  background:transparent;
+  color:var(--gv-admin-mint);
+  font-family:inherit;
+  font-size:inherit;
+  font-weight:700;
+  cursor:pointer;
+  text-decoration:underline;
+  padding:0;
+}
+.gv-admin-media-upload-hint{
+  font-size:.72rem;
+  color:rgba(246,246,246,.38);
+  margin:0;
+}
+.gv-admin-media-upload-status{
+  padding:10px 13px;
+  border:1px solid rgba(177,250,32,.2);
+  border-radius:6px;
+  background:rgba(177,250,32,.055);
+  color:var(--gv-admin-ink);
+  font-size:.84rem;
+  line-height:1.45;
+}
+
+.gv-admin-media-toolbar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.gv-admin-media-count{
+  color:var(--gv-admin-muted);
+  font-family:var(--mono,'JetBrains Mono',monospace);
+  font-size:.68rem;
+  font-weight:700;
+  letter-spacing:.04em;
+  flex:1;
+}
+
+.gv-admin-media-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  gap:10px;
+}
+.gv-admin-media-item{
+  display:grid;
+  grid-template-rows:auto 1fr auto;
+  border:1px solid rgba(246,246,246,.1);
+  border-radius:8px;
+  overflow:hidden;
+  background:rgba(246,246,246,.04);
+  cursor:pointer;
+  transition:border-color .2s,box-shadow .2s;
+}
+.gv-admin-media-item:hover{
+  border-color:rgba(177,250,32,.5);
+}
+.gv-admin-media-item.is-selected{
+  border-color:var(--gv-admin-mint);
+  box-shadow:0 0 0 2px rgba(177,250,32,.25);
+}
+.gv-admin-media-thumb{
+  width:100%;
+  aspect-ratio:4/3;
+  background:rgba(246,246,246,.06) center/cover no-repeat;
+}
+.gv-admin-media-info{
+  display:grid;
+  gap:3px;
+  padding:8px 10px;
+}
+.gv-admin-media-info strong{
+  color:var(--gv-admin-ink);
+  font-size:.76rem;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.gv-admin-media-info span{
+  color:var(--gv-admin-muted);
+  font-family:var(--mono,'JetBrains Mono',monospace);
+  font-size:.62rem;
+  line-height:1.3;
+  overflow-wrap:anywhere;
+}
+.gv-admin-media-item-actions{
+  padding:6px 8px;
+  border-top:1px solid rgba(246,246,246,.08);
+}
+.gv-admin-media-item-actions .gv-admin-action{
+  width:100%;
+  min-height:26px;
+  font-size:.6rem;
+}
+.gv-admin-media-empty{padding:24px 0;text-align:center;}
+
+/* Image inspector */
+.gv-admin-image-preview-wrap{
+  margin:0 0 14px;
+  min-height:80px;
+  border:1px solid rgba(246,246,246,.1);
+  border-radius:6px;
+  background:rgba(246,246,246,.04);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+.gv-admin-image-preview{
+  max-width:100%;
+  max-height:160px;
+  object-fit:contain;
+  display:block;
+}
+.gv-admin-image-placeholder{
+  color:var(--gv-admin-muted);
+  font-size:.8rem;
+  padding:20px;
+  text-align:center;
+}
+
+/* Thumbnail in draft/published rows */
+.gv-admin-row-thumb-img{
+  max-width:100%;
+  max-height:60px;
+  object-fit:cover;
+  border-radius:4px;
+  margin-bottom:6px;
+  display:block;
+}
+
+@media(max-width:760px){
+  .gv-admin-media-grid{
+    grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+  }
+}
