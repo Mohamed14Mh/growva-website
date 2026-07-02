@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Custom Store Development | GROWVA | Web Development</title>
+<meta name="description" content="Shopify is often the right commerce choice, but not always. For brands with unusual operational, content, marketplace, or platform requirements, we build custom store experiences outside Shopify when the brief calls for it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0a0a'/%3E%3Cpath d='M21 10a7 7 0 1 0 0 12v-5h-5' fill='none' stroke='%23B1FA20' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<div class="page-transition" id="pageTransition" aria-hidden="true"><div class="pt-line"></div></div>
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<div class="preloader" id="preloader">
+  <div class="preloader-word">GROWVA</div>
+</div>
+
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="../index.html" class="logo">
+      <span class="logo-text">GROWVA<span class="logo-dot">.</span></span>
+    </a>
+    <nav class="nav-links" aria-label="Primary navigation">
+      <a href="../shopify.html" class="nav-link" data-hover>Shopify</a>
+      <div class="nav-item nav-item--mega" data-mega-item>
+        <button class="nav-link nav-link--mega" type="button" data-hover data-active-page="custom-store-development.html" aria-expanded="false" aria-controls="mega-services">Services</button>
+        <div class="mega-menu mega-menu--services" id="mega-services" role="menu">
+          <div class="mega-tabs" role="tablist" aria-label="Service categories">
+            <button class="mega-tab active" type="button" data-mega-tab="shopify" aria-selected="true">Shopify &amp; Ecommerce</button>
+            <button class="mega-tab" type="button" data-mega-tab="amazon" aria-selected="false">Amazon Seller Central</button>
+            <button class="mega-tab" type="button" data-mega-tab="web" aria-selected="false">Web Development</button>
+            <button class="mega-tab" type="button" data-mega-tab="design" aria-selected="false">Graphic Design</button>
+            <button class="mega-tab" type="button" data-mega-tab="print" aria-selected="false">Printing</button>
+            <button class="mega-tab" type="button" data-mega-tab="growth" aria-selected="false">Growth &amp; Strategy</button>
+          </div>
+          <div class="mega-panels">
+            <div class="mega-panel active" data-mega-panel="shopify">
+              <a class="mega-link" href="premium-shopify-website-development.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg><span><strong>Premium Shopify Website Development</strong><small>Custom storefronts planned around how your customer buys.</small></span></a>
+              <a class="mega-link" href="shopify-cro.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l4-4 3 3 5-6"/></svg><span><strong>Shopify CRO</strong><small>Find where the funnel breaks, then rebuild those points.</small></span></a>
+              <a class="mega-link" href="shopify-store-optimization.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/><path d="M17 17l2 2 3-4"/></svg><span><strong>Shopify Store Optimization</strong><small>Audit, clean, and restructure stores slowed by technical debt.</small></span></a>
+              <a class="mega-link" href="performance-optimization.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 14a7 7 0 0 1 14 0"/><path d="M12 14l4-5"/><path d="M7 19h10"/></svg><span><strong>Performance Optimization</strong><small>Core Web Vitals, image pipelines, and app-bloat audits.</small></span></a>
+              <a class="mega-cta" href="../services.html">View All Services &rarr;</a>
+            </div>
+            <div class="mega-panel" data-mega-panel="amazon">
+              <a class="mega-link" href="amazon-account-setup.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12v11H6z"/><path d="M9 7a3 3 0 0 1 6 0"/><path d="M8 15c2.4 2 5.6 2 8 0"/></svg><span><strong>Amazon Account Setup From Scratch</strong><small>Seller Central foundations built cleanly from day one.</small></span></a>
+              <a class="mega-link" href="amazon-account-management.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18V6"/><path d="M4 18h16"/><path d="M7 15l3-4 4 3 5-7"/></svg><span><strong>Amazon Account Management &amp; Growth</strong><small>Ongoing account operations, catalog hygiene, and reporting.</small></span></a>
+              <a class="mega-link" href="amazon-listing-advertising-optimization.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="5"/><path d="M14 14l5 5"/><path d="M8 10h4"/></svg><span><strong>Amazon Listing &amp; Advertising Optimization</strong><small>Listing content, keywords, and PPC structured to learn.</small></span></a>
+              <a class="mega-cta" href="../services.html">View All Services &rarr;</a>
+            </div>
+            <div class="mega-panel" data-mega-panel="web">
+              <a class="mega-link" href="corporate-websites.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M8 10h8"/><path d="M8 14h5"/><path d="M10 21h4"/></svg><span><strong>Company &amp; Corporate Websites</strong><small>Credible, fast websites for serious business presence.</small></span></a>
+              <a class="mega-link" href="portfolio-websites.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v16H7z"/><path d="M9 8h6"/><path d="M9 12h4"/><path d="M9 16h5"/></svg><span><strong>Portfolio &amp; Personal Websites</strong><small>Personal platforms that make expertise legible.</small></span></a>
+              <a class="mega-link" href="custom-store-development.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14v12H5z"/><path d="M8 7V5h8v2"/><path d="M8 12h8"/></svg><span><strong>Custom Store Development</strong><small>Non-Shopify commerce for unusual operational needs.</small></span></a>
+              <a class="mega-cta" href="../services.html">View All Services &rarr;</a>
+            </div>
+            <div class="mega-panel" data-mega-panel="design">
+              <a class="mega-link" href="brand-identity-design.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18l4-12 4 12"/><path d="M7 14h4"/><path d="M16 7h3a2 2 0 0 1 0 4h-3V7Z"/></svg><span><strong>Brand Identity Design</strong><small>Visual systems that communicate before customers read.</small></span></a>
+              <a class="mega-link" href="packaging-design.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4Z"/><path d="M4 8v8l8 4 8-4V8"/><path d="M12 12v8"/></svg><span><strong>Packaging Design</strong><small>Packaging that carries the brand from screen to shelf.</small></span></a>
+              <a class="mega-link" href="marketing-social-design.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v10H5z"/><path d="M8 19h8"/><path d="M9 10h6"/><path d="M9 13h3"/></svg><span><strong>Marketing &amp; Social Media Design</strong><small>Campaign and content assets that stay on-brand.</small></span></a>
+              <a class="mega-cta" href="../services.html">View All Services &rarr;</a>
+            </div>
+            <div class="mega-panel" data-mega-panel="print">
+              <a class="mega-link" href="business-marketing-print.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4"/><path d="M6 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1"/><path d="M7 14h10v6H7z"/></svg><span><strong>Business &amp; Marketing Print</strong><small>Business cards, brochures, flyers, and stationery.</small></span></a>
+              <a class="mega-link" href="packaging-print-production.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4Z"/><path d="M4 8v8l8 4 8-4V8"/></svg><span><strong>Packaging Print Production</strong><small>Turning packaging systems into supplier-ready files.</small></span></a>
+              <a class="mega-link" href="large-format-retail-print.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v10H5z"/><path d="M8 19h8"/><path d="M12 15v4"/></svg><span><strong>Large Format &amp; Retail Print</strong><small>Banners, signage, displays, and in-store graphics.</small></span></a>
+              <a class="mega-cta" href="../services.html">View All Services &rarr;</a>
+            </div>
+            <div class="mega-panel" data-mega-panel="growth">
+              <a class="mega-link" href="ecommerce-strategy.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18h16"/><path d="M7 15V9"/><path d="M12 15V6"/><path d="M17 15v-4"/></svg><span><strong>Ecommerce Strategy</strong><small>The commercial plan before execution begins.</small></span></a>
+              <a class="mega-link" href="conversion-optimization.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 8v4l3 2"/></svg><span><strong>Conversion Optimization</strong><small>Journeys rebuilt around how your customer buys.</small></span></a>
+              <a class="mega-link" href="growth-systems.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17l5-5 4 4 5-8"/><path d="M15 8h4v4"/></svg><span><strong>Growth Systems</strong><small>Retention infrastructure that turns first orders into repeats.</small></span></a>
+              <a class="mega-link" href="website-maintenance.html"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-2.8 8.2-7 10-4.2-1.8-7-5.5-7-10V6l7-3Z"/><path d="M9 12l2 2 4-5"/></svg><span><strong>Website Maintenance</strong><small>Ongoing care for digital systems after launch.</small></span></a>
+              <a class="mega-cta" href="../services.html">View All Services &rarr;</a>
+            </div>
+          </div>
+        </div>
+      </div>      <div class="nav-item nav-item--mega" data-mega-item>
+        <button class="nav-link nav-link--mega" type="button" data-hover data-active-page="work.html" aria-expanded="false" aria-controls="mega-work">Work</button>
+        <div class="mega-menu mega-menu--simple" id="mega-work" role="menu">
+          <a class="mega-link" href="../work.html#perfume"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4h4"/><path d="M9 8h6l2 3v8H7v-8l2-3Z"/><path d="M9 13h6"/></svg><span><strong>Perfume</strong><small>Luxury fragrance stores with editorial product storytelling.</small></span></a>
+          <a class="mega-link" href="../work.html#cosmetics"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="15" r="4"/><circle cx="15" cy="9" r="4"/><path d="M12 12l5 5"/></svg><span><strong>Cosmetics</strong><small>Shade, routine, and repeat-purchase journeys built to convert.</small></span></a>
+          <a class="mega-link" href="../work.html#fashion"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l4 3 4-3 3 4-3 2v8H8v-8L5 9l3-4Z"/></svg><span><strong>Fashion</strong><small>Launch-ready storefronts for collections, drops, and markets.</small></span></a>
+          <a class="mega-link" href="../work.html#food-beverage"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v6a5 5 0 0 1-10 0V4Z"/><path d="M12 15v5"/><path d="M8 20h8"/></svg><span><strong>Food &amp; Beverage</strong><small>Provenance, subscription, and gifting experiences for D2C.</small></span></a>
+          <a class="mega-link" href="../work.html#agriculture"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V9"/><path d="M12 13C7 13 5 10 5 6c4 0 7 2 7 7Z"/><path d="M12 16c5 0 7-3 7-7-4 0-7 2-7 7Z"/></svg><span><strong>Agriculture</strong><small>Seasonal, subscription, and farm-to-table commerce systems.</small></span></a>
+          <a class="mega-link" href="../work.html#wellness"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-4.4 7-11a4 4 0 0 0-7-2.6A4 4 0 0 0 5 10c0 6.6 7 11 7 11Z"/><path d="M9 13h6"/></svg><span><strong>Wellness</strong><small>Calm, trust-led journeys for health and self-care products.</small></span></a>
+          <a class="mega-cta" href="../work.html#all">View All Work &rarr;</a>
+        </div>
+      </div>
+      <a href="../process.html" class="nav-link" data-hover>Process</a>
+      <a href="../about.html" class="nav-link" data-hover>About</a>
+      <div class="nav-item nav-item--mega" data-mega-item>
+        <button class="nav-link nav-link--mega" type="button" data-hover data-active-page="pricing.html" aria-expanded="false" aria-controls="mega-pricing">Pricing</button>
+        <div class="mega-menu mega-menu--simple" id="mega-pricing" role="menu">
+          <a class="mega-link" href="../pricing.html#branding-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18l4-12 4 12"/><path d="M7 14h4"/><path d="M16 6h3v12h-3z"/></svg><span><strong>Branding Packages</strong><small>Identity systems for memorable product brands.</small></span></a>
+          <a class="mega-link" href="../pricing.html#shopify-development-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg><span><strong>Shopify Development Packages</strong><small>Custom builds scoped for conversion and scale.</small></span></a>
+          <a class="mega-link" href="../pricing.html#amazon-seller-central-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12v11H6z"/><path d="M9 7a3 3 0 0 1 6 0"/><path d="M8 15c2.4 2 5.6 2 8 0"/></svg><span><strong>Amazon Seller Central Packages</strong><small>Setup, management, listings, and advertising.</small></span></a>
+          <a class="mega-link" href="../pricing.html#web-development-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M8 10h8"/><path d="M10 21h4"/></svg><span><strong>Web Development Packages</strong><small>Corporate sites, portfolios, and custom stores.</small></span></a>
+          <a class="mega-link" href="../pricing.html#printing-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4"/><path d="M6 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1"/><path d="M7 14h10v6H7z"/></svg><span><strong>Printing Packages</strong><small>Business, packaging, and retail print production.</small></span></a>
+          <a class="mega-link" href="../pricing.html#growth-retention-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l5-5 4 3 6-8"/><path d="M15 7h4v4"/></svg><span><strong>Growth &amp; Retention Packages</strong><small>Email, SMS, and lifecycle systems.</small></span></a>
+          <a class="mega-link" href="../pricing.html#seo-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="5"/><path d="M14 14l5 5"/></svg><span><strong>SEO Packages</strong><small>Organic search equity built into the store.</small></span></a>
+          <a class="mega-link" href="../pricing.html#website-maintenance-packages"><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-2.8 8.2-7 10-4.2-1.8-7-5.5-7-10V6l7-3Z"/><path d="M9 12l2 2 4-5"/></svg><span><strong>Website Maintenance Packages</strong><small>Ongoing care after launch.</small></span></a>
+          <a class="mega-cta" href="../pricing.html">Compare All Packages &rarr;</a>
+        </div>
+      </div>      <a href="../faq.html" class="nav-link" data-hover>FAQ</a>
+      <a href="../contact.html" class="nav-link" data-hover>Contact</a>
+    </nav>
+    <a href="../contact.html" class="btn btn-nav" data-hover>Start a Project</a>
+    <button class="nav-burger" id="navBurger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navMobile"><span></span><span></span></button>
+  </div>
+  <div class="nav-mobile" id="navMobile">
+    <a href="../shopify.html">Shopify</a>
+    <div class="mobile-mega">
+      <button class="mobile-mega-toggle" type="button" aria-expanded="false">Services<span></span></button>
+      <div class="mobile-mega-panel">
+        <a href="premium-shopify-website-development.html">Premium Shopify Website Development</a>
+        <a href="shopify-cro.html">Shopify CRO</a>
+        <a href="shopify-store-optimization.html">Shopify Store Optimization</a>
+        <a href="performance-optimization.html">Performance Optimization</a>
+        <a href="amazon-account-setup.html">Amazon Account Setup</a>
+        <a href="amazon-account-management.html">Amazon Account Management &amp; Growth</a>
+        <a href="amazon-listing-advertising-optimization.html">Amazon Listing &amp; Advertising Optimization</a>
+        <a href="corporate-websites.html">Company &amp; Corporate Websites</a>
+        <a href="portfolio-websites.html">Portfolio &amp; Personal Websites</a>
+        <a href="custom-store-development.html">Custom Store Development</a>
+        <a href="brand-identity-design.html">Brand Identity Design</a>
+        <a href="packaging-design.html">Packaging Design</a>
+        <a href="marketing-social-design.html">Marketing &amp; Social Media Design</a>
+        <a href="business-marketing-print.html">Business &amp; Marketing Print</a>
+        <a href="packaging-print-production.html">Packaging Print Production</a>
+        <a href="large-format-retail-print.html">Large Format &amp; Retail Print</a>
+        <a href="ecommerce-strategy.html">Ecommerce Strategy</a>
+        <a href="conversion-optimization.html">Conversion Optimization</a>
+        <a href="growth-systems.html">Growth Systems</a>
+        <a href="website-maintenance.html">Website Maintenance</a>
+        <a href="../services.html">View All Services</a>
+      </div>
+    </div>    <div class="mobile-mega">
+      <button class="mobile-mega-toggle" type="button" aria-expanded="false">Work<span></span></button>
+      <div class="mobile-mega-panel">
+        <a href="../work.html#perfume">Perfume</a>
+        <a href="../work.html#cosmetics">Cosmetics</a>
+        <a href="../work.html#fashion">Fashion</a>
+        <a href="../work.html#food-beverage">Food &amp; Beverage</a>
+        <a href="../work.html#agriculture">Agriculture</a>
+        <a href="../work.html#wellness">Wellness</a>
+        <a href="../work.html#all">View All Work</a>
+      </div>
+    </div>
+    <a href="../process.html">Process</a>
+    <a href="../about.html">About</a>
+    <div class="mobile-mega">
+      <button class="mobile-mega-toggle" type="button" aria-expanded="false">Pricing<span></span></button>
+      <div class="mobile-mega-panel">
+        <a href="../pricing.html#branding-packages">Branding Packages</a>
+        <a href="../pricing.html#shopify-development-packages">Shopify Development Packages</a>
+        <a href="../pricing.html#amazon-seller-central-packages">Amazon Seller Central Packages</a>
+        <a href="../pricing.html#web-development-packages">Web Development Packages</a>
+        <a href="../pricing.html#printing-packages">Printing Packages</a>
+        <a href="../pricing.html#growth-retention-packages">Growth &amp; Retention Packages</a>
+        <a href="../pricing.html#seo-packages">SEO Packages</a>
+        <a href="../pricing.html#website-maintenance-packages">Website Maintenance Packages</a>
+        <a href="../pricing.html">Compare All Packages</a>
+      </div>
+    </div>
+    <a href="../faq.html">FAQ</a>
+    <a href="../contact.html">Contact</a>
+  </div>
+</header>
+
+<main>
+
+  <section class="service-page-hero">
+    <div class="container service-page-hero-inner">
+      <a class="service-back-link reveal-up" href="../services.html" data-hover>All Services &rarr;</a>
+      <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Web Development</p>
+      <h1 class="service-page-title reveal-up">Custom Store Development</h1>
+      <p class="service-page-sub reveal-up">Shopify is often the right commerce choice, but not always. For brands with unusual operational, content, marketplace, or platform requirements, we build custom store experiences outside Shopify when the brief calls for it.</p>
+    </div>
+  </section>
+
+  <section class="section service-detail-page">
+    <div class="container">
+      <!-- 16 -->
+          <div class="service-section reveal-up service-section--single" id="custom-store-development">
+            <p class="service-section-tag">16 / 20</p>
+            <h2 class="service-section-title">Custom Store Development</h2>
+            <p class="service-section-intro">Shopify is often the right commerce choice, but not always. For brands with unusual operational, content, marketplace, or platform requirements, we build custom store experiences outside Shopify when the brief calls for it.</p>
+            <div class="service-detail-grid">
+              <div class="service-detail-item"><h4>The Problem</h4><p>Some commerce requirements do not fit neatly inside a standard platform: complex catalogs, gated buying flows, unusual fulfillment rules, or product configuration logic that needs more control.</p></div>
+              <div class="service-detail-item"><h4>Our Solution</h4><p>A custom commerce build scoped around the operational reality of the business, with careful platform selection, clean architecture, and a clear maintenance plan.</p></div>
+              <div class="service-detail-item"><h4>Deliverables</h4><ul><li>Platform and architecture recommendation</li><li>Custom frontend and backend scope</li><li>Product and checkout logic</li><li>Third-party integrations</li><li>QA and launch documentation</li></ul></div>
+              <div class="service-detail-item"><h4>Ideal Client</h4><p>Brands with commerce requirements that cannot be solved well through Shopify, Amazon, or a conventional plugin stack.</p></div>
+              <div class="service-detail-item"><h4>Expected Outcome</h4><p>A commerce system built around the way the business actually sells, without forcing the customer journey through the wrong platform assumptions.</p></div>
+              <div class="service-detail-item"><h4>Our Process</h4><ul><li>Requirements and platform discovery</li><li>Technical architecture</li><li>UX and design system</li><li>Development and integration</li><li>Testing, launch, and handover</li></ul></div>
+            </div>
+            <span class="service-timeline">Timeline: 8–14 weeks depending on scope</span>
+          </div>
+    </div>
+  </section>
+
+
+  <section class="section related-services-section">
+    <div class="container">
+      <div class="section-head reveal-up">
+        <p class="eyebrow"><span class="eyebrow-dot"></span>Related Services</p>
+        <h2 class="h2">More from Web Development</h2>
+      </div>
+      <div class="related-services-grid">
+        <a class="related-service-card reveal-up" href="corporate-websites.html" data-hover><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M8 10h8"/><path d="M8 14h5"/><path d="M10 21h4"/></svg><span><strong>Company & Corporate Websites</strong><small>Credible, fast websites for serious business presence.</small></span></a>
+        <a class="related-service-card reveal-up" href="portfolio-websites.html" data-hover><svg class="mega-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v16H7z"/><path d="M9 8h6"/><path d="M9 12h4"/><path d="M9 16h5"/></svg><span><strong>Portfolio & Personal Websites</strong><small>Personal platforms that make expertise legible.</small></span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FINAL CTA ================= -->
+  <section class="section final-cta">
+    <canvas id="ctaCanvas"></canvas>
+    <div class="container final-cta-inner">
+      <p class="eyebrow reveal-up"><span class="eyebrow-dot"></span>Ready to Start</p>
+      <h2 class="final-headline reveal-up">Not sure which service<br>fits your situation?</h2>
+      <p class="final-sub reveal-up">Tell us where you are and where you want to be. We'll recommend the right starting point.</p>
+      <div class="hero-actions reveal-up">
+        <a href="../contact.html" class="btn btn-primary" data-hover><span>Talk to Us</span></a>
+        <a href="../pricing.html" class="btn btn-ghost" data-hover><span>View Pricing</span></a>
+      </div>
+    </div>
+  </section>
+
+
+</main>
+
+<footer class="footer">
+  <div class="container footer-top">
+    <div class="footer-brand">
+      <a href="../index.html" class="logo">
+        <span class="logo-text">GROWVA<span class="logo-dot">.</span></span>
+      </a>
+      <p>Growth By Design.</p>
+      <div class="footer-object" aria-hidden="true"><canvas class="brand-object-canvas" data-brand-object="footer"></canvas></div>
+    </div>
+    <div class="footer-col">
+      <h5>Services</h5>
+      <a href="premium-shopify-website-development.html">Shopify Development</a>
+      <a href="shopify-cro.html">Shopify CRO</a>
+      <a href="brand-identity-design.html">Brand Identity</a>
+      <a href="growth-systems.html">Growth Systems</a>
+    </div>
+    <div class="footer-col">
+      <h5>Company</h5>
+      <a href="../about.html">About</a>
+      <a href="../work.html">Work</a>
+      <a href="../process.html">Process</a>
+      <a href="../faq.html">FAQ</a>
+    </div>
+    <div class="footer-col">
+      <h5>Contact</h5>
+      <a href="mailto:hello@growva.com">hello@growva.com</a>
+      <a href="#">Instagram</a>
+      <a href="#">LinkedIn</a>
+    </div>
+  </div>
+  <div class="container footer-bottom">
+    <span>© <span id="year"></span> GROWVA. All rights reserved.</span>
+    <span>Privacy Policy · Terms</span>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Flip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/darkroomengineering/lenis@1.1.13/dist/lenis.min.js"></script>
+<script src="../js/script.js"></script>
+</body>
+</html>
