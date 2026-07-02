@@ -10,6 +10,7 @@
 
   const params = new URLSearchParams(window.location.search);
   const mockAdminEnabled = params.get('mockAdmin') === 'true';
+  const cmsDebug = params.get('cmsDebug') === 'true';
   const pagePath = getPagePath();
 
   let mode = 'preview';
@@ -23,7 +24,10 @@
   let supabaseState = {
     configured: false,
     ready: false,
-    label: 'Supabase not configured'
+    unsafeKey: false,
+    failed: false,
+    label: 'Supabase not configured',
+    warning: ''
   };
   let currentUser = null;
   let adminProfile = null;
@@ -33,6 +37,11 @@
   let unsavedCount = 0;
   let statusMessage = '';
   let mockDraft = readMockDraft();
+  let publishedRowsLoadedCount = 0;
+  let draftRowsLoadedCount = 0;
+  let saveInFlight = false;
+  let publishInFlight = false;
+  let resetInFlight = false;
 
   function $(selector, root = document) {
     return root.querySelector(selector);
@@ -54,9 +63,14 @@
     } catch (error) {
       rootPath = '/';
     }
-    let clean = pathname.replace(/\\/g, '/');
+    let clean = pathname.replace(/\\/g, '/').replace(/\/+/g, '/');
+    rootPath = rootPath.replace(/\\/g, '/').replace(/\/+/g, '/');
     if (rootPath !== '/' && clean.indexOf(rootPath) === 0) clean = clean.slice(rootPath.length);
     clean = clean.replace(/^\/+/, '').replace(/\/+/g, '/');
+    if (!clean || clean.endsWith('/')) clean = `${clean}index.html`;
+    clean = clean.replace(/^([A-Za-z]:)?\/?/, match => match.includes(':') ? '' : match);
+    const adminIndex = clean.lastIndexOf('/admin/admin.js');
+    if (adminIndex >= 0) clean = 'index.html';
     return clean || 'index.html';
   }
 
@@ -64,39 +78,104 @@
     const config = window.GROWVA_SUPABASE_CONFIG || {};
     const url = typeof config.url === 'string' ? config.url.trim() : '';
     const anonKey = typeof config.anonKey === 'string' ? config.anonKey.trim() : '';
+    const unsafeKey = isUnsafeSupabaseKey(anonKey);
     const configured = Boolean(
       url &&
       anonKey &&
+      !unsafeKey &&
       url !== PLACEHOLDER_URL &&
       anonKey !== PLACEHOLDER_KEY &&
       !url.includes('YOUR_PROJECT') &&
       !anonKey.includes('YOUR_SUPABASE')
     );
-    return { url, anonKey, configured };
+    return { url, anonKey, configured, unsafeKey };
+  }
+
+  function isUnsafeSupabaseKey(key) {
+    const value = String(key || '').trim();
+    const lower = value.toLowerCase();
+    if (!value) return false;
+    if (lower.startsWith('sb_secret_')) return true;
+    if (lower.includes('service_role') || lower.includes('service-role') || lower.includes('service role')) return true;
+    if (lower.includes('supabase_service_role')) return true;
+    const jwtRole = getJwtRole(value);
+    return jwtRole === 'service_role' || jwtRole === 'supabase_admin';
+  }
+
+  function getJwtRole(value) {
+    if (!value || value.split('.').length < 2) return '';
+    try {
+      const payload = value.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = payload + '='.repeat((4 - payload.length % 4) % 4);
+      const decoded = JSON.parse(atob(padded));
+      return String(decoded.role || '').toLowerCase();
+    } catch (error) {
+      return '';
+    }
   }
 
   function initSupabase() {
     const config = getSupabaseConfig();
     supabaseState.configured = config.configured;
+    supabaseState.unsafeKey = config.unsafeKey;
+    supabaseState.failed = false;
+    supabaseState.warning = '';
+    if (config.unsafeKey) {
+      supabaseClient = null;
+      supabaseState.ready = false;
+      supabaseState.label = 'Unsafe key detected';
+      supabaseState.warning = 'Unsafe Supabase key detected. Use publishable/anon key only.';
+      return;
+    }
     if (!config.configured) {
+      supabaseClient = null;
       supabaseState.ready = false;
       supabaseState.label = 'Supabase not configured';
       return;
     }
     if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+      supabaseClient = null;
       supabaseState.ready = false;
-      supabaseState.label = 'Supabase library missing';
+      supabaseState.failed = true;
+      supabaseState.label = 'Supabase connection failed';
+      supabaseState.warning = 'Supabase connection failed. The browser client could not initialize.';
       return;
     }
-    supabaseClient = window.supabase.createClient(config.url, config.anonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true
+    try {
+      supabaseClient = window.supabase.createClient(config.url, config.anonKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true
+        }
+      });
+      supabaseState.ready = true;
+      supabaseState.label = 'Logged out';
+    } catch (error) {
+      supabaseClient = null;
+      supabaseState.ready = false;
+      supabaseState.failed = true;
+      supabaseState.label = 'Supabase connection failed';
+      supabaseState.warning = 'Supabase connection failed. Check the project URL and publishable key.';
+    }
+  }
+
+  function setupAuthStateListener() {
+    if (!supabaseClient || !supabaseClient.auth || typeof supabaseClient.auth.onAuthStateChange !== 'function') return;
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        currentUser = null;
+        adminProfile = null;
+        supabaseState.label = 'Logged out';
+        if (document.body.classList.contains('admin-mode')) exitAdminMode();
+        updateTopbar();
+        return;
+      }
+      if (session.user) {
+        await loadAdminProfile(session.user);
+        updateTopbar();
       }
     });
-    supabaseState.ready = true;
-    supabaseState.label = 'Supabase connected';
   }
 
   function readMockDraft() {
@@ -144,6 +223,19 @@
     const registry = getRegistry();
     const title = document.title ? document.title.split('|')[0].trim() : '';
     return `${registry.pageId || 'unknown'} - ${title || pagePath}`;
+  }
+
+  function isLocalFileMode() {
+    return window.location.protocol === 'file:';
+  }
+
+  function getConnectionLabel() {
+    if (supabaseState.unsafeKey) return 'Unsafe key detected';
+    if (supabaseState.failed) return 'Supabase connection failed';
+    if (!supabaseState.configured) return 'Supabase not configured';
+    if (adminProfile && adminProfile.role) return `Supabase connected - ${adminProfile.role}`;
+    if (supabaseState.ready) return currentUser ? 'Supabase connected' : 'Logged out';
+    return supabaseState.label || 'Logged out';
   }
 
   function ensureRoot() {
@@ -331,7 +423,17 @@
       return true;
     }
     if (!supabaseClient) return false;
-    const sessionResult = await supabaseClient.auth.getSession();
+    let sessionResult = null;
+    try {
+      sessionResult = await supabaseClient.auth.getSession();
+    } catch (error) {
+      markConnectionFailed();
+      return false;
+    }
+    if (sessionResult && sessionResult.error) {
+      markConnectionFailed();
+      return false;
+    }
     const session = sessionResult && sessionResult.data ? sessionResult.data.session : null;
     if (!session || !session.user) return false;
     return loadAdminProfile(session.user);
@@ -347,10 +449,12 @@
     if (error || !data || !['owner', 'editor', 'viewer'].includes(data.role)) {
       currentUser = null;
       adminProfile = null;
+      supabaseState.label = 'Logged out';
       return false;
     }
     currentUser = user;
     adminProfile = data;
+    supabaseState.label = `Supabase connected - ${data.role}`;
     return true;
   }
 
@@ -362,6 +466,11 @@
     setLoginError('');
 
     if (!supabaseClient) {
+      if (supabaseState.unsafeKey) {
+        error.textContent = 'Unsafe Supabase key detected. Use publishable/anon key only.';
+        error.classList.add('is-visible');
+        return;
+      }
       if (mockAdminEnabled && email === MOCK_EMAIL && password === MOCK_PASSWORD) {
         localStorage.setItem(MOCK_SESSION_KEY, 'true');
         currentUser = { id: 'mock-user', email };
@@ -378,7 +487,14 @@
     const submit = $('[data-admin-login-form] button[type="submit"]', modal);
     submit.textContent = 'Signing in...';
     submit.disabled = true;
-    const { data, error: authError } = await supabaseClient.auth.signInWithPassword({ email, password });
+    let data = null;
+    let authError = null;
+    try {
+      ({ data, error: authError } = await supabaseClient.auth.signInWithPassword({ email, password }));
+    } catch (error) {
+      authError = error;
+      markConnectionFailed();
+    }
     submit.textContent = 'Enter Admin Mode';
     submit.disabled = false;
     if (authError || !data || !data.user) {
@@ -436,8 +552,10 @@
     const copy = $('[data-admin-login-copy]', modal);
     const submit = $('[data-admin-login-form] button[type="submit"]', modal);
     const warningNeeded = !supabaseClient;
-    warning.hidden = !warningNeeded;
-    warning.textContent = supabaseState.configured ? 'Supabase is configured, but the browser client could not initialize.' : 'Supabase is not configured yet.';
+    const fileMessage = isLocalFileMode() ? 'For best CMS behavior, use Live Server or a deployed URL.' : '';
+    const configMessage = supabaseState.warning || (warningNeeded ? (supabaseState.configured ? 'Supabase is configured, but the browser client could not initialize.' : 'Supabase is not configured yet.') : '');
+    warning.hidden = !configMessage && !fileMessage;
+    warning.textContent = [configMessage, fileMessage].filter(Boolean).join(' ');
     if (mockAdminEnabled) {
       warning.hidden = false;
       warning.textContent = 'Local mock admin fallback is enabled for this URL only.';
@@ -447,7 +565,7 @@
     } else {
       note.textContent = 'Authentication is handled by Supabase. This static site never stores admin passwords.';
       copy.textContent = 'Sign in with Supabase Auth to manage draft and published content.';
-      submit.disabled = !supabaseClient;
+      submit.disabled = !supabaseClient || supabaseState.unsafeKey;
     }
     setLoginError('');
   }
@@ -466,6 +584,7 @@
     applyDraftRows();
     updateTopbar();
     renderPanelEmpty();
+    logCmsDebug('enter-admin-mode');
   }
 
   function exitAdminMode() {
@@ -501,6 +620,7 @@
     if (supabaseClient) await supabaseClient.auth.signOut();
     currentUser = null;
     adminProfile = null;
+    supabaseState.label = supabaseState.ready ? 'Logged out' : supabaseState.label;
     exitAdminMode();
   }
 
@@ -524,8 +644,9 @@
     if (label) label.textContent = currentPageLabel();
     if (counts) counts.textContent = `Unsaved ${unsavedCount} / Drafts ${Object.keys(draftRows).length}`;
     if (connection) {
-      const role = adminProfile && adminProfile.role ? ` - ${adminProfile.role}` : '';
-      connection.innerHTML = `<span class="gv-admin-status-dot ${supabaseClient || mockAdminEnabled ? 'is-online' : ''}"></span>${escapeHtml(mockAdminEnabled && !supabaseClient ? 'Mock admin' : supabaseState.label)}${escapeHtml(role)}`;
+      const online = (supabaseClient && !supabaseState.unsafeKey && !supabaseState.failed) || (mockAdminEnabled && currentUser);
+      const label = mockAdminEnabled && !supabaseClient && currentUser ? 'Mock admin - owner' : getConnectionLabel();
+      connection.innerHTML = `<span class="gv-admin-status-dot ${online ? 'is-online' : ''}"></span>${escapeHtml(label)}`;
     }
     $all('[data-admin-action="mode-preview"], [data-admin-action="mode-edit"]', adminRoot).forEach(button => {
       const isPreview = button.dataset.adminAction === 'mode-preview';
@@ -536,14 +657,19 @@
   function renderPanelEmpty() {
     if (!panel) return;
     const registry = getRegistry();
+    const fileWarning = isLocalFileMode()
+      ? '<div class="gv-admin-warning">For best CMS behavior, use Live Server or a deployed URL.</div>'
+      : '';
     $('[data-admin-panel-title]', panel).textContent = 'Select an editable element';
     $('[data-admin-panel-body]', panel).innerHTML = `
       <p class="gv-admin-empty">Switch to Edit Mode, then select any highlighted text, button, link label, card, or section field.</p>
+      ${fileWarning}
       ${statusMessage ? `<div class="gv-admin-warning">${escapeHtml(statusMessage)}</div>` : ''}
       <div class="gv-admin-meta">
         <div>Page path: <code>${escapeHtml(pagePath)}</code></div>
         <div>Page ID: <code>${escapeHtml(registry.pageId || 'unknown')}</code></div>
         <div>Editable fields: <code>${registry.keys().length}</code></div>
+        <div>Connection: <code>${escapeHtml(getConnectionLabel())}</code></div>
         <div>Saved drafts: <code>${Object.keys(draftRows).length}</code></div>
         <div>Sections: <code>${registry.sections.length}</code></div>
       </div>
@@ -671,9 +797,17 @@
   }
 
   async function saveSelectedDraft() {
+    if (saveInFlight) return;
     if (!selectedElement) return;
     const input = $('#gvAdminFieldValue', panel);
     if (!input) return;
+    saveInFlight = true;
+    const saveButton = $('[data-admin-action="apply-temp"]', panel);
+    if (saveButton) saveButton.disabled = true;
+    const finishSave = () => {
+      saveInFlight = false;
+      if (saveButton) saveButton.disabled = false;
+    };
     const value = sanitizeText(input.value);
     const key = selectedElement.dataset.editKey;
     const note = $('[data-admin-save-state]', panel);
@@ -690,27 +824,36 @@
       setSaveState(note, 'Draft saved locally in mock mode.');
       updateTopbar();
       renderInspector(selectedElement);
+      finishSave();
       return;
     }
 
     if (!supabaseClient || !currentUser || !adminProfile || !['owner', 'editor'].includes(adminProfile.role)) {
       unsavedCount = 0;
-      setSaveState(note, 'Save failed. Supabase admin access is required.');
+      setSaveState(note, adminProfile && adminProfile.role === 'viewer' ? 'Save failed. Viewers can inspect but cannot save drafts.' : 'Save failed. Supabase admin access is required.');
       updateTopbar();
+      finishSave();
       return;
     }
 
     const payload = makeContentPayload(selectedElement, value, 'draft');
-    const { data, error } = await supabaseClient
-      .from('cms_content')
-      .upsert(payload, { onConflict: 'page_path,edit_key,status' })
-      .select()
-      .single();
+    let data = null;
+    let error = null;
+    try {
+      ({ data, error } = await supabaseClient
+        .from('cms_content')
+        .upsert(payload, { onConflict: 'page_path,edit_key,status' })
+        .select()
+        .single());
+    } catch (caught) {
+      error = caught;
+    }
 
     unsavedCount = 0;
     if (error) {
       setSaveState(note, 'Save failed. Check Supabase policies and schema.');
       updateTopbar();
+      finishSave();
       return;
     }
     draftRows[key] = data || payload;
@@ -718,6 +861,7 @@
     setSaveState(note, 'Draft saved.');
     updateTopbar();
     renderInspector(selectedElement);
+    finishSave();
   }
 
   function setSaveState(note, value) {
@@ -755,9 +899,17 @@
   }
 
   async function resetSelectedField() {
+    if (resetInFlight) return;
     if (!selectedElement) return;
     const key = selectedElement.dataset.editKey;
     if (!window.confirm('Reset this field draft? Published content will not be deleted.')) return;
+    resetInFlight = true;
+    const resetButton = $('[data-admin-action="reset-field"]', panel);
+    if (resetButton) resetButton.disabled = true;
+    const finishReset = () => {
+      resetInFlight = false;
+      if (resetButton) resetButton.disabled = false;
+    };
 
     if (mockAdminEnabled && !supabaseClient) {
       delete mockDraft[key];
@@ -766,22 +918,45 @@
       restoreSelectedFromPublishedOrOriginal(key);
       renderInspector(selectedElement);
       updateTopbar();
+      finishReset();
       return;
     }
 
     if (supabaseClient && currentUser && adminProfile && ['owner', 'editor'].includes(adminProfile.role)) {
-      await supabaseClient
-        .from('cms_content')
-        .delete()
-        .eq('page_path', pagePath)
-        .eq('edit_key', key)
-        .eq('status', 'draft');
-      await insertAuditLog('reset_draft', key, draftRows[key]?.value_text || '', publishedRows[key]?.value_text || originalValues[key] || '');
+      try {
+        const { error } = await supabaseClient
+          .from('cms_content')
+          .delete()
+          .eq('page_path', pagePath)
+          .eq('edit_key', key)
+          .eq('status', 'draft');
+        if (error) {
+          statusMessage = 'Reset failed. Check Supabase policies and schema.';
+          renderInspector(selectedElement);
+          updateTopbar();
+          finishReset();
+          return;
+        }
+        await insertAuditLog('reset_draft', key, draftRows[key]?.value_text || '', publishedRows[key]?.value_text || originalValues[key] || '');
+      } catch (error) {
+        statusMessage = 'Reset failed. Supabase connection failed.';
+        renderInspector(selectedElement);
+        updateTopbar();
+        finishReset();
+        return;
+      }
+    } else if (adminProfile && adminProfile.role === 'viewer') {
+      statusMessage = 'Reset failed. Viewers can inspect but cannot delete drafts.';
+      renderInspector(selectedElement);
+      updateTopbar();
+      finishReset();
+      return;
     }
     delete draftRows[key];
     restoreSelectedFromPublishedOrOriginal(key);
     renderInspector(selectedElement);
     updateTopbar();
+    finishReset();
   }
 
   function restoreSelectedFromPublishedOrOriginal(key) {
@@ -792,14 +967,24 @@
 
   async function loadPublishedEdits() {
     if (!supabaseClient) return;
-    const { data, error } = await supabaseClient
-      .from('cms_content')
-      .select('page_path,page_id,edit_key,edit_type,section_id,section_type,value_text,value_json,status,version,updated_at')
-      .eq('page_path', pagePath)
-      .eq('status', 'published');
-    if (error || !Array.isArray(data)) return;
-    publishedRows = indexRows(data);
-    data.forEach(applyRowToElement);
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_content')
+        .select('page_path,page_id,edit_key,edit_type,section_id,section_type,value_text,value_json,status,version,updated_at')
+        .eq('page_path', pagePath)
+        .eq('status', 'published');
+      if (error || !Array.isArray(data)) {
+        publishedRowsLoadedCount = 0;
+        if (error) markConnectionFailed();
+        return;
+      }
+      publishedRows = indexRows(data);
+      publishedRowsLoadedCount = data.length;
+      data.forEach(applyRowToElement);
+    } catch (error) {
+      publishedRowsLoadedCount = 0;
+      markConnectionFailed();
+    }
   }
 
   async function loadDraftEdits() {
@@ -809,16 +994,52 @@
         const element = document.querySelector(`[data-edit-key="${cssEscape(key)}"]`);
         if (element) draftRows[key] = makeLocalDraftRow(element, value);
       });
+      draftRowsLoadedCount = Object.keys(draftRows).length;
       return;
     }
     if (!supabaseClient || !currentUser || !adminProfile) return;
-    const { data, error } = await supabaseClient
-      .from('cms_content')
-      .select('page_path,page_id,edit_key,edit_type,section_id,section_type,value_text,value_json,status,version,updated_at')
-      .eq('page_path', pagePath)
-      .eq('status', 'draft');
-    if (error || !Array.isArray(data)) return;
-    draftRows = indexRows(data);
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_content')
+        .select('page_path,page_id,edit_key,edit_type,section_id,section_type,value_text,value_json,status,version,updated_at')
+        .eq('page_path', pagePath)
+        .eq('status', 'draft');
+      if (error || !Array.isArray(data)) {
+        draftRowsLoadedCount = 0;
+        if (error) markConnectionFailed();
+        return;
+      }
+      draftRows = indexRows(data);
+      draftRowsLoadedCount = data.length;
+    } catch (error) {
+      draftRowsLoadedCount = 0;
+      markConnectionFailed();
+    }
+  }
+
+  function markConnectionFailed() {
+    supabaseState.failed = true;
+    supabaseState.ready = false;
+    supabaseState.label = 'Supabase connection failed';
+    supabaseState.warning = 'Supabase connection failed. Check the project URL, publishable key, and RLS policies.';
+  }
+
+  function logCmsDebug(context) {
+    if (!cmsDebug) return;
+    const registry = getRegistry();
+    console.info('[GROWVA CMS Debug]', {
+      context,
+      page_path: pagePath,
+      page_id: registry.pageId || 'unknown',
+      editable_fields_count: registry.keys().length,
+      supabase_configured: supabaseState.configured,
+      unsafe_key_detected: supabaseState.unsafeKey,
+      connection_status: getConnectionLabel(),
+      current_role: adminProfile ? adminProfile.role : null,
+      published_rows_loaded_count: publishedRowsLoadedCount,
+      draft_rows_loaded_count: draftRowsLoadedCount,
+      file_protocol: isLocalFileMode()
+    });
   }
 
   function applyDraftRows() {
@@ -833,37 +1054,68 @@
   }
 
   async function publishCurrentPage() {
+    if (publishInFlight) return;
+    publishInFlight = true;
+    const publishButton = adminRoot ? $('[data-admin-action="publish-page"]', adminRoot) : null;
+    if (publishButton) {
+      publishButton.disabled = true;
+      publishButton.textContent = 'Publishing...';
+    }
+    const finishPublish = () => {
+      publishInFlight = false;
+      if (publishButton) {
+        publishButton.disabled = false;
+        publishButton.textContent = 'Publish';
+      }
+    };
     if (mockAdminEnabled && !supabaseClient) {
-      if (!window.confirm('Publish all draft changes for this page?')) return;
+      if (!window.confirm('Publish all draft changes for this page only?')) {
+        finishPublish();
+        return;
+      }
       publishedRows = Object.assign({}, publishedRows, draftRows);
       statusMessage = `Published ${Object.keys(draftRows).length} mock changes.`;
       renderPanelEmpty();
+      finishPublish();
       return;
     }
     if (!supabaseClient || !currentUser || !adminProfile) {
       statusMessage = 'Publish failed. Supabase admin access is required.';
       renderPanelEmpty();
+      finishPublish();
       return;
     }
     if (adminProfile.role !== 'owner') {
-      statusMessage = 'Only owners can publish.';
+      statusMessage = adminProfile.role === 'editor' ? 'Publish failed. Editors can save drafts, but only owners can publish.' : 'Publish failed. Only owners can publish.';
       renderPanelEmpty();
+      finishPublish();
       return;
     }
-    if (!window.confirm('Publish all draft changes for this page?')) return;
-    const { data: drafts, error } = await supabaseClient
-      .from('cms_content')
-      .select('*')
-      .eq('page_path', pagePath)
-      .eq('status', 'draft');
+    if (!window.confirm('Publish all draft changes for this page only?')) {
+      finishPublish();
+      return;
+    }
+    let drafts = null;
+    let error = null;
+    try {
+      ({ data: drafts, error } = await supabaseClient
+        .from('cms_content')
+        .select('*')
+        .eq('page_path', pagePath)
+        .eq('status', 'draft'));
+    } catch (caught) {
+      error = caught;
+    }
     if (error || !Array.isArray(drafts)) {
       statusMessage = 'Publish failed while loading drafts.';
       renderPanelEmpty();
+      finishPublish();
       return;
     }
     if (!drafts.length) {
       statusMessage = 'No draft changes to publish.';
       renderPanelEmpty();
+      finishPublish();
       return;
     }
     const publishedPayload = drafts.map(row => ({
@@ -880,37 +1132,53 @@
       updated_by: currentUser.id,
       updated_at: new Date().toISOString()
     }));
-    const { data: published, error: publishError } = await supabaseClient
-      .from('cms_content')
-      .upsert(publishedPayload, { onConflict: 'page_path,edit_key,status' })
-      .select();
+    let published = null;
+    let publishError = null;
+    try {
+      ({ data: published, error: publishError } = await supabaseClient
+        .from('cms_content')
+        .upsert(publishedPayload, { onConflict: 'page_path,edit_key,status' })
+        .select());
+    } catch (caught) {
+      publishError = caught;
+    }
     if (publishError) {
       statusMessage = 'Publish failed. Check owner role and RLS policies.';
       renderPanelEmpty();
+      finishPublish();
       return;
     }
-    await supabaseClient.from('cms_publish_log').insert({
-      page_path: pagePath,
-      published_by: currentUser.id,
-      published_count: publishedPayload.length
-    });
+    try {
+      await supabaseClient.from('cms_publish_log').insert({
+        page_path: pagePath,
+        published_by: currentUser.id,
+        published_count: publishedPayload.length
+      });
+    } catch (error) {
+      // Publishing succeeded; log write is best-effort and also protected by RLS.
+    }
     publishedRows = indexRows(published || publishedPayload);
     publishedPayload.forEach(applyRowToElement);
     statusMessage = `Published ${publishedPayload.length} changes.`;
     updateTopbar();
     renderPanelEmpty();
+    finishPublish();
   }
 
   async function insertAuditLog(action, key, oldValue, newValue) {
     if (!supabaseClient || !currentUser) return;
-    await supabaseClient.from('cms_audit_log').insert({
-      action,
-      page_path: pagePath,
-      edit_key: key,
-      old_value: oldValue,
-      new_value: newValue,
-      user_id: currentUser.id
-    });
+    try {
+      await supabaseClient.from('cms_audit_log').insert({
+        action,
+        page_path: pagePath,
+        edit_key: key,
+        old_value: oldValue,
+        new_value: newValue,
+        user_id: currentUser.id
+      });
+    } catch (error) {
+      // Audit logging is best-effort on the client; RLS remains the source of truth.
+    }
   }
 
   function scrollToSection(sectionId) {
@@ -961,7 +1229,9 @@
     bindEntryEvents();
     captureOriginalValues();
     initSupabase();
+    setupAuthStateListener();
     await loadPublishedEdits();
+    logCmsDebug('boot');
     if (await hasActiveAdminSession()) ensureRoot();
   }
 
