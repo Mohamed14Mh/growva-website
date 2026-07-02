@@ -155,6 +155,12 @@
     }
     try {
       supabaseClient = window.supabase.createClient(config.url, config.anonKey, {
+        global: {
+          fetch: (input, init = {}) => {
+            const method = String(init.method || (input && input.method) || 'GET').toUpperCase();
+            return fetch(input, Object.assign({}, init, { cache: method === 'GET' || method === 'HEAD' ? 'no-store' : init.cache }));
+          }
+        },
         auth: {
           persistSession: true,
           autoRefreshToken: true,
@@ -500,7 +506,17 @@
       markConnectionFailed();
       return false;
     }
-    const session = sessionResult && sessionResult.data ? sessionResult.data.session : null;
+    let session = sessionResult && sessionResult.data ? sessionResult.data.session : null;
+    for (let attempt = 0; !session && attempt < 6; attempt += 1) {
+      await new Promise(resolve => setTimeout(resolve, 250));
+      try {
+        sessionResult = await supabaseClient.auth.getSession();
+        session = sessionResult && sessionResult.data ? sessionResult.data.session : null;
+      } catch (error) {
+        markConnectionFailed();
+        return false;
+      }
+    }
     if (!session || !session.user) return false;
     return loadAdminProfile(session.user);
   }
@@ -625,7 +641,8 @@
       const { data, error } = await supabaseClient
         .from('cms_audit_log')
         .select('action,page_path,edit_key,old_value,new_value,user_id,created_at')
-        .eq('page_path', pagePath);
+        .eq('page_path', pagePath)
+        .lt('created_at', cmsFreshReadCutoff());
       if (error || !Array.isArray(data)) return [];
       return data.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))).slice(0, 30);
     } catch (error) {
@@ -640,7 +657,8 @@
       const { data, error } = await supabaseClient
         .from('cms_publish_log')
         .select('page_path,published_by,published_count,created_at')
-        .eq('page_path', pagePath);
+        .eq('page_path', pagePath)
+        .lt('created_at', cmsFreshReadCutoff());
       if (error || !Array.isArray(data)) return [];
       return data.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))).slice(0, 10);
     } catch (error) {
@@ -804,6 +822,10 @@
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return String(value);
     return date.toLocaleString();
+  }
+
+  function cmsFreshReadCutoff() {
+    return new Date(Date.now() + 86400000).toISOString();
   }
 
   function getElementByEditKey(key) {
@@ -1421,7 +1443,8 @@
         .from('cms_content')
         .select('page_path,page_id,edit_key,edit_type,section_id,section_type,value_text,value_json,status,version,updated_at')
         .eq('page_path', pagePath)
-        .eq('status', 'published');
+        .eq('status', 'published')
+        .lt('created_at', cmsFreshReadCutoff());
       if (error || !Array.isArray(data)) {
         publishedRowsLoadedCount = 0;
         if (error) markConnectionFailed();
@@ -1452,7 +1475,8 @@
         .from('cms_content')
         .select('page_path,page_id,edit_key,edit_type,section_id,section_type,value_text,value_json,status,version,updated_at')
         .eq('page_path', pagePath)
-        .eq('status', 'draft');
+        .eq('status', 'draft')
+        .lt('created_at', cmsFreshReadCutoff());
       if (error || !Array.isArray(data)) {
         draftRowsLoadedCount = 0;
         if (error) markConnectionFailed();
@@ -1536,7 +1560,8 @@
         .from('cms_content')
         .select('*')
         .eq('page_path', pagePath)
-        .eq('status', 'draft'));
+        .eq('status', 'draft')
+        .lt('created_at', cmsFreshReadCutoff()));
     } catch (caught) {
       error = caught;
     }
@@ -1757,7 +1782,10 @@
     setupAuthStateListener();
     await loadPublishedEdits();
     logCmsDebug('boot');
-    if (await hasActiveAdminSession()) ensureRoot();
+    if (await hasActiveAdminSession()) {
+      await loadPublishedEdits();
+      await enterAdminMode();
+    }
   }
 
   if (document.readyState === 'loading') {
