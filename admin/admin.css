@@ -48,6 +48,40 @@
 body.admin-mode{--gv-admin-topbar-height:58px;}
 body.admin-mode .gv-admin-topbar{transform:translate(-50%,0);opacity:1;pointer-events:auto;}
 
+body.admin-mode .cursor-dot,
+body.admin-mode .cursor-ring,
+body.admin-mode .custom-cursor,
+body.admin-mode .cursor,
+body.admin-mode [data-cursor]{
+  display:none!important;
+  opacity:0!important;
+  visibility:hidden!important;
+}
+body.admin-mode,
+body.admin-mode *{
+  cursor:auto!important;
+}
+body.admin-mode button,
+body.admin-mode a,
+body.admin-mode [role="button"],
+body.admin-mode [data-admin-action],
+body.admin-mode [data-admin-entry],
+body.admin-mode .gv-admin-root button,
+body.admin-mode .gv-admin-section-btn{
+  cursor:pointer!important;
+}
+body.admin-mode input,
+body.admin-mode textarea,
+body.admin-mode select,
+body.admin-mode [contenteditable="true"],
+body.admin-edit-mode [data-edit-key]{
+  cursor:text!important;
+}
+body.admin-mode button:disabled,
+body.admin-mode [aria-disabled="true"]{
+  cursor:not-allowed!important;
+}
+
 .gv-admin-root,
 .gv-admin-root *{box-sizing:border-box;}
 .gv-admin-root{
@@ -443,9 +477,7 @@ body.admin-edit-mode [data-section-type]:hover{
   outline:1px solid rgba(177,250,32,.42);
   outline-offset:4px;
 }
-body.admin-edit-mode [data-edit-key]{
-  cursor:crosshair;
-}
+body.admin-edit-mode [data-edit-key]{cursor:text!important;}
 body.admin-edit-mode [data-edit-key]:hover,
 body.admin-edit-mode [data-edit-key].gv-admin-selected{
   outline:1px solid rgba(177,250,32,.75);

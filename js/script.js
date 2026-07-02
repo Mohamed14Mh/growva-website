@@ -175,14 +175,30 @@ document.addEventListener('DOMContentLoaded', () => {
     let mx = window.innerWidth / 2, my = window.innerHeight / 2;
     let rx = mx, ry = my;
     let magnetEl = null; // currently hovered [data-hover] element
+    const isAdminMode = () => document.body.classList.contains('admin-mode');
+    const isAdminTarget = target => Boolean(target && target.closest && target.closest('[data-admin-ui], .gv-admin-root, .admin-shell, .growva-admin, .admin-panel'));
+    const clearAdminCursorState = () => {
+      ring.classList.remove('hovered', 'has-label');
+      delete ring.dataset.label;
+      magnetEl = null;
+    };
 
     window.addEventListener('mousemove', e => {
+      if (isAdminMode() || isAdminTarget(e.target)) {
+        clearAdminCursorState();
+        return;
+      }
       mx = e.clientX; my = e.clientY;
       dot.style.left = mx + 'px'; dot.style.top = my + 'px';
     });
 
     (function tick() {
       if (!window._rafPaused) {
+        if (isAdminMode()) {
+          clearAdminCursorState();
+          requestAnimationFrame(tick);
+          return;
+        }
         if (magnetEl) {
           // Pull ring partway toward the element's center — the magnetic feel
           const r = magnetEl.getBoundingClientRect();
@@ -203,12 +219,17 @@ document.addEventListener('DOMContentLoaded', () => {
     })();
 
     document.querySelectorAll('[data-hover]').forEach(el => {
-      el.addEventListener('mouseenter', () => { ring.classList.add('hovered'); magnetEl = el; });
+      el.addEventListener('mouseenter', event => {
+        if (isAdminMode() || isAdminTarget(event.target)) return;
+        ring.classList.add('hovered');
+        magnetEl = el;
+      });
       el.addEventListener('mouseleave', () => { ring.classList.remove('hovered'); magnetEl = null; });
     });
 
     document.querySelectorAll('[data-cursor-text]').forEach(el => {
-      el.addEventListener('mouseenter', () => {
+      el.addEventListener('mouseenter', event => {
+        if (isAdminMode() || isAdminTarget(event.target)) return;
         ring.classList.add('has-label');
         ring.dataset.label = el.dataset.cursorText || '';
       });
@@ -1199,6 +1220,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.addEventListener('click', e => {
+      if (e.target.closest('[data-admin-ui], .gv-admin-root, .admin-shell, .growva-admin, .admin-panel, [data-admin-entry]')) return;
       const link = e.target.closest('a[href]');
       if (!link) return;
       const href = link.getAttribute('href');
@@ -1236,12 +1258,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!window.matchMedia('(hover: hover)').matches || !window.gsap) return;
     document.querySelectorAll('.btn-primary, .btn-ghost, .btn-nav').forEach(btn => {
       btn.addEventListener('mousemove', e => {
+        if (document.body.classList.contains('admin-mode') || e.target.closest('[data-admin-ui], .gv-admin-root, .admin-shell, .growva-admin, .admin-panel')) return;
         const r = btn.getBoundingClientRect();
         const x = ((e.clientX - r.left) / r.width  - 0.5) * 2;
         const y = ((e.clientY - r.top)  / r.height - 0.5) * 2;
         gsap.to(btn, { x: x * 9, y: y * 5, duration: 0.32, ease: 'power2.out', overwrite: 'auto' });
       });
       btn.addEventListener('mouseleave', () => {
+        if (document.body.classList.contains('admin-mode')) return;
         gsap.to(btn, { x: 0, y: 0, duration: 0.75, ease: 'elastic.out(1,0.4)', overwrite: 'auto' });
       });
     });
@@ -1256,6 +1280,7 @@ document.addEventListener('DOMContentLoaded', () => {
       s.setAttribute('aria-hidden', 'true');
       el.insertBefore(s, el.firstChild);
       el.addEventListener('mousemove', e => {
+        if (document.body.classList.contains('admin-mode')) return;
         const r = el.getBoundingClientRect();
         el.style.setProperty('--sl-x', (e.clientX - r.left) + 'px');
         el.style.setProperty('--sl-y', (e.clientY - r.top)  + 'px');
@@ -1276,6 +1301,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll(SEL).forEach(card => {
       card.classList.add('has-tilt');
       card.addEventListener('mousemove', e => {
+        if (document.body.classList.contains('admin-mode')) return;
         const r = card.getBoundingClientRect();
         const x = (e.clientX - r.left) / r.width  - 0.5;
         const y = (e.clientY - r.top)  / r.height - 0.5;
@@ -1283,6 +1309,7 @@ document.addEventListener('DOMContentLoaded', () => {
         card.style.setProperty('--tilt-y', ( x * 11) + 'deg');
       });
       card.addEventListener('mouseleave', () => {
+        if (document.body.classList.contains('admin-mode')) return;
         card.style.setProperty('--tilt-x', '0deg');
         card.style.setProperty('--tilt-y', '0deg');
       });

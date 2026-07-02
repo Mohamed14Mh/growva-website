@@ -151,6 +151,7 @@
     adminRoot = document.createElement('div');
     adminRoot.className = 'gv-admin-root';
     adminRoot.dataset.adminUi = 'true';
+    adminRoot.setAttribute('data-lenis-prevent', '');
     document.body.appendChild(adminRoot);
     buildModal();
     buildTopbar();
@@ -459,6 +460,7 @@
     ensureRoot();
     document.body.classList.add('admin-mode', 'admin-preview-mode');
     document.body.classList.remove('admin-edit-mode');
+    setAdminInteractionIsolation(true);
     mode = 'preview';
     await loadDraftEdits();
     applyDraftRows();
@@ -469,7 +471,29 @@
   function exitAdminMode() {
     clearSelection();
     document.body.classList.remove('admin-mode', 'admin-edit-mode', 'admin-preview-mode');
+    setAdminInteractionIsolation(false);
     mode = 'preview';
+  }
+
+  function setAdminInteractionIsolation(active) {
+    $all('.cursor-dot, .cursor-ring, .custom-cursor, .cursor, [data-cursor]').forEach(cursor => {
+      cursor.classList.remove('hovered', 'has-label');
+      delete cursor.dataset.label;
+      cursor.setAttribute('aria-hidden', active ? 'true' : cursor.getAttribute('aria-hidden') || 'true');
+    });
+    if (active && window.gsap) {
+      window.gsap.set('.btn-primary, .btn-ghost, .btn-nav, .has-tilt', {
+        x: 0,
+        y: 0,
+        clearProps: 'transform'
+      });
+    }
+    if (active) {
+      $all('.has-tilt').forEach(card => {
+        card.style.setProperty('--tilt-x', '0deg');
+        card.style.setProperty('--tilt-y', '0deg');
+      });
+    }
   }
 
   async function logout() {
