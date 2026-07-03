@@ -148,6 +148,11 @@
   let customSectionEditorId = null;
   let customMediaPicker = null;
   let customMediaPickerSearch = '';
+  // Phase 13 state
+  let visitorPreviewMode = false;
+  let visitorPreviewType = 'published';
+  let auditFilter = 'all';
+  let draftCompareExpanded = null;
 
   // ── Phase 12: Role helpers ────────────────────────────────────────────────
 
@@ -533,6 +538,7 @@
         <span class="gv-admin-state" data-admin-counts>Unsaved 0 / Drafts 0</span>
         <span class="gv-admin-state" data-admin-connection><span class="gv-admin-status-dot"></span>Offline</span>
         <button class="gv-admin-action" type="button" data-admin-action="toggle-safe-mode" data-admin-safe-mode-btn>Safe Mode: ON</button>
+        <button class="gv-admin-action" type="button" data-admin-action="enter-visitor-preview">Preview as Visitor</button>
         <button class="gv-admin-action" type="button" data-admin-action="open-dashboard">CMS Dashboard</button>
         <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="publish-page">Publish</button>
         <button class="gv-admin-action" type="button" data-admin-action="exit-admin">Exit Admin</button>
@@ -950,6 +956,7 @@
     if (!dashboard || dashboard.hidden) return;
     const tabs = [
       ['overview', 'Overview'],
+      ['compare', 'Draft Compare'],
       ['drafts', 'Current Page Drafts'],
       ['published', 'Published Content'],
       ['audit', 'Revision / Audit Log'],
@@ -970,6 +977,7 @@
   }
 
   function renderDashboardTab() {
+    if (dashboardTab === 'compare') return renderDraftCompareTab();
     if (dashboardTab === 'drafts') return renderDraftRows();
     if (dashboardTab === 'published') return renderPublishedRows();
     if (dashboardTab === 'audit') return renderAuditRows();
@@ -985,6 +993,7 @@
   function renderOverviewTab() {
     const registry = getRegistry();
     const lastPublish = dashboardPublishRows[0]?.created_at || 'No publish log yet';
+    const staleCount = getStaleDraftCount();
     return `
       <div class="gv-admin-dashboard-grid">
         ${renderMetricCard('Page path', pagePath)}
@@ -997,6 +1006,7 @@
         ${renderMetricCard('Supabase', getConnectionLabel())}
         ${renderMetricCard('Unsafe key', supabaseState.unsafeKey ? 'Yes' : 'No')}
       </div>
+      ${staleCount > 0 ? `<div class="gv-admin-stale-warning">⚠ ${staleCount} draft(s) are older than 7 days. Review carefully before publishing. <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="dashboard-tab" data-dashboard-tab="compare">View Draft Compare</button></div>` : ''}
       ${isLocalFileMode() ? '<div class="gv-admin-warning">For best CMS behavior, use Live Server or a deployed URL.</div>' : ''}
     `;
   }
@@ -1059,21 +1069,49 @@
   }
 
   function renderAuditRows() {
+    const filters = ['all', 'page', 'content', 'media', 'visual', 'builder', 'publish'];
+    const actionGroupMap = {
+      page: ['page-load', 'enter-admin-mode', 'exit-admin-mode'],
+      content: ['save-draft', 'reset-draft', 'undo-draft'],
+      media: ['upload-media', 'update-media', 'archive-media', 'delete-media'],
+      visual: ['save-token-draft', 'publish-visuals', 'save-element-style-draft', 'save-section-draft'],
+      builder: ['add-section', 'edit-section', 'delete-section', 'duplicate-section', 'save-section'],
+      publish: ['publish', 'publish-page'],
+    };
+    const filterBtns = filters.map(f => `
+      <button class="gv-admin-audit-filter-btn${auditFilter === f ? ' is-active' : ''}" type="button" data-admin-action="audit-filter" data-filter="${f}">${f.charAt(0).toUpperCase() + f.slice(1)}</button>
+    `).join('');
+    let rows = dashboardAuditRows;
+    if (auditFilter !== 'all') {
+      const group = actionGroupMap[auditFilter] || [];
+      rows = rows.filter(row => {
+        const action = (row.action || '').toLowerCase();
+        return group.some(g => action.includes(g));
+      });
+    }
+    const rowsHtml = rows.length
+      ? rows.map(row => {
+          const actionLabel = (row.action || 'audit').replace(/-/g, ' ');
+          const badgeClass = (row.action || '').includes('publish') ? 'gv-admin-badge--ok'
+            : (row.action || '').includes('delete') || (row.action || '').includes('archive') ? 'gv-admin-badge--danger'
+            : 'gv-admin-badge';
+          return `
+            <article class="gv-admin-content-row">
+              <div>
+                <strong><span class="${badgeClass}">${escapeHtml(actionLabel)}</span> ${escapeHtml(row.edit_key || 'page')}</strong>
+                <span>${escapeHtml(formatDate(row.created_at || ''))}</span>
+                ${row.old_value ? `<p><b>Old:</b> ${escapeHtml((row.old_value || '').slice(0, 90))}</p>` : ''}
+                ${row.new_value ? `<p><b>New:</b> ${escapeHtml((row.new_value || '').slice(0, 120))}</p>` : ''}
+                <small>${escapeHtml(row.email || row.user_id || 'unknown user')}</small>
+              </div>
+            </article>
+          `;
+        }).join('')
+      : `<p class="gv-admin-empty">No audit entries match this filter.</p>`;
     if (!dashboardAuditRows.length) return '<p class="gv-admin-empty">No audit history yet.</p>';
     return `
-      <div class="gv-admin-row-list">
-        ${dashboardAuditRows.map(row => `
-          <article class="gv-admin-content-row">
-            <div>
-              <strong>${escapeHtml(row.action || 'audit')}</strong>
-              <span>${escapeHtml(row.edit_key || 'page')} / ${escapeHtml(formatDate(row.created_at || ''))}</span>
-              <p><b>Old:</b> ${escapeHtml((row.old_value || '').slice(0, 90) || 'None')}</p>
-              <p><b>New:</b> ${escapeHtml((row.new_value || '').slice(0, 120) || 'None')}</p>
-              <small>${escapeHtml(row.user_id || 'unknown user')}</small>
-            </div>
-          </article>
-        `).join('')}
-      </div>
+      <div class="gv-admin-audit-filters">${filterBtns}</div>
+      <div class="gv-admin-row-list">${rowsHtml}</div>
     `;
   }
 
@@ -1390,6 +1428,25 @@
     if (action === 'builder-refresh-media') refreshCustomMediaPicker();
     if (action === 'builder-select-media') selectCustomSectionMedia(actionElement);
     if (action === 'builder-remove-image') removeCustomSectionImage(actionElement);
+
+    // Phase 13 actions
+    if (action === 'enter-visitor-preview') enterVisitorPreview(actionElement.dataset.previewType || 'published');
+    if (action === 'exit-visitor-preview') exitVisitorPreview();
+    if (action === 'visitor-preview-type') {
+      visitorPreviewType = actionElement.dataset.previewType || 'published';
+      exitVisitorPreview();
+      enterVisitorPreview(visitorPreviewType);
+    }
+    if (action === 'compare-reset-draft') resetDraftToPublished(actionElement.dataset.editKey);
+    if (action === 'compare-expand') {
+      const ek = actionElement.dataset.editKey;
+      draftCompareExpanded = draftCompareExpanded === ek ? null : ek;
+      renderDashboard();
+    }
+    if (action === 'audit-filter') {
+      auditFilter = actionElement.dataset.filter || 'all';
+      renderDashboard();
+    }
   }
 
   function openModal() {
@@ -2105,6 +2162,7 @@
           </div>
         </div>
         <div class="gv-admin-warning">Publishing affects only this page. Global token publish is separate.</div>
+        ${getStaleDraftCount() > 0 ? `<div class="gv-admin-stale-warning">⚠ ${getStaleDraftCount()} draft(s) are older than 7 days. <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="dashboard-tab" data-dashboard-tab="compare">View Draft Compare</button></div>` : ''}
       </div>
       <div class="gv-admin-row-list gv-admin-row-list--compact">
         ${pendingPublishRows.map(row => `
@@ -5299,6 +5357,207 @@
       unsavedVisualCount,
       ...extra
     });
+  }
+
+  // ── Phase 13: Live Content Preview Mode + Revision History + Undo Draft ──
+
+  function isDraftStale(row) {
+    if (!row || !row.updated_at) return false;
+    const updated = new Date(row.updated_at);
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    return updated < sevenDaysAgo;
+  }
+
+  function getStaleDraftCount() {
+    let count = 0;
+    for (const row of dashboardDraftRows) { if (isDraftStale(row)) count++; }
+    for (const key of Object.keys(designTokenDrafts)) {
+      const row = designTokenDrafts[key];
+      if (isDraftStale(row)) count++;
+    }
+    for (const key of Object.keys(sectionSettingsDrafts)) {
+      const row = sectionSettingsDrafts[key];
+      if (isDraftStale(row)) count++;
+    }
+    for (const key of Object.keys(elementStyleDrafts)) {
+      const row = elementStyleDrafts[key];
+      if (isDraftStale(row)) count++;
+    }
+    return count;
+  }
+
+  function enterVisitorPreview(type) {
+    visitorPreviewType = type || 'published';
+    visitorPreviewMode = true;
+    document.body.classList.add('admin-visitor-preview');
+    const existing = document.getElementById('gv-exit-preview-btn');
+    if (existing) existing.remove();
+    const btn = document.createElement('button');
+    btn.id = 'gv-exit-preview-btn';
+    btn.type = 'button';
+    btn.className = 'gv-admin-exit-preview';
+    btn.textContent = 'Exit Preview';
+    btn.setAttribute('data-admin-action', 'exit-visitor-preview');
+    document.body.appendChild(btn);
+    const bar = document.createElement('div');
+    bar.id = 'gv-preview-bar';
+    bar.className = 'gv-admin-visitor-preview-bar';
+    bar.textContent = visitorPreviewType === 'draft' ? 'Previewing: Draft state' : 'Previewing: Published state';
+    document.body.appendChild(bar);
+    if (visitorPreviewType === 'draft') {
+      applyDraftRows();
+    } else {
+      applyPublishedEdits && applyPublishedEdits();
+    }
+    logCmsDebug('enter-visitor-preview', { type: visitorPreviewType });
+  }
+
+  function exitVisitorPreview() {
+    visitorPreviewMode = false;
+    document.body.classList.remove('admin-visitor-preview');
+    const btn = document.getElementById('gv-exit-preview-btn');
+    if (btn) btn.remove();
+    const bar = document.getElementById('gv-preview-bar');
+    if (bar) bar.remove();
+    applyDraftRows();
+    logCmsDebug('exit-visitor-preview');
+  }
+
+  function renderDraftCompareTab() {
+    const contentRows = dashboardDraftRows;
+    const tokenKeys = Object.keys(designTokenDrafts);
+    const sectionKeys = Object.keys(sectionSettingsDrafts);
+    const elementKeys = Object.keys(elementStyleDrafts);
+    const totalDrafts = contentRows.length + tokenKeys.length + sectionKeys.length + elementKeys.length;
+    if (!totalDrafts) {
+      return '<p class="gv-admin-empty">No drafts on this page to compare.</p>';
+    }
+    const staleCount = getStaleDraftCount();
+    const staleWarn = staleCount > 0
+      ? `<div class="gv-admin-stale-warning">⚠ ${staleCount} draft(s) are older than 7 days and may be stale.</div>`
+      : '';
+    const contentHtml = contentRows.length
+      ? `<h3 class="gv-admin-section-title">Content / Text (${contentRows.length})</h3>
+         <div class="gv-admin-row-list">${contentRows.map(row => renderCompareContentRow(row)).join('')}</div>`
+      : '';
+    const tokenHtml = tokenKeys.length
+      ? `<h3 class="gv-admin-section-title">Visual Tokens (${tokenKeys.length})</h3>
+         <div class="gv-admin-row-list">${tokenKeys.map(key => {
+           const row = designTokenDrafts[key];
+           const pubRow = designTokenPublished[key];
+           const stale = isDraftStale(row) ? '<span class="gv-admin-stale-badge">stale</span>' : '';
+           const draftVal = escapeHtml(JSON.stringify(row?.value_json || '') || '');
+           const pubVal = escapeHtml(JSON.stringify(pubRow?.value_json || '') || '–');
+           return `<article class="gv-admin-content-row gv-admin-compare-row">
+             <div>
+               <strong>${escapeHtml(key)}${stale}</strong>
+               <div class="gv-admin-diff-value"><span class="gv-admin-diff-label">Draft:</span> ${draftVal}</div>
+               <div class="gv-admin-diff-value gv-admin-diff-value--pub"><span class="gv-admin-diff-label">Published:</span> ${pubVal}</div>
+             </div>
+           </article>`;
+         }).join('')}</div>`
+      : '';
+    const sectionHtml = sectionKeys.length
+      ? `<h3 class="gv-admin-section-title">Section Settings (${sectionKeys.length})</h3>
+         <div class="gv-admin-row-list">${sectionKeys.map(key => {
+           const row = sectionSettingsDrafts[key];
+           const stale = isDraftStale(row) ? '<span class="gv-admin-stale-badge">stale</span>' : '';
+           return `<article class="gv-admin-content-row gv-admin-compare-row">
+             <div>
+               <strong>${escapeHtml(key)}${stale}</strong>
+               <span>Order: ${row?.order_index ?? '–'} / Visible: ${row?.is_visible ? 'Yes' : 'No'}</span>
+             </div>
+           </article>`;
+         }).join('')}</div>`
+      : '';
+    const elementHtml = elementKeys.length
+      ? `<h3 class="gv-admin-section-title">Element Styles (${elementKeys.length})</h3>
+         <div class="gv-admin-row-list">${elementKeys.map(key => {
+           const row = elementStyleDrafts[key];
+           const stale = isDraftStale(row) ? '<span class="gv-admin-stale-badge">stale</span>' : '';
+           const stylePreview = escapeHtml(JSON.stringify(row?.style_json || '').slice(0, 120));
+           return `<article class="gv-admin-content-row gv-admin-compare-row">
+             <div>
+               <strong>${escapeHtml(key)}${stale}</strong>
+               <div class="gv-admin-diff-value">${stylePreview}</div>
+             </div>
+           </article>`;
+         }).join('')}</div>`
+      : '';
+    return `
+      ${staleWarn}
+      ${contentHtml}
+      ${tokenHtml}
+      ${sectionHtml}
+      ${elementHtml}
+    `;
+  }
+
+  function renderCompareContentRow(draftRow) {
+    const key = draftRow.edit_key || '';
+    const type = draftRow.edit_type || 'text';
+    const draftVal = (draftRow.value_text || '').slice(0, 200);
+    const pubRow = dashboardPublishedRows.find(r => r.edit_key === key);
+    const pubVal = pubRow ? (pubRow.value_text || '').slice(0, 200) : null;
+    const origVal = originalValues[key] !== undefined ? String(originalValues[key]).slice(0, 200) : null;
+    const stale = isDraftStale(draftRow) ? '<span class="gv-admin-stale-badge">stale</span>' : '';
+    const isExpanded = draftCompareExpanded === key;
+    const expandBtn = `<button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="compare-expand" data-edit-key="${escapeHtml(key)}">${isExpanded ? 'Collapse' : 'Expand'}</button>`;
+    const resetBtn = canAdminEdit()
+      ? `<button class="gv-admin-action gv-admin-action--sm gv-admin-action--danger" type="button" data-admin-action="compare-reset-draft" data-edit-key="${escapeHtml(key)}">Undo Draft</button>`
+      : '';
+    const detail = isExpanded ? `
+      <div class="gv-admin-diff-value"><span class="gv-admin-diff-label">Draft:</span> ${escapeHtml(draftVal)}</div>
+      ${pubVal !== null ? `<div class="gv-admin-diff-value gv-admin-diff-value--pub"><span class="gv-admin-diff-label">Published:</span> ${escapeHtml(pubVal)}</div>` : ''}
+      ${origVal !== null ? `<div class="gv-admin-diff-value gv-admin-diff-value--orig"><span class="gv-admin-diff-label">Original:</span> ${escapeHtml(origVal)}</div>` : ''}
+    ` : `<div class="gv-admin-diff-value"><span class="gv-admin-diff-label">Draft:</span> ${escapeHtml(draftVal.slice(0, 80))}</div>`;
+    return `
+      <article class="gv-admin-content-row gv-admin-compare-row">
+        <div>
+          <strong>${escapeHtml(key)}${stale}</strong>
+          <span>${escapeHtml(type)}</span>
+          ${detail}
+          <div class="gv-admin-compare-row-actions">${expandBtn} ${resetBtn}</div>
+        </div>
+      </article>
+    `;
+  }
+
+  async function resetDraftToPublished(editKey) {
+    if (!canAdminEdit()) {
+      statusMessage = 'You do not have permission to undo drafts.';
+      updateTopbar();
+      return;
+    }
+    if (!editKey) return;
+    if (!window.confirm(`Undo the draft for "${editKey}"? This restores the published (or original) value.`)) return;
+    const draftRow = dashboardDraftRows.find(r => r.edit_key === editKey);
+    if (!draftRow || !draftRow.id) {
+      statusMessage = 'Draft row not found.';
+      updateTopbar();
+      return;
+    }
+    if (supabaseClient) {
+      const { error } = await supabaseClient.from('cms_content').delete().eq('id', draftRow.id);
+      if (error) {
+        statusMessage = classifySupabaseError(error);
+        updateTopbar();
+        return;
+      }
+    }
+    dashboardDraftRows = dashboardDraftRows.filter(r => r.edit_key !== editKey);
+    const pubRow = dashboardPublishedRows.find(r => r.edit_key === editKey);
+    const restoreVal = pubRow ? (pubRow.value_text || '') : (originalValues[editKey] !== undefined ? String(originalValues[editKey]) : '');
+    if (restoreVal !== undefined) {
+      const el = document.querySelector(`[data-edit-key="${CSS.escape(editKey)}"]`);
+      if (el) el.textContent = restoreVal;
+    }
+    if (draftCompareExpanded === editKey) draftCompareExpanded = null;
+    statusMessage = `Draft for "${editKey}" undone.`;
+    unsavedCount = Math.max(0, unsavedCount - 1);
+    updateTopbar();
+    renderDashboard();
+    logCmsDebug('reset-draft-to-published', { editKey });
   }
 
   async function boot() {
