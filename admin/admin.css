@@ -15,6 +15,8 @@
   display:inline-flex;
   align-items:center;
   justify-content:center;
+  position:relative;
+  z-index:10020;
   min-height:36px;
   padding:0 14px;
   border:1px solid rgba(177,250,32,.28);
@@ -26,6 +28,9 @@
   letter-spacing:.08em;
   text-transform:uppercase;
   background:rgba(177,250,32,.06);
+  pointer-events:auto!important;
+  cursor:pointer!important;
+  touch-action:manipulation;
   transition:background .22s var(--gv-admin-ease),border-color .22s var(--gv-admin-ease),color .22s var(--gv-admin-ease),transform .22s var(--gv-admin-ease);
 }
 .admin-entry-btn:hover,
@@ -43,6 +48,10 @@
   padding:14px 0;
   background:transparent;
   min-height:0;
+}
+.admin-entry-btn.is-admin-loading{
+  opacity:.72;
+  pointer-events:auto!important;
 }
 
 body.admin-mode{--gv-admin-topbar-height:58px;}
@@ -930,4 +939,254 @@ body.admin-edit-mode [data-edit-key].gv-admin-selected{
   .gv-admin-media-grid{
     grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
   }
+}
+
+/* ── Phase 7: Editor Safe Mode ────────────────────────────────────────────── */
+
+body.editor-safe-mode *,
+body.editor-safe-mode *::before,
+body.editor-safe-mode *::after {
+  cursor: auto !important;
+}
+
+body.editor-safe-mode [data-admin-ui="true"] {
+  cursor: default !important;
+}
+
+/* ── Phase 7: Inspector tab strip ────────────────────────────────────────── */
+
+.gv-inspector-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--gv-admin-border);
+  padding-bottom: 6px;
+}
+
+.gv-inspector-tabs button {
+  background: transparent;
+  border: none;
+  color: var(--gv-admin-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -7px;
+}
+
+.gv-inspector-tabs button.is-active {
+  color: var(--gv-admin-mint);
+  border-bottom-color: var(--gv-admin-mint);
+}
+
+/* ── Phase 7: Visual Control center ──────────────────────────────────────── */
+
+.gv-admin-visual-control {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gv-admin-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.gv-admin-subtab {
+  background: transparent;
+  border: 1px solid var(--gv-admin-border);
+  color: var(--gv-admin-text-muted);
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.gv-admin-subtab.is-active {
+  background: var(--gv-admin-mint);
+  color: var(--gv-admin-black);
+  border-color: var(--gv-admin-mint);
+}
+
+.gv-admin-token-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gv-admin-token-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gv-admin-token-label {
+  font-size: 11px;
+  color: var(--gv-admin-text-muted);
+  min-width: 130px;
+  flex-shrink: 0;
+}
+
+.gv-admin-token-color-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gv-admin-color-swatch {
+  width: 32px;
+  height: 28px;
+  border: none;
+  padding: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  background: transparent;
+}
+
+.gv-admin-color-hex {
+  width: 90px;
+  font-size: 12px;
+  font-family: monospace;
+  padding: 4px 6px;
+  border: 1px solid var(--gv-admin-border);
+  border-radius: 4px;
+  background: var(--gv-admin-surface);
+  color: var(--gv-admin-text);
+}
+
+.gv-admin-size-input {
+  width: 100px;
+  font-size: 12px;
+  padding: 4px 6px;
+  border: 1px solid var(--gv-admin-border);
+  border-radius: 4px;
+  background: var(--gv-admin-surface);
+  color: var(--gv-admin-text);
+}
+
+.gv-admin-font-select {
+  font-size: 12px;
+  padding: 4px 6px;
+  border: 1px solid var(--gv-admin-border);
+  border-radius: 4px;
+  background: var(--gv-admin-surface);
+  color: var(--gv-admin-text);
+}
+
+.gv-admin-token-published {
+  font-size: 10px;
+  color: var(--gv-admin-text-muted);
+  margin-left: 4px;
+}
+
+.gv-admin-confirm-banner {
+  background: rgba(255,200,0,.1);
+  border: 1px solid rgba(255,200,0,.3);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 12px;
+}
+
+/* ── Phase 7: Section Manager ────────────────────────────────────────────── */
+
+.gv-admin-section-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gv-admin-section-item {
+  border: 1px solid var(--gv-admin-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.gv-admin-section-item.is-protected {
+  border-color: rgba(255,180,0,.4);
+}
+
+.gv-admin-section-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  background: var(--gv-admin-surface);
+}
+
+.gv-admin-section-id {
+  font-size: 11px;
+  font-family: monospace;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gv-admin-section-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.gv-admin-badge {
+  font-size: 9px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+.gv-admin-badge--ok  { background: rgba(177,250,32,.15); color: #b1fa20; }
+.gv-admin-badge--off { background: rgba(255,255,255,.05); color: var(--gv-admin-text-muted); }
+.gv-admin-badge--warn { background: rgba(255,180,0,.15); color: #ffc800; }
+
+.gv-admin-section-style-panel {
+  padding: 10px 12px;
+  border-top: 1px solid var(--gv-admin-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0,0,0,.15);
+}
+
+/* ── Phase 7: Inspector style panel ──────────────────────────────────────── */
+
+.gv-admin-inspector-style-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Phase 7: Safe mode toggle state ─────────────────────────────────────── */
+
+.gv-admin-action[data-admin-safe-mode-btn].is-safe-mode-on {
+  background: rgba(177,250,32,.12);
+  color: var(--gv-admin-mint);
+  border-color: var(--gv-admin-mint);
+}
+
+/* ── Phase 7: action size variant ────────────────────────────────────────── */
+
+.gv-admin-action--sm {
+  font-size: 10px;
+  padding: 3px 8px;
+}
+
+.gv-admin-action--danger {
+  border-color: rgba(255,80,80,.5);
+  color: #ff5050;
+}
+
+@media(max-width:760px){
+  .gv-admin-section-row { flex-direction: column; align-items: flex-start; }
+  .gv-admin-token-row { flex-direction: column; align-items: flex-start; }
 }

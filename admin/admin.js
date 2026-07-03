@@ -13,6 +13,16 @@
   const cmsDebug = params.get('cmsDebug') === 'true';
   const pagePath = getPagePath();
 
+  const ALLOWED_STYLE_PROPS = new Set([
+    'color','backgroundColor','fontSize','fontFamily','fontWeight',
+    'lineHeight','letterSpacing','textAlign','marginTop','marginBottom',
+    'marginLeft','marginRight','paddingTop','paddingBottom','paddingLeft','paddingRight',
+    'borderColor','borderRadius','opacity','maxWidth'
+  ]);
+  const SAFE_FONTS = ['Inter','Fraunces','Arial','Georgia','system-ui','sans-serif','serif'];
+  const SAFE_TEXT_ALIGNS = new Set(['left','center','right','justify']);
+  const SAFE_FONT_WEIGHTS = new Set(['100','200','300','400','500','600','700','800','900','normal','bold']);
+
   let mode = 'preview';
   let selectedElement = null;
   let adminRoot = null;
@@ -44,6 +54,7 @@
   let saveInFlight = false;
   let publishInFlight = false;
   let resetInFlight = false;
+  let adminEntryInFlight = false;
   let dashboardTab = 'overview';
   let dashboardDraftRows = [];
   let dashboardPublishedRows = [];
@@ -58,6 +69,18 @@
   let mediaUploadInFlight = false;
   let mediaSelectedAssetId = null;
   let mediaLibraryLoaded = false;
+  let editorSafeMode = true;
+  let inspectorTab = 'content';
+  let visualControlTab = 'tokens';
+  let designTokenDrafts = {};
+  let designTokenPublished = {};
+  let sectionSettingsDrafts = {};
+  let sectionSettingsPublished = {};
+  let elementStyleDrafts = {};
+  let elementStylesPublished = {};
+  let unsavedVisualCount = 0;
+  let sectionManagerExpanded = null;
+  let globalTokenPublishPending = false;
 
   function $(selector, root = document) {
     return root.querySelector(selector);
@@ -334,6 +357,7 @@
       <div class="gv-admin-actions">
         <span class="gv-admin-state" data-admin-counts>Unsaved 0 / Drafts 0</span>
         <span class="gv-admin-state" data-admin-connection><span class="gv-admin-status-dot"></span>Offline</span>
+        <button class="gv-admin-action" type="button" data-admin-action="toggle-safe-mode" data-admin-safe-mode-btn>Safe Mode: ON</button>
         <button class="gv-admin-action" type="button" data-admin-action="open-dashboard">CMS Dashboard</button>
         <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="publish-page">Publish</button>
         <button class="gv-admin-action" type="button" data-admin-action="exit-admin">Exit Admin</button>
@@ -468,11 +492,12 @@
     entryEventsBound = true;
 
     document.addEventListener('click', event => {
-      const entry = event.target.closest('[data-admin-entry]');
+      const entry = event.target.closest('[data-admin-action="open-admin"], [data-admin-entry]');
       if (!entry) return;
       event.preventDefault();
       event.stopPropagation();
-      openAdminEntry();
+      if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+      openAdminEntry(entry, event);
     }, true);
 
     document.addEventListener('keydown', event => {
@@ -481,15 +506,74 @@
       if (typing) return;
       if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'a') {
         event.preventDefault();
-        openAdminEntry();
+        openAdminEntry(null, event);
       }
     });
   }
 
-  async function openAdminEntry() {
+  async function openAdminEntry(trigger, sourceEvent) {
+    if (adminEntryInFlight) {
+      logAdminEntryDebug('admin-entry-click-ignored', trigger, 'already-opening', sourceEvent);
+      return;
+    }
+    adminEntryInFlight = true;
+    setAdminEntryLoading(trigger, true);
+    closePublicMobileNav();
     ensureRoot();
-    if (await hasActiveAdminSession()) enterAdminMode();
-    else openModal();
+    logAdminEntryDebug('admin-entry-click', trigger, 'checking-session', sourceEvent);
+    try {
+      if (await hasActiveAdminSession()) {
+        await enterAdminMode();
+        logAdminEntryDebug('admin-entry-action', trigger, 'enter-admin', sourceEvent);
+      } else {
+        openModal();
+        logAdminEntryDebug('admin-entry-action', trigger, 'login-modal', sourceEvent);
+      }
+    } catch (error) {
+      openModal();
+      logAdminEntryDebug('admin-entry-action', trigger, 'fallback-login-modal', sourceEvent, { error: error.message });
+    } finally {
+      setAdminEntryLoading(trigger, false);
+      adminEntryInFlight = false;
+    }
+  }
+
+  function setAdminEntryLoading(trigger, active) {
+    if (!trigger) return;
+    trigger.classList.toggle('is-admin-loading', Boolean(active));
+    trigger.setAttribute('aria-busy', active ? 'true' : 'false');
+  }
+
+  function closePublicMobileNav() {
+    const mobileNav = document.getElementById('navMobile');
+    const burger = document.getElementById('navBurger');
+    if (mobileNav) {
+      mobileNav.classList.remove('open');
+      mobileNav.querySelectorAll('.mobile-mega.open').forEach(item => {
+        item.classList.remove('open');
+        const toggle = item.querySelector('.mobile-mega-toggle');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+      });
+    }
+    if (burger) burger.setAttribute('aria-expanded', 'false');
+  }
+
+  function logAdminEntryDebug(context, trigger, actionTaken, sourceEvent, extra = {}) {
+    if (!cmsDebug) return;
+    console.info('[GROWVA CMS Admin Entry]', {
+      context,
+      trigger_found: Boolean(trigger),
+      target_tag: sourceEvent?.target?.tagName || null,
+      trigger_tag: trigger?.tagName || null,
+      trigger_entry: trigger?.dataset?.adminEntry || null,
+      current_auth_state: currentUser ? 'authenticated' : 'unknown-or-logged-out',
+      supabase_configured: supabaseState.configured,
+      unsafe_key: supabaseState.unsafeKey,
+      action_taken: actionTaken,
+      public_transition_prevented: true,
+      admin_mode: document.body.classList.contains('admin-mode'),
+      ...extra
+    });
   }
 
   async function hasActiveAdminSession() {
@@ -615,6 +699,8 @@
     dashboardMessage = '';
     renderDashboard();
     setTimeout(bindMediaUploadAreaEvents, 0);
+    if (dashboardTab === 'visual') setTimeout(bindVisualControlEvents, 0);
+    if (dashboardTab === 'sections') setTimeout(bindSectionManagerEvents, 0);
     logCmsDebug('dashboard-opened');
   }
 
@@ -628,6 +714,8 @@
     dashboardTab = tab || 'overview';
     renderDashboard();
     if (dashboardTab === 'media') setTimeout(bindMediaUploadAreaEvents, 0);
+    if (dashboardTab === 'visual') setTimeout(bindVisualControlEvents, 0);
+    if (dashboardTab === 'sections') setTimeout(bindSectionManagerEvents, 0);
   }
 
   async function refreshDashboardData() {
@@ -638,6 +726,9 @@
     dashboardAuditRows = await loadAuditRows();
     dashboardPublishRows = await loadPublishRows();
     await loadMediaAssets();
+    await loadDesignTokens();
+    await loadSectionSettings();
+    await loadElementStyles();
     logCmsDebug('dashboard-data-loaded');
   }
 
@@ -682,7 +773,9 @@
       ['audit', 'Revision / Audit Log'],
       ['session', 'Role & Session'],
       ['health', 'System Health'],
-      ['media', 'Media Library']
+      ['media', 'Media Library'],
+      ['visual', 'Visual Control'],
+      ['sections', 'Section Manager']
     ];
     $('[data-dashboard-tabs]', dashboard).innerHTML = tabs.map(([id, label]) => `
       <button type="button" class="${dashboardTab === id ? 'is-active' : ''}" data-admin-action="dashboard-tab" data-dashboard-tab="${id}">${escapeHtml(label)}</button>
@@ -700,6 +793,8 @@
     if (dashboardTab === 'session') return renderSessionTab();
     if (dashboardTab === 'health') return renderHealthTab();
     if (dashboardTab === 'media') return renderMediaLibraryTab();
+    if (dashboardTab === 'visual') return renderVisualControlTab();
+    if (dashboardTab === 'sections') return renderSectionManagerTab();
     return renderOverviewTab();
   }
 
@@ -966,6 +1061,7 @@
     event.preventDefault();
     event.stopPropagation();
 
+    if (action === 'open-admin') openAdminEntry(actionElement, event);
     if (action === 'close-modal') closeModal();
     if (action === 'mode-preview') setMode('preview');
     if (action === 'mode-edit') setMode('edit');
@@ -996,6 +1092,52 @@
     if (action === 'image-reset-draft') resetImageDraft();
     if (action === 'image-choose-media') { switchDashboardTab('media'); openDashboard(); }
     if (action === 'image-upload-new') { const fi = $('#gvImageFileInput', panel); if (fi) fi.click(); }
+
+    // Phase 7 actions
+    if (action === 'toggle-safe-mode') {
+      setEditorSafeMode(!editorSafeMode);
+      updateTopbar();
+    }
+    if (action === 'visual-subtab') {
+      visualControlTab = actionElement.dataset.visualTab || 'tokens';
+      renderDashboard();
+      setTimeout(bindVisualControlEvents, 0);
+    }
+    if (action === 'inspector-tab') {
+      inspectorTab = actionElement.dataset.inspectorTab || 'content';
+      if (currentElement) renderInspector(currentElement);
+    }
+    if (action === 'save-token-drafts') saveAllTokenDrafts();
+    if (action === 'publish-tokens-page') publishCurrentPageVisuals();
+    if (action === 'publish-tokens-global') initiateGlobalTokenPublish();
+    if (action === 'confirm-global-token-publish') executeGlobalTokenPublish();
+    if (action === 'cancel-global-token-publish') {
+      globalTokenPublishPending = false;
+      renderDashboard();
+      setTimeout(bindVisualControlEvents, 0);
+    }
+    if (action === 'reset-token-drafts') resetTokenDrafts();
+    if (action === 'section-toggle-visibility') toggleSectionVisibility(actionElement.dataset.sectionId);
+    if (action === 'section-move-up') moveSectionRelative(actionElement.dataset.sectionId, -1);
+    if (action === 'section-move-down') moveSectionRelative(actionElement.dataset.sectionId, 1);
+    if (action === 'section-scroll') {
+      const sid = actionElement.dataset.sectionId;
+      const el = $(`[data-section-id="${sid}"]`);
+      if (el) {
+        if (window._lenis) { window._lenis.scrollTo(el, { offset: -80 }); }
+        else { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      }
+    }
+    if (action === 'section-expand') {
+      const sid = actionElement.dataset.sectionId;
+      sectionManagerExpanded = sectionManagerExpanded === sid ? null : sid;
+      renderDashboard();
+      setTimeout(bindSectionManagerEvents, 0);
+    }
+    if (action === 'save-section-draft') saveSectionDraftFromUI(actionElement.dataset.sectionId);
+    if (action === 'reset-section-draft') resetSectionDraft(actionElement.dataset.sectionId);
+    if (action === 'save-element-style-draft') saveInspectorStyleDraft();
+    if (action === 'reset-element-style-draft') resetElementStyleFromInspector();
   }
 
   function openModal() {
@@ -1042,7 +1184,11 @@
     mode = 'preview';
     await loadDraftEdits();
     await loadMediaAssets();
+    await loadDesignTokens();
+    await loadSectionSettings();
+    await loadElementStyles();
     applyDraftRows();
+    setEditorSafeMode(true);
     updateTopbar();
     renderPanelEmpty();
     logCmsDebug('enter-admin-mode');
@@ -1053,8 +1199,9 @@
     inspectorDirty = false;
     unsavedCount = 0;
     clearSelection();
-    document.body.classList.remove('admin-mode', 'admin-edit-mode', 'admin-preview-mode');
+    document.body.classList.remove('admin-mode', 'admin-edit-mode', 'admin-preview-mode', 'editor-safe-mode');
     setAdminInteractionIsolation(false);
+    editorSafeMode = true;
     mode = 'preview';
   }
 
@@ -1123,6 +1270,11 @@
       const isPreview = button.dataset.adminAction === 'mode-preview';
       button.classList.toggle('is-active', (mode === 'preview' && isPreview) || (mode === 'edit' && !isPreview));
     });
+    const safeModeBtn = $('[data-admin-safe-mode-btn]', adminRoot);
+    if (safeModeBtn) {
+      safeModeBtn.textContent = 'Safe Mode: ' + (editorSafeMode ? 'ON' : 'OFF');
+      safeModeBtn.classList.toggle('is-safe-mode-on', editorSafeMode);
+    }
   }
 
   function renderPanelEmpty() {
@@ -1193,7 +1345,18 @@
     const originalValue = originalValues[key] || '';
     const fieldTag = currentValue.length > 90 || type === 'card' || type === 'richtext' ? 'textarea' : 'input';
     $('[data-admin-panel-title]', panel).textContent = draftRows[key] ? 'Editing draft override' : 'Editing field';
-    $('[data-admin-panel-body]', panel).innerHTML = `
+    const tabsHtml = `
+      <div class="gv-inspector-tabs" role="tablist">
+        <button type="button" class="${inspectorTab === 'content' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="content">Content</button>
+        <button type="button" class="${inspectorTab === 'style' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="style">Style</button>
+      </div>
+    `;
+    if (inspectorTab === 'style') {
+      $('[data-admin-panel-body]', panel).innerHTML = tabsHtml + renderInspectorStyleTabHTML(element);
+      setTimeout(bindInspectorStyleEvents, 0);
+      return;
+    }
+    $('[data-admin-panel-body]', panel).innerHTML = tabsHtml + `
       <div class="gv-admin-meta">
         <div>Edit key: <code>${escapeHtml(key)}</code></div>
         <div>Edit type: <code>${escapeHtml(type)}</code></div>
@@ -1797,9 +1960,14 @@
   }
 
   function ensureEntryButtonsAreSafe() {
-    $all('[data-admin-entry]').forEach(button => {
-      button.type = 'button';
-      button.dataset.adminAction = button.dataset.adminAction || 'open-admin';
+    $all('[data-admin-entry], [data-admin-action="open-admin"]').forEach(trigger => {
+      if (trigger.tagName === 'BUTTON') trigger.type = 'button';
+      if (trigger.tagName === 'A' && trigger.hasAttribute('href')) trigger.dataset.adminHref = trigger.getAttribute('href') || '';
+      trigger.removeAttribute('href');
+      trigger.dataset.adminAction = 'open-admin';
+      trigger.dataset.adminUi = 'true';
+      trigger.setAttribute('role', trigger.tagName === 'A' ? 'button' : trigger.getAttribute('role') || 'button');
+      trigger.setAttribute('tabindex', trigger.getAttribute('tabindex') || '0');
     });
   }
 
@@ -2296,6 +2464,883 @@
     }, extra || {}));
   }
 
+  // ── Phase 7: Safety + sanitization ──────────────────────────────────────
+
+  function sanitizeColorValue(v) {
+    if (typeof v !== 'string') return null;
+    v = v.trim();
+    if (/^#[0-9a-fA-F]{3,8}$/.test(v)) return v;
+    if (/^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+(\s*,\s*[\d.]+)?\s*\)$/.test(v)) return v;
+    if (/^hsl/.test(v)) return null;
+    return null;
+  }
+
+  function sanitizeSizeValue(v) {
+    if (typeof v !== 'string') return null;
+    v = v.trim();
+    if (/^-?\d+(\.\d+)?(px|rem|em|%|vw|vh)$/.test(v)) return v;
+    if (/^\d+$/.test(v)) return v + 'px';
+    return null;
+  }
+
+  function sanitizeStyleValue(prop, v) {
+    if (typeof v !== 'string') return null;
+    v = v.trim();
+    if (!ALLOWED_STYLE_PROPS.has(prop)) return null;
+    if (prop === 'fontFamily') {
+      const clean = v.replace(/['"]/g, '').trim();
+      return SAFE_FONTS.includes(clean) ? clean : null;
+    }
+    if (prop === 'fontWeight') return SAFE_FONT_WEIGHTS.has(v) ? v : null;
+    if (prop === 'textAlign') return SAFE_TEXT_ALIGNS.has(v) ? v : null;
+    if (['color','backgroundColor','borderColor'].includes(prop)) return sanitizeColorValue(v);
+    if (['opacity'].includes(prop)) {
+      const n = parseFloat(v);
+      return (!isNaN(n) && n >= 0 && n <= 1) ? String(n) : null;
+    }
+    return sanitizeSizeValue(v);
+  }
+
+  function sanitizeCssVarValue(v) {
+    if (typeof v !== 'string') return null;
+    v = v.trim();
+    const asColor = sanitizeColorValue(v);
+    if (asColor) return asColor;
+    const asSize = sanitizeSizeValue(v);
+    if (asSize) return asSize;
+    const clean = v.replace(/['"]/g, '').trim();
+    if (SAFE_FONTS.includes(clean)) return clean;
+    return null;
+  }
+
+  // ── Phase 7: CSS token application ───────────────────────────────────────
+
+  function applyTokenToRoot(tokenKey, valueJson) {
+    if (!tokenKey || !valueJson) return;
+    const v = valueJson.value !== undefined ? valueJson.value : valueJson;
+    if (typeof v !== 'string') return;
+    const safe = sanitizeCssVarValue(String(v));
+    if (safe !== null) {
+      document.documentElement.style.setProperty('--' + tokenKey, safe);
+    }
+  }
+
+  function applyAllDraftTokensPreview() {
+    Object.entries(designTokenDrafts).forEach(([key, val]) => applyTokenToRoot(key, val));
+  }
+
+  async function applyPublishedDesignTokens() {
+    if (!supabaseClient) return;
+    try {
+      const now = cmsFreshReadCutoff();
+      const { data } = await supabaseClient
+        .from('cms_design_tokens')
+        .select('token_key,value_json,scope,page_path')
+        .eq('status', 'published')
+        .lt('created_at', now);
+      if (!data) return;
+      const globalRows = data.filter(r => r.scope === 'global');
+      const pageRows = data.filter(r => r.scope === 'page' && r.page_path === pagePath);
+      [...globalRows, ...pageRows].forEach(r => applyTokenToRoot(r.token_key, r.value_json));
+      designTokenPublished = {};
+      data.forEach(r => { designTokenPublished[r.token_key] = r.value_json; });
+      logCmsVisualDebug('tokens-hydrated', { count: data.length });
+    } catch (e) { logCmsVisualDebug('tokens-hydrate-error', { error: String(e) }); }
+  }
+
+  async function applyPublishedSectionSettings() {
+    if (!supabaseClient) return;
+    try {
+      const now = cmsFreshReadCutoff();
+      const { data } = await supabaseClient
+        .from('cms_section_settings')
+        .select('section_id,is_visible,order_index,style_json')
+        .eq('status', 'published')
+        .eq('page_path', pagePath)
+        .lt('created_at', now);
+      if (!data) return;
+      sectionSettingsPublished = {};
+      data.forEach(r => { sectionSettingsPublished[r.section_id] = r; });
+      applySectionOrder(data);
+      data.forEach(r => {
+        const el = $(`[data-section-id="${r.section_id}"]`);
+        if (!el) return;
+        el.style.display = r.is_visible === false ? 'none' : '';
+        if (r.style_json) applySectionStyleJson(el, r.style_json);
+      });
+      logCmsVisualDebug('sections-hydrated', { count: data.length });
+    } catch (e) { logCmsVisualDebug('sections-hydrate-error', { error: String(e) }); }
+  }
+
+  async function applyPublishedElementStyles() {
+    if (!supabaseClient) return;
+    try {
+      const now = cmsFreshReadCutoff();
+      const { data } = await supabaseClient
+        .from('cms_element_styles')
+        .select('edit_key,style_json')
+        .eq('status', 'published')
+        .eq('page_path', pagePath)
+        .lt('created_at', now);
+      if (!data) return;
+      elementStylesPublished = {};
+      data.forEach(r => {
+        elementStylesPublished[r.edit_key] = r.style_json;
+        const el = $(`[data-edit-key="${r.edit_key}"]`);
+        if (el && r.style_json) applyElementStyleJson(el, r.style_json);
+      });
+      logCmsVisualDebug('element-styles-hydrated', { count: data.length });
+    } catch (e) { logCmsVisualDebug('element-styles-hydrate-error', { error: String(e) }); }
+  }
+
+  function applySectionStyleJson(el, styleJson) {
+    if (!el || typeof styleJson !== 'object') return;
+    Object.entries(styleJson).forEach(([prop, val]) => {
+      const safe = sanitizeStyleValue(prop, String(val));
+      if (safe !== null) el.style[prop] = safe;
+    });
+  }
+
+  function applyElementStyleJson(el, styleJson) {
+    if (!el || typeof styleJson !== 'object' || !styleJson.styles) return;
+    Object.entries(styleJson.styles).forEach(([prop, val]) => {
+      const safe = sanitizeStyleValue(prop, String(val));
+      if (safe !== null) el.style[prop] = safe;
+    });
+  }
+
+  function applySectionOrder(rows) {
+    const ordered = rows.slice().sort((a, b) => (a.order_index ?? 999) - (b.order_index ?? 999));
+    ordered.forEach(r => {
+      const el = $(`[data-section-id="${r.section_id}"]`);
+      if (el && el.parentElement) el.parentElement.appendChild(el);
+    });
+  }
+
+  // ── Phase 7: Supabase data loaders ───────────────────────────────────────
+
+  async function loadDesignTokens() {
+    if (!supabaseClient || !currentUser || !adminProfile) return;
+    try {
+      const { data } = await supabaseClient
+        .from('cms_design_tokens')
+        .select('token_key,value_json,scope,page_path,status')
+        .in('status', ['draft', 'published'])
+        .or(`scope.eq.global,page_path.eq.${pagePath}`);
+      if (!data) return;
+      designTokenDrafts = {};
+      designTokenPublished = {};
+      data.forEach(r => {
+        if (r.status === 'draft') designTokenDrafts[r.token_key] = r.value_json;
+        else if (r.status === 'published') designTokenPublished[r.token_key] = r.value_json;
+      });
+      applyAllDraftTokensPreview();
+    } catch (e) { logCmsVisualDebug('load-tokens-error', { error: String(e) }); }
+  }
+
+  async function loadSectionSettings() {
+    if (!supabaseClient || !currentUser || !adminProfile) return;
+    try {
+      const { data } = await supabaseClient
+        .from('cms_section_settings')
+        .select('section_id,order_index,is_visible,style_json,status')
+        .eq('page_path', pagePath)
+        .in('status', ['draft', 'published']);
+      if (!data) return;
+      sectionSettingsDrafts = {};
+      sectionSettingsPublished = {};
+      data.forEach(r => {
+        if (r.status === 'draft') sectionSettingsDrafts[r.section_id] = r;
+        else if (r.status === 'published') sectionSettingsPublished[r.section_id] = r;
+      });
+    } catch (e) { logCmsVisualDebug('load-sections-error', { error: String(e) }); }
+  }
+
+  async function loadElementStyles() {
+    if (!supabaseClient || !currentUser || !adminProfile) return;
+    try {
+      const { data } = await supabaseClient
+        .from('cms_element_styles')
+        .select('edit_key,style_json,status')
+        .eq('page_path', pagePath)
+        .in('status', ['draft', 'published']);
+      if (!data) return;
+      elementStyleDrafts = {};
+      elementStylesPublished = {};
+      data.forEach(r => {
+        if (r.status === 'draft') elementStyleDrafts[r.edit_key] = r.style_json;
+        else if (r.status === 'published') elementStylesPublished[r.edit_key] = r.style_json;
+      });
+    } catch (e) { logCmsVisualDebug('load-element-styles-error', { error: String(e) }); }
+  }
+
+  // ── Phase 7: Save / publish / reset ──────────────────────────────────────
+
+  async function saveDesignTokenDraft(tokenKey, valueJson, scope) {
+    if (!supabaseClient || !currentUser) return;
+    const scopeVal = scope || 'page';
+    const payload = {
+      scope: scopeVal,
+      page_path: scopeVal === 'global' ? null : pagePath,
+      token_key: tokenKey,
+      value_json: valueJson,
+      status: 'draft',
+      updated_by: currentUser.id
+    };
+    const { error } = await supabaseClient
+      .from('cms_design_tokens')
+      .upsert(payload, { onConflict: 'scope,page_path,token_key,status' });
+    if (!error) {
+      designTokenDrafts[tokenKey] = valueJson;
+      unsavedVisualCount = Object.keys(designTokenDrafts).length;
+    }
+    return error;
+  }
+
+  async function saveSectionSettingDraft(sectionId, fields) {
+    if (!supabaseClient || !currentUser) return;
+    const existing = sectionSettingsDrafts[sectionId] || {};
+    const payload = {
+      page_path: pagePath,
+      section_id: sectionId,
+      order_index: fields.order_index ?? existing.order_index ?? 0,
+      is_visible: fields.is_visible ?? existing.is_visible ?? true,
+      style_json: fields.style_json ?? existing.style_json ?? {},
+      status: 'draft',
+      updated_by: currentUser.id
+    };
+    const { error } = await supabaseClient
+      .from('cms_section_settings')
+      .upsert(payload, { onConflict: 'page_path,section_id,status' });
+    if (!error) sectionSettingsDrafts[sectionId] = payload;
+    return error;
+  }
+
+  async function saveElementStyleDraftData(editKey, styleJson) {
+    if (!supabaseClient || !currentUser) return;
+    const payload = {
+      page_path: pagePath,
+      edit_key: editKey,
+      section_id: currentElement ? (currentElement.dataset.sectionId || null) : null,
+      style_json: styleJson,
+      status: 'draft',
+      updated_by: currentUser.id
+    };
+    const { error } = await supabaseClient
+      .from('cms_element_styles')
+      .upsert(payload, { onConflict: 'page_path,edit_key,status' });
+    if (!error) elementStyleDrafts[editKey] = styleJson;
+    return error;
+  }
+
+  async function saveAllTokenDrafts() {
+    const visualTab = $('[data-admin-panel-body]', dashboard);
+    const inputs = visualTab ? $all('[data-token-key]', dashboard) : [];
+    let count = 0;
+    for (const inp of inputs) {
+      const key = inp.dataset.tokenKey;
+      const scope = inp.dataset.tokenScope || 'page';
+      const v = inp.value.trim();
+      const safe = sanitizeCssVarValue(v);
+      if (safe !== null) {
+        const err = await saveDesignTokenDraft(key, { value: safe }, scope);
+        if (!err) count++;
+      }
+    }
+    unsavedVisualCount = Object.keys(designTokenDrafts).length;
+    logCmsVisualDebug('tokens-saved', { count });
+    renderDashboard();
+    setTimeout(bindVisualControlEvents, 0);
+  }
+
+  async function publishCurrentPageVisuals() {
+    if (!supabaseClient || !currentUser || !adminProfile) return;
+    if (adminProfile.role !== 'owner') {
+      window.alert('Only owners can publish visual settings.');
+      return;
+    }
+    const draftTokenKeys = Object.keys(designTokenDrafts);
+    for (const key of draftTokenKeys) {
+      const draft = designTokenDrafts[key];
+      await supabaseClient.from('cms_design_tokens')
+        .upsert({ scope: 'page', page_path: pagePath, token_key: key, value_json: draft, status: 'published', updated_by: currentUser.id },
+          { onConflict: 'scope,page_path,token_key,status' });
+    }
+    const draftSecIds = Object.keys(sectionSettingsDrafts);
+    for (const sid of draftSecIds) {
+      const d = sectionSettingsDrafts[sid];
+      await supabaseClient.from('cms_section_settings')
+        .upsert({ ...d, status: 'published', updated_by: currentUser.id },
+          { onConflict: 'page_path,section_id,status' });
+    }
+    const draftStyleKeys = Object.keys(elementStyleDrafts);
+    for (const key of draftStyleKeys) {
+      const d = elementStyleDrafts[key];
+      await supabaseClient.from('cms_element_styles')
+        .upsert({ page_path: pagePath, edit_key: key, style_json: d, status: 'published', updated_by: currentUser.id },
+          { onConflict: 'page_path,edit_key,status' });
+    }
+    logCmsVisualDebug('page-visuals-published', { tokenCount: draftTokenKeys.length, sectionCount: draftSecIds.length, styleCount: draftStyleKeys.length });
+    await loadDesignTokens();
+    await loadSectionSettings();
+    await loadElementStyles();
+    renderDashboard();
+    setTimeout(bindVisualControlEvents, 0);
+  }
+
+  function initiateGlobalTokenPublish() {
+    if (!adminProfile || adminProfile.role !== 'owner') {
+      window.alert('Only owners can publish global tokens.');
+      return;
+    }
+    globalTokenPublishPending = true;
+    renderDashboard();
+    setTimeout(bindVisualControlEvents, 0);
+  }
+
+  async function executeGlobalTokenPublish() {
+    if (!supabaseClient || !currentUser || !adminProfile) return;
+    if (adminProfile.role !== 'owner') return;
+    const draftTokenKeys = Object.keys(designTokenDrafts);
+    for (const key of draftTokenKeys) {
+      const draft = designTokenDrafts[key];
+      await supabaseClient.from('cms_design_tokens')
+        .upsert({ scope: 'global', page_path: null, token_key: key, value_json: draft, status: 'published', updated_by: currentUser.id },
+          { onConflict: 'scope,page_path,token_key,status' });
+    }
+    globalTokenPublishPending = false;
+    logCmsVisualDebug('global-tokens-published', { count: draftTokenKeys.length });
+    await loadDesignTokens();
+    renderDashboard();
+    setTimeout(bindVisualControlEvents, 0);
+  }
+
+  async function resetTokenDrafts() {
+    if (!supabaseClient || !currentUser) return;
+    await supabaseClient.from('cms_design_tokens')
+      .delete()
+      .eq('status', 'draft')
+      .or(`scope.eq.global,page_path.eq.${pagePath}`);
+    designTokenDrafts = {};
+    unsavedVisualCount = 0;
+    await applyPublishedDesignTokens();
+    renderDashboard();
+    setTimeout(bindVisualControlEvents, 0);
+  }
+
+  async function resetSectionDraft(sectionId) {
+    if (!supabaseClient || !currentUser) return;
+    await supabaseClient.from('cms_section_settings')
+      .delete()
+      .eq('page_path', pagePath)
+      .eq('section_id', sectionId)
+      .eq('status', 'draft');
+    delete sectionSettingsDrafts[sectionId];
+    const published = sectionSettingsPublished[sectionId];
+    const el = $(`[data-section-id="${sectionId}"]`);
+    if (el) {
+      el.style.display = published ? (published.is_visible === false ? 'none' : '') : '';
+      if (published && published.style_json) applySectionStyleJson(el, published.style_json);
+    }
+    renderDashboard();
+    setTimeout(bindSectionManagerEvents, 0);
+  }
+
+  async function resetElementStyleFromInspector() {
+    if (!currentElement) return;
+    const key = currentElement.dataset.editKey;
+    if (!key) return;
+    if (supabaseClient && currentUser) {
+      await supabaseClient.from('cms_element_styles')
+        .delete()
+        .eq('page_path', pagePath)
+        .eq('edit_key', key)
+        .eq('status', 'draft');
+    }
+    delete elementStyleDrafts[key];
+    const el = currentElement;
+    ALLOWED_STYLE_PROPS.forEach(prop => { el.style[prop] = ''; });
+    const published = elementStylesPublished[key];
+    if (published) applyElementStyleJson(el, published);
+    if (currentElement) renderInspector(currentElement);
+  }
+
+  // ── Phase 7: Section management ──────────────────────────────────────────
+
+  function getSections() {
+    return Array.from($all('[data-section-id]')).filter(el => !el.closest('[data-admin-ui]'));
+  }
+
+  function isSectionProtected(el) {
+    if (!el) return false;
+    if (el.tagName === 'CANVAS') return true;
+    if (el.dataset.gsap || el.dataset.scrolltrigger) return true;
+    const style = window.getComputedStyle(el);
+    if (style.position === 'fixed' || style.position === 'sticky') return true;
+    const knownProtectedClasses = ['lenis', 'gsap', 'scrolltrigger', 'three', 'webgl', 'catv-', 'pgi-', 'mega-menu', 'mobile-menu'];
+    const cls = el.className || '';
+    if (knownProtectedClasses.some(c => cls.toLowerCase().includes(c))) return true;
+    return false;
+  }
+
+  async function moveSectionRelative(sectionId, direction) {
+    const sections = getSections();
+    const idx = sections.findIndex(s => s.dataset.sectionId === sectionId);
+    if (idx < 0) return;
+    const el = sections[idx];
+    if (isSectionProtected(el)) {
+      if (!window.confirm('This section may contain animations (GSAP/ScrollTrigger). Reordering it could break them. Continue?')) return;
+    }
+    const swapIdx = idx + direction;
+    if (swapIdx < 0 || swapIdx >= sections.length) return;
+    const swapEl = sections[swapIdx];
+    const parent = el.parentElement;
+    if (!parent) return;
+    if (direction === -1) {
+      parent.insertBefore(el, swapEl);
+    } else {
+      parent.insertBefore(swapEl, el);
+    }
+    const newSections = getSections();
+    for (let i = 0; i < newSections.length; i++) {
+      const sid = newSections[i].dataset.sectionId;
+      if (sid) await saveSectionSettingDraft(sid, { order_index: i });
+    }
+    renderDashboard();
+    setTimeout(bindSectionManagerEvents, 0);
+  }
+
+  async function toggleSectionVisibility(sectionId) {
+    const el = $(`[data-section-id="${sectionId}"]`);
+    if (!el) return;
+    if (isSectionProtected(el)) {
+      if (!window.confirm('This section may contain animations. Hiding it could affect the layout. Continue?')) return;
+    }
+    const currentlyVisible = el.style.display !== 'none';
+    const newVisible = !currentlyVisible;
+    el.style.display = newVisible ? '' : 'none';
+    const err = await saveSectionSettingDraft(sectionId, { is_visible: newVisible });
+    if (err) { el.style.display = currentlyVisible ? '' : 'none'; }
+    renderDashboard();
+    setTimeout(bindSectionManagerEvents, 0);
+  }
+
+  async function saveSectionDraftFromUI(sectionId) {
+    const container = $(`[data-section-style-panel="${sectionId}"]`, dashboard);
+    if (!container) return;
+    const styleJson = {};
+    $all('[data-style-prop]', container).forEach(inp => {
+      const prop = inp.dataset.styleProp;
+      const v = inp.value.trim();
+      const safe = sanitizeStyleValue(prop, v);
+      if (safe !== null) styleJson[prop] = safe;
+    });
+    await saveSectionSettingDraft(sectionId, { style_json: styleJson });
+    const el = $(`[data-section-id="${sectionId}"]`);
+    if (el) applySectionStyleJson(el, styleJson);
+    logCmsVisualDebug('section-draft-saved', { sectionId, styleJson });
+  }
+
+  async function saveInspectorStyleDraft() {
+    if (!currentElement) return;
+    const key = currentElement.dataset.editKey;
+    if (!key) return;
+    const styleInputs = $all('[data-style-prop]', panel);
+    const styles = {};
+    styleInputs.forEach(inp => {
+      const prop = inp.dataset.styleProp;
+      const v = inp.value.trim();
+      const safe = sanitizeStyleValue(prop, String(v));
+      if (safe !== null) styles[prop] = safe;
+    });
+    const styleJson = { styles };
+    applyElementStyleJson(currentElement, styleJson);
+    const err = await saveElementStyleDraftData(key, styleJson);
+    const state = $('[data-admin-save-state]', panel);
+    if (state) state.textContent = err ? 'Save failed.' : 'Style draft saved.';
+    logCmsVisualDebug('element-style-saved', { key, styles });
+  }
+
+  // ── Phase 7: Rendering — Visual Control tab ───────────────────────────────
+
+  function renderVisualControlTab() {
+    const subTabs = [
+      ['tokens', 'Brand Tokens'],
+      ['typography', 'Typography'],
+      ['buttons', 'Buttons'],
+      ['cards', 'Cards'],
+      ['page-theme', 'Page Theme']
+    ];
+    const tabsHtml = subTabs.map(([id, label]) =>
+      `<button type="button" class="gv-admin-subtab${visualControlTab === id ? ' is-active' : ''}" data-admin-action="visual-subtab" data-visual-tab="${id}">${label}</button>`
+    ).join('');
+
+    const confirmHtml = globalTokenPublishPending ? `
+      <div class="gv-admin-confirm-banner">
+        <strong>Publish all draft tokens as global defaults?</strong> This affects every page.
+        <div class="gv-admin-panel-actions" style="margin-top:8px">
+          <button class="gv-admin-action gv-admin-action--danger" type="button" data-admin-action="confirm-global-token-publish">Yes, Publish Globally</button>
+          <button class="gv-admin-action" type="button" data-admin-action="cancel-global-token-publish">Cancel</button>
+        </div>
+      </div>` : '';
+
+    let panelHtml = '';
+    if (visualControlTab === 'tokens') panelHtml = renderBrandTokensPanel();
+    else if (visualControlTab === 'typography') panelHtml = renderTypographyPanel();
+    else if (visualControlTab === 'buttons') panelHtml = renderButtonsPanel();
+    else if (visualControlTab === 'cards') panelHtml = renderCardsPanel();
+    else if (visualControlTab === 'page-theme') panelHtml = renderPageThemePanel();
+
+    const unsavedNote = unsavedVisualCount > 0
+      ? `<p class="gv-admin-note">${unsavedVisualCount} token(s) in draft.</p>` : '';
+
+    return `
+      <div class="gv-admin-visual-control">
+        ${confirmHtml}
+        <div class="gv-admin-subtabs">${tabsHtml}</div>
+        ${panelHtml}
+        ${unsavedNote}
+        <div class="gv-admin-panel-actions" style="margin-top:12px">
+          <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="save-token-drafts">Save Draft</button>
+          <button class="gv-admin-action" type="button" data-admin-action="publish-tokens-page">Publish (This Page)</button>
+          <button class="gv-admin-action" type="button" data-admin-action="publish-tokens-global">Publish (Global)</button>
+          <button class="gv-admin-action gv-admin-action--danger" type="button" data-admin-action="reset-token-drafts">Reset Draft</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderBrandTokensPanel() {
+    const tokens = [
+      { key: 'mint', label: 'Accent / Mint', type: 'color', scope: 'global' },
+      { key: 'bg', label: 'Background', type: 'color', scope: 'global' },
+      { key: 'surface', label: 'Surface', type: 'color', scope: 'global' },
+      { key: 'text', label: 'Text', type: 'color', scope: 'global' },
+      { key: 'muted', label: 'Muted Text', type: 'color', scope: 'global' },
+      { key: 'border', label: 'Border', type: 'color', scope: 'global' }
+    ];
+    return `<div class="gv-admin-token-grid">${tokens.map(t => renderTokenColorRow(t)).join('')}</div>`;
+  }
+
+  function renderTypographyPanel() {
+    const fontTokens = [
+      { key: 'font-heading', label: 'Heading Font', scope: 'global' },
+      { key: 'font-body', label: 'Body Font', scope: 'global' }
+    ];
+    const sizeTokens = [
+      { key: 'font-size-base', label: 'Base Font Size', scope: 'global' },
+      { key: 'font-size-h1', label: 'H1 Size', scope: 'global' },
+      { key: 'font-size-h2', label: 'H2 Size', scope: 'global' }
+    ];
+    return `
+      <div class="gv-admin-token-grid">
+        ${fontTokens.map(t => renderTokenFontRow(t)).join('')}
+        ${sizeTokens.map(t => renderTokenSizeRow(t)).join('')}
+      </div>`;
+  }
+
+  function renderButtonsPanel() {
+    const tokens = [
+      { key: 'btn-bg', label: 'Button Background', type: 'color', scope: 'page' },
+      { key: 'btn-color', label: 'Button Text Color', type: 'color', scope: 'page' },
+      { key: 'btn-border', label: 'Button Border', type: 'color', scope: 'page' },
+      { key: 'radius-btn', label: 'Button Radius', type: 'size', scope: 'global' },
+      { key: 'btn-padding-y', label: 'Vertical Padding', type: 'size', scope: 'global' }
+    ];
+    return `<div class="gv-admin-token-grid">
+      ${tokens.map(t => t.type === 'color' ? renderTokenColorRow(t) : renderTokenSizeRow(t)).join('')}
+    </div>`;
+  }
+
+  function renderCardsPanel() {
+    const tokens = [
+      { key: 'card-bg', label: 'Card Background', type: 'color', scope: 'page' },
+      { key: 'card-border', label: 'Card Border', type: 'color', scope: 'page' },
+      { key: 'radius-card', label: 'Card Radius', type: 'size', scope: 'global' },
+      { key: 'card-padding', label: 'Card Padding', type: 'size', scope: 'global' }
+    ];
+    return `<div class="gv-admin-token-grid">
+      ${tokens.map(t => t.type === 'color' ? renderTokenColorRow(t) : renderTokenSizeRow(t)).join('')}
+    </div>`;
+  }
+
+  function renderPageThemePanel() {
+    const tokens = [
+      { key: 'page-bg', label: 'Page Background', type: 'color', scope: 'page' },
+      { key: 'page-text', label: 'Page Text', type: 'color', scope: 'page' },
+      { key: 'section-max-width', label: 'Section Max Width', type: 'size', scope: 'page' }
+    ];
+    return `<div class="gv-admin-token-grid">
+      ${tokens.map(t => t.type === 'color' ? renderTokenColorRow(t) : renderTokenSizeRow(t)).join('')}
+    </div>`;
+  }
+
+  function renderTokenColorRow(t) {
+    const draftVal = designTokenDrafts[t.key] ? (designTokenDrafts[t.key].value || designTokenDrafts[t.key]) : '';
+    const publishedVal = designTokenPublished[t.key] ? (designTokenPublished[t.key].value || designTokenPublished[t.key]) : '';
+    const cssVal = getComputedStyle(document.documentElement).getPropertyValue('--' + t.key).trim() || '';
+    const current = draftVal || cssVal || '#000000';
+    const safeHex = sanitizeColorValue(String(current)) || '#000000';
+    return `
+      <div class="gv-admin-token-row">
+        <label class="gv-admin-token-label">${escapeHtml(t.label)}</label>
+        <div class="gv-admin-token-color-wrap">
+          <input type="color" class="gv-admin-color-swatch" data-token-key="${t.key}" data-token-scope="${t.scope}" value="${escapeHtml(safeHex)}">
+          <input type="text" class="gv-admin-color-hex" data-token-key="${t.key}" data-token-scope="${t.scope}" value="${escapeHtml(safeHex)}" maxlength="9" placeholder="#000000">
+        </div>
+        ${publishedVal ? `<span class="gv-admin-token-published">Published: ${escapeHtml(String(publishedVal))}</span>` : ''}
+      </div>`;
+  }
+
+  function renderTokenSizeRow(t) {
+    const draftVal = designTokenDrafts[t.key] ? (designTokenDrafts[t.key].value || designTokenDrafts[t.key]) : '';
+    const cssVal = getComputedStyle(document.documentElement).getPropertyValue('--' + t.key).trim() || '';
+    const current = draftVal || cssVal || '';
+    return `
+      <div class="gv-admin-token-row">
+        <label class="gv-admin-token-label">${escapeHtml(t.label)}</label>
+        <input type="text" class="gv-admin-size-input" data-token-key="${t.key}" data-token-scope="${t.scope}" value="${escapeHtml(String(current))}" placeholder="e.g. 4px or 1rem">
+      </div>`;
+  }
+
+  function renderTokenFontRow(t) {
+    const draftVal = designTokenDrafts[t.key] ? (designTokenDrafts[t.key].value || designTokenDrafts[t.key]) : '';
+    const cssVal = getComputedStyle(document.documentElement).getPropertyValue('--' + t.key).trim() || '';
+    const current = (draftVal || cssVal || '').replace(/['"]/g, '').trim();
+    const opts = SAFE_FONTS.map(f =>
+      `<option value="${f}"${current === f ? ' selected' : ''}>${f}</option>`
+    ).join('');
+    return `
+      <div class="gv-admin-token-row">
+        <label class="gv-admin-token-label">${escapeHtml(t.label)}</label>
+        <select class="gv-admin-font-select" data-token-key="${t.key}" data-token-scope="${t.scope}">${opts}</select>
+      </div>`;
+  }
+
+  // ── Phase 7: Rendering — Section Manager tab ──────────────────────────────
+
+  function renderSectionManagerTab() {
+    const sections = getSections();
+    if (sections.length === 0) {
+      return `<div class="gv-admin-empty">No sections with <code>data-section-id</code> found on this page.</div>`;
+    }
+    return `
+      <div class="gv-admin-section-manager">
+        <p class="gv-admin-note">Manage section visibility, order, and style. Protected sections (animations, canvas, fixed) show a warning before changes.</p>
+        ${sections.map((el, i) => renderSectionItem(el, i, sections.length)).join('')}
+      </div>`;
+  }
+
+  function renderSectionItem(el, idx, total) {
+    const sid = el.dataset.sectionId || '';
+    const isProtected = isSectionProtected(el);
+    const draft = sectionSettingsDrafts[sid] || {};
+    const isVisible = el.style.display !== 'none';
+    const isExpanded = sectionManagerExpanded === sid;
+    return `
+      <div class="gv-admin-section-item${isProtected ? ' is-protected' : ''}">
+        <div class="gv-admin-section-row">
+          <span class="gv-admin-section-id">${escapeHtml(sid)}</span>
+          ${isProtected ? '<span class="gv-admin-badge gv-admin-badge--warn">Protected</span>' : ''}
+          <span class="gv-admin-badge${isVisible ? ' gv-admin-badge--ok' : ' gv-admin-badge--off'}">${isVisible ? 'Visible' : 'Hidden'}</span>
+          <div class="gv-admin-section-actions">
+            <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="section-toggle-visibility" data-section-id="${sid}">${isVisible ? 'Hide' : 'Show'}</button>
+            <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="section-move-up" data-section-id="${sid}" ${idx === 0 ? 'disabled' : ''}>↑</button>
+            <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="section-move-down" data-section-id="${sid}" ${idx === total - 1 ? 'disabled' : ''}>↓</button>
+            <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="section-scroll" data-section-id="${sid}">Scroll To</button>
+            <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="section-expand" data-section-id="${sid}">${isExpanded ? 'Close' : 'Style'}</button>
+          </div>
+        </div>
+        ${isExpanded ? renderSectionStyleControls(sid, draft) : ''}
+      </div>`;
+  }
+
+  function renderSectionStyleControls(sid, draft) {
+    const styleProps = [
+      { prop: 'paddingTop', label: 'Padding Top', placeholder: '80px' },
+      { prop: 'paddingBottom', label: 'Padding Bottom', placeholder: '80px' },
+      { prop: 'marginTop', label: 'Margin Top', placeholder: '0' },
+      { prop: 'marginBottom', label: 'Margin Bottom', placeholder: '0' },
+      { prop: 'backgroundColor', label: 'Background Color', placeholder: '#ffffff' },
+      { prop: 'maxWidth', label: 'Max Width', placeholder: '1200px' },
+      { prop: 'opacity', label: 'Opacity (0–1)', placeholder: '1' }
+    ];
+    const existingStyle = draft.style_json || {};
+    const inputs = styleProps.map(sp => {
+      const val = existingStyle[sp.prop] || '';
+      return `
+        <div class="gv-admin-field">
+          <label>${escapeHtml(sp.label)}</label>
+          <input type="text" data-style-prop="${sp.prop}" value="${escapeHtml(val)}" placeholder="${escapeHtml(sp.placeholder)}">
+        </div>`;
+    }).join('');
+    return `
+      <div class="gv-admin-section-style-panel" data-section-style-panel="${sid}">
+        ${inputs}
+        <div class="gv-admin-panel-actions">
+          <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="save-section-draft" data-section-id="${sid}">Save Section Draft</button>
+          <button class="gv-admin-action" type="button" data-admin-action="reset-section-draft" data-section-id="${sid}">Reset Section Draft</button>
+        </div>
+      </div>`;
+  }
+
+  // ── Phase 7: Rendering — Inspector Style tab ──────────────────────────────
+
+  function getElementStyleType(el) {
+    if (!el) return 'text';
+    const t = el.dataset.editType || 'text';
+    if (t === 'button') return 'button';
+    if (t === 'card') return 'card';
+    return 'text';
+  }
+
+  function renderInspectorStyleTabHTML(el) {
+    const key = el ? (el.dataset.editKey || '') : '';
+    const existingDraft = elementStyleDrafts[key] || {};
+    const styles = existingDraft.styles || {};
+    const styleType = getElementStyleType(el);
+
+    let propGroups = [];
+    if (styleType === 'button') {
+      propGroups = [
+        { prop: 'backgroundColor', label: 'Background Color', placeholder: '' },
+        { prop: 'color', label: 'Text Color', placeholder: '' },
+        { prop: 'borderColor', label: 'Border Color', placeholder: '' },
+        { prop: 'borderRadius', label: 'Border Radius', placeholder: '4px' },
+        { prop: 'paddingTop', label: 'Padding Top', placeholder: '12px' },
+        { prop: 'paddingBottom', label: 'Padding Bottom', placeholder: '12px' }
+      ];
+    } else if (styleType === 'card') {
+      propGroups = [
+        { prop: 'backgroundColor', label: 'Background Color', placeholder: '' },
+        { prop: 'borderColor', label: 'Border Color', placeholder: '' },
+        { prop: 'borderRadius', label: 'Border Radius', placeholder: '8px' },
+        { prop: 'paddingTop', label: 'Padding', placeholder: '24px' },
+        { prop: 'opacity', label: 'Opacity (0–1)', placeholder: '1' }
+      ];
+    } else {
+      propGroups = [
+        { prop: 'color', label: 'Text Color', placeholder: '' },
+        { prop: 'fontSize', label: 'Font Size', placeholder: '16px' },
+        { prop: 'fontWeight', label: 'Font Weight', placeholder: '400' },
+        { prop: 'lineHeight', label: 'Line Height', placeholder: '1.5' },
+        { prop: 'letterSpacing', label: 'Letter Spacing', placeholder: '0px' },
+        { prop: 'textAlign', label: 'Text Align', placeholder: 'left' },
+        { prop: 'maxWidth', label: 'Max Width', placeholder: '' },
+        { prop: 'marginTop', label: 'Margin Top', placeholder: '0' },
+        { prop: 'marginBottom', label: 'Margin Bottom', placeholder: '0' }
+      ];
+    }
+
+    const inputs = propGroups.map(sp => {
+      const val = styles[sp.prop] || '';
+      return `
+        <div class="gv-admin-field">
+          <label>${escapeHtml(sp.label)}</label>
+          <input type="text" data-style-prop="${sp.prop}" value="${escapeHtml(val)}" placeholder="${escapeHtml(sp.placeholder)}">
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="gv-admin-inspector-style-panel">
+        <div class="gv-admin-meta"><div>Edit key: <code>${escapeHtml(key)}</code></div></div>
+        ${inputs}
+        <p class="gv-admin-note" data-admin-save-state>Only whitelisted CSS properties allowed.</p>
+        <div class="gv-admin-panel-actions">
+          <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="save-element-style-draft">Save Style Draft</button>
+          <button class="gv-admin-action" type="button" data-admin-action="reset-element-style-draft">Reset Style</button>
+          <button class="gv-admin-action" type="button" data-admin-action="close-panel">Close</button>
+        </div>
+      </div>`;
+  }
+
+  // ── Phase 7: Event binding ────────────────────────────────────────────────
+
+  function bindVisualControlEvents() {
+    if (!dashboard) return;
+    const container = $('.gv-admin-visual-control', dashboard);
+    if (!container || container._bound7) return;
+    container._bound7 = true;
+
+    $all('[data-token-key]', container).forEach(inp => {
+      if (inp.type === 'color') {
+        inp.addEventListener('input', () => {
+          const v = inp.value;
+          const safe = sanitizeColorValue(v);
+          if (safe !== null) {
+            document.documentElement.style.setProperty('--' + inp.dataset.tokenKey, safe);
+            const hexPair = container.querySelector(`input[type="text"][data-token-key="${inp.dataset.tokenKey}"]`);
+            if (hexPair) hexPair.value = safe;
+          }
+        });
+      } else if (inp.type === 'text' && inp.classList.contains('gv-admin-color-hex')) {
+        inp.addEventListener('input', () => {
+          const v = inp.value.trim();
+          const safe = sanitizeColorValue(v);
+          if (safe !== null) {
+            document.documentElement.style.setProperty('--' + inp.dataset.tokenKey, safe);
+            const swatchPair = container.querySelector(`input[type="color"][data-token-key="${inp.dataset.tokenKey}"]`);
+            if (swatchPair) swatchPair.value = safe;
+          }
+        });
+      } else if (inp.classList.contains('gv-admin-size-input') || inp.tagName === 'SELECT') {
+        inp.addEventListener('input', () => {
+          const v = inp.value.trim();
+          const safe = sanitizeCssVarValue(v);
+          if (safe !== null) document.documentElement.style.setProperty('--' + inp.dataset.tokenKey, safe);
+        });
+      }
+    });
+  }
+
+  function bindSectionManagerEvents() {
+    if (!dashboard) return;
+    const container = $('.gv-admin-section-manager', dashboard);
+    if (!container || container._boundSM) return;
+    container._boundSM = true;
+  }
+
+  function bindInspectorStyleEvents() {
+    if (!panel) return;
+    const container = $('.gv-admin-inspector-style-panel', panel);
+    if (!container || container._boundIS) return;
+    container._boundIS = true;
+    $all('[data-style-prop]', container).forEach(inp => {
+      inp.addEventListener('input', () => {
+        if (!currentElement) return;
+        const prop = inp.dataset.styleProp;
+        const safe = sanitizeStyleValue(prop, inp.value.trim());
+        if (safe !== null) currentElement.style[prop] = safe;
+      });
+    });
+  }
+
+  // ── Phase 7: Editor Safe Mode ─────────────────────────────────────────────
+
+  function setEditorSafeMode(active) {
+    editorSafeMode = !!active;
+    if (active) {
+      document.body.classList.add('editor-safe-mode');
+    } else {
+      document.body.classList.remove('editor-safe-mode');
+    }
+  }
+
+  // ── Phase 7: Debug ────────────────────────────────────────────────────────
+
+  function logCmsVisualDebug(context, extra) {
+    if (!cmsDebug) return;
+    console.log('[GROWVA CMS Visual Debug]', context, {
+      editorSafeMode,
+      visualControlTab,
+      designTokenDraftCount: Object.keys(designTokenDrafts).length,
+      sectionDraftCount: Object.keys(sectionSettingsDrafts).length,
+      elementStyleDraftCount: Object.keys(elementStyleDrafts).length,
+      unsavedVisualCount,
+      ...extra
+    });
+  }
+
   async function boot() {
     ensureEntryButtonsAreSafe();
     bindEntryEvents();
@@ -2304,10 +3349,16 @@
     setupAuthStateListener();
     await loadPublishedEdits();
     await applyPublishedImageEdits();
+    await applyPublishedDesignTokens();
+    await applyPublishedSectionSettings();
+    await applyPublishedElementStyles();
     logCmsDebug('boot');
     if (await hasActiveAdminSession()) {
       await loadPublishedEdits();
       await applyPublishedImageEdits();
+      await applyPublishedDesignTokens();
+      await applyPublishedSectionSettings();
+      await applyPublishedElementStyles();
       await enterAdminMode();
     }
   }

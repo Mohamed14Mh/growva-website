@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let rx = mx, ry = my;
     let magnetEl = null; // currently hovered [data-hover] element
     const isAdminMode = () => document.body.classList.contains('admin-mode');
-    const isAdminTarget = target => Boolean(target && target.closest && target.closest('[data-admin-ui], .gv-admin-root, .admin-shell, .growva-admin, .admin-panel'));
+    const isAdminTarget = target => Boolean(target && target.closest && target.closest('[data-admin-ui], [data-admin-action], [data-admin-entry], .gv-admin-root, .gv-admin, .admin-shell, .growva-admin, .admin-panel'));
     const clearAdminCursorState = () => {
       ring.classList.remove('hovered', 'has-label');
       delete ring.dataset.label;
@@ -1220,7 +1220,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.addEventListener('click', e => {
-      if (e.target.closest('[data-admin-ui], .gv-admin-root, .admin-shell, .growva-admin, .admin-panel, [data-admin-entry]')) return;
+      if (e.target.closest('[data-admin-ui], [data-admin-action], [data-admin-entry], .gv-admin-root, .gv-admin, .admin-shell, .growva-admin, .admin-panel')) return;
       const link = e.target.closest('a[href]');
       if (!link) return;
       const href = link.getAttribute('href');
@@ -1258,7 +1258,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!window.matchMedia('(hover: hover)').matches || !window.gsap) return;
     document.querySelectorAll('.btn-primary, .btn-ghost, .btn-nav').forEach(btn => {
       btn.addEventListener('mousemove', e => {
-        if (document.body.classList.contains('admin-mode') || e.target.closest('[data-admin-ui], .gv-admin-root, .admin-shell, .growva-admin, .admin-panel')) return;
+        if (document.body.classList.contains('admin-mode') || e.target.closest('[data-admin-ui], [data-admin-action], [data-admin-entry], .gv-admin-root, .gv-admin, .admin-shell, .growva-admin, .admin-panel')) return;
         const r = btn.getBoundingClientRect();
         const x = ((e.clientX - r.left) / r.width  - 0.5) * 2;
         const y = ((e.clientY - r.top)  / r.height - 0.5) * 2;
