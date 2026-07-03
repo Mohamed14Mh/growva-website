@@ -149,6 +149,73 @@
   let customMediaPicker = null;
   let customMediaPickerSearch = '';
 
+  // ── Phase 12: Role helpers ────────────────────────────────────────────────
+
+  function getAdminRole() {
+    if (adminProfile && adminProfile.role) return adminProfile.role;
+    if (isMockAdminSession && isMockAdminSession()) return 'owner';
+    return null;
+  }
+
+  function canAdminEdit() {
+    const role = getAdminRole();
+    return role === 'owner' || role === 'editor';
+  }
+
+  function canAdminPublish() {
+    return getAdminRole() === 'owner';
+  }
+
+  function classifySupabaseError(error) {
+    if (!error) return 'An unknown error occurred.';
+    const raw = String(error.message || error.details || error.hint || error).toLowerCase();
+    const code = String(error.code || '');
+    if (code === 'PGRST301' || raw.includes('jwt expired') || raw.includes('session expired') || raw.includes('invalid claim')) {
+      return 'Session expired. Please sign out and sign in again to continue.';
+    }
+    if (code === '42P01' || (raw.includes('relation') && raw.includes('does not exist'))) {
+      return 'Database table missing. Ensure all SQL patches (schema.sql + Phase patches) have been applied in the Supabase SQL Editor.';
+    }
+    if (code === '42703' || (raw.includes('column') && raw.includes('does not exist'))) {
+      return 'Database column missing. The Phase 11 SQL patch (phase-11-media-asset-management.sql) may not have been applied.';
+    }
+    if (code === '23505' || raw.includes('duplicate key') || raw.includes('unique constraint') || raw.includes('unique violation')) {
+      return 'Duplicate record conflict. The record already exists with this key — try refreshing and retrying.';
+    }
+    if (raw.includes('row-level security') || raw.includes('violates row') || raw.includes('permission denied') || raw.includes('rls')) {
+      return 'Permission denied by the database RLS policy. Check your role in admin_profiles and that the correct SQL patches have been applied.';
+    }
+    if (raw.includes('failed to fetch') || raw.includes('networkerror') || raw.includes('network request') || raw.includes('timeout') || raw.includes('fetch error')) {
+      return 'Network error. Check your internet connection and try again. Supabase may also be momentarily unavailable.';
+    }
+    if (raw.includes('invalid api key') || raw.includes('unauthorized') || (raw.includes('jwt') && !raw.includes('expired'))) {
+      return 'Authentication error. Your Supabase anon key may be invalid. Check supabase-config.js.';
+    }
+    if (raw.includes('no rows') || raw.includes('pgrst116')) {
+      return 'No data returned. The record may have been deleted or RLS is preventing access.';
+    }
+    return 'Operation failed. Add ?cmsDebug=true to the URL for technical details.';
+  }
+
+  function getRoleAccessBanner(context) {
+    const role = getAdminRole();
+    if (!role) return '';
+    if (role === 'viewer') {
+      return `<div class="gv-admin-role-banner gv-admin-role-banner--viewer" role="status">Viewer access: editing is disabled. You can inspect drafts and published content but cannot make changes.</div>`;
+    }
+    if (role === 'editor' && (context === 'publish' || context === 'visual' || context === 'global-publish')) {
+      const msg = context === 'global-publish'
+        ? 'Editor access: global token publishing requires owner approval.'
+        : context === 'publish'
+          ? 'Editor access: you can prepare drafts, but publishing requires owner approval.'
+          : 'Editor access: save drafts freely. Publishing visual changes requires owner approval.';
+      return `<div class="gv-admin-role-banner gv-admin-role-banner--editor" role="status">${escapeHtml(msg)}</div>`;
+    }
+    return '';
+  }
+
+  // ── DOM utilities ─────────────────────────────────────────────────────────
+
   function $(selector, root = document) {
     return root.querySelector(selector);
   }
@@ -1012,19 +1079,60 @@
 
   function renderSessionTab() {
     const role = adminProfile?.role || (mockAdminEnabled ? 'owner' : 'logged out');
-    const permissions = {
-      viewer: 'Can view dashboard, drafts, published content, and inspector metadata.',
-      editor: 'Can save drafts and delete current-page drafts when RLS allows it. Cannot publish.',
-      owner: 'Can save drafts, reset drafts, and publish the current page.'
-    };
+    const roleMatrix = [
+      { action: 'View dashboard / drafts / published', viewer: true, editor: true, owner: true },
+      { action: 'Inspect element metadata', viewer: true, editor: true, owner: true },
+      { action: 'Save text / content drafts', viewer: false, editor: true, owner: true },
+      { action: 'Save image drafts', viewer: false, editor: true, owner: true },
+      { action: 'Save element style drafts', viewer: false, editor: true, owner: true },
+      { action: 'Save section style drafts', viewer: false, editor: true, owner: true },
+      { action: 'Save visual control (token) drafts', viewer: false, editor: true, owner: true },
+      { action: 'Reset drafts', viewer: false, editor: true, owner: true },
+      { action: 'Reorder / hide sections (draft)', viewer: false, editor: true, owner: true },
+      { action: 'Add / edit Section Builder sections (draft)', viewer: false, editor: true, owner: true },
+      { action: 'Upload to Media Library', viewer: false, editor: true, owner: true },
+      { action: 'Edit media metadata (alt, caption)', viewer: false, editor: true, owner: true },
+      { action: 'Publish current page', viewer: false, editor: false, owner: true },
+      { action: 'Publish visual tokens (global)', viewer: false, editor: false, owner: true },
+      { action: 'Archive media assets', viewer: false, editor: false, owner: true },
+      { action: 'Delete media assets', viewer: false, editor: false, owner: true },
+    ];
+    const tick = (v) => v
+      ? '<span class="gv-admin-perm-yes" aria-label="allowed">✓</span>'
+      : '<span class="gv-admin-perm-no" aria-label="denied">✗</span>';
+    const roleClass = { owner: 'gv-admin-badge--ok', editor: 'gv-admin-badge--editor', viewer: 'gv-admin-badge--viewer' }[role] || '';
     return `
       <div class="gv-admin-dashboard-grid">
         ${renderMetricCard('Email', currentUser?.email || adminProfile?.email || (mockAdminEnabled ? MOCK_EMAIL : 'Logged out'))}
-        ${renderMetricCard('User ID', currentUser?.id || adminProfile?.id || 'None')}
+        ${renderMetricCard('User ID', (currentUser?.id || adminProfile?.id || 'None').slice(0, 18) + '…')}
         ${renderMetricCard('Role', role)}
-        ${renderMetricCard('Security', 'RLS remains source of truth')}
+        ${renderMetricCard('Security', 'RLS is authoritative')}
       </div>
-      <div class="gv-admin-dashboard-message">${escapeHtml(permissions[role] || 'Sign in to view permissions.')}</div>
+      <div class="gv-admin-role-banner gv-admin-role-banner--${role}" role="status" style="margin-bottom:12px">
+        ${{
+          owner: 'Owner: full edit, draft, and publish access.',
+          editor: 'Editor access: you can prepare drafts, but publishing requires owner approval.',
+          viewer: 'Viewer access: editing is disabled. You can inspect drafts and published content.'
+        }[role] || 'Sign in to view permissions.'}
+      </div>
+      <div class="gv-admin-role-matrix">
+        <table>
+          <thead>
+            <tr><th>Action</th><th>Viewer</th><th>Editor</th><th>Owner</th></tr>
+          </thead>
+          <tbody>
+            ${roleMatrix.map(r => `
+              <tr class="${role === 'owner' && r.owner ? 'is-allowed' : role === 'editor' && r.editor ? 'is-allowed' : role === 'viewer' && r.viewer ? 'is-allowed' : 'is-denied'}">
+                <td>${escapeHtml(r.action)}</td>
+                <td>${tick(r.viewer)}</td>
+                <td>${tick(r.editor)}</td>
+                <td>${tick(r.owner)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      <p class="gv-admin-note" style="margin-top:10px">RLS policies in Supabase are the authoritative security gate. UI role checks are for clarity only.</p>
     `;
   }
 
@@ -1406,11 +1514,13 @@
     const counts = $('[data-admin-counts]', adminRoot);
     const connection = $('[data-admin-connection]', adminRoot);
     if (label) label.textContent = currentPageLabel();
+    const role = getAdminRole();
     if (counts) counts.textContent = `Unsaved ${unsavedCount} / Drafts ${Object.keys(draftRows).length}`;
     if (connection) {
       const online = (supabaseClient && !supabaseState.unsafeKey && !supabaseState.failed) || (mockAdminEnabled && currentUser);
-      const label = mockAdminEnabled && !supabaseClient && currentUser ? 'Mock admin - owner' : getConnectionLabel();
-      connection.innerHTML = `<span class="gv-admin-status-dot ${online ? 'is-online' : ''}"></span>${escapeHtml(label)}`;
+      const connLabel = mockAdminEnabled && !supabaseClient && currentUser ? 'Mock admin - owner' : getConnectionLabel();
+      const roleTag = role ? ` [${role}]` : '';
+      connection.innerHTML = `<span class="gv-admin-status-dot ${online ? 'is-online' : ''}"></span>${escapeHtml(connLabel + roleTag)}`;
     }
     $all('[data-admin-action="mode-preview"], [data-admin-action="mode-edit"]', adminRoot).forEach(button => {
       const isPreview = button.dataset.adminAction === 'mode-preview';
@@ -1431,6 +1541,7 @@
       : '';
     $('[data-admin-panel-title]', panel).textContent = 'Select an editable element';
     $('[data-admin-panel-body]', panel).innerHTML = `
+      ${getRoleAccessBanner('inspector')}
       <p class="gv-admin-empty">Switch to Edit Mode, then select any highlighted text, button, link label, card, or section field.</p>
       ${fileWarning}
       ${statusMessage ? `<div class="gv-admin-warning">${escapeHtml(statusMessage)}</div>` : ''}
@@ -1503,11 +1614,11 @@
       </div>
     `;
     if (inspectorTab === 'style') {
-      $('[data-admin-panel-body]', panel).innerHTML = tabsHtml + renderInspectorStyleTabHTML(element);
+      $('[data-admin-panel-body]', panel).innerHTML = tabsHtml + getRoleAccessBanner('inspector') + renderInspectorStyleTabHTML(element);
       setTimeout(bindInspectorStyleEvents, 0);
       return;
     }
-    $('[data-admin-panel-body]', panel).innerHTML = tabsHtml + `
+    $('[data-admin-panel-body]', panel).innerHTML = tabsHtml + getRoleAccessBanner('inspector') + `
       <div class="gv-admin-meta">
         <div>Edit key: <code>${escapeHtml(key)}</code></div>
         <div>Edit type: <code>${escapeHtml(type)}</code></div>
@@ -1659,7 +1770,9 @@
     if (error) {
       inspectorDirty = true;
       unsavedCount = 1;
-      setSaveState(note, 'Save failed. Check Supabase policies and schema.');
+      const friendly = classifySupabaseError(error);
+      setSaveState(note, `Save failed: ${friendly}`);
+      if (cmsDebug) console.warn('[GROWVA CMS] save-draft-error', error);
       updateTopbar();
       finishSave();
       return;
@@ -1954,25 +2067,55 @@
   function openPublishDialog() {
     ensureRoot();
     const body = $('[data-publish-confirm-body]', publishDialog);
+    const imageRows = pendingPublishRows.filter(r => r.edit_type === 'image' || r.edit_type === 'background-image');
+    const textRows = pendingPublishRows.filter(r => r.edit_type !== 'image' && r.edit_type !== 'background-image');
+    const tokenCount = Object.keys(designTokenDrafts).length;
+    const sectionOrderCount = Object.keys(sectionSettingsDrafts).length;
+    const elementStyleCount = Object.keys(elementStyleDrafts).length;
     body.innerHTML = `
-      <div class="gv-admin-meta">
-        <div>Page path: <code>${escapeHtml(pagePath)}</code></div>
-        <div>Text/content changes: <code>${pendingPublishRows.length}</code></div>
-        <div>Custom section changes: <code>${pendingCustomPublishRows.length}</code></div>
-        <div>Visual/order changes: <code>${pendingVisualPublishCount}</code></div>
-        <div>Scope: <code>Current page only</code></div>
+      <div class="gv-admin-publish-summary">
+        <div class="gv-admin-meta">
+          <div>Page path: <code>${escapeHtml(pagePath)}</code></div>
+          <div>Scope: <code>Current page only</code></div>
+        </div>
+        <div class="gv-admin-publish-groups">
+          <div class="gv-admin-publish-group${textRows.length ? '' : ' is-empty'}">
+            <span class="gv-admin-publish-group-label">Text / content</span>
+            <span class="gv-admin-publish-group-count">${textRows.length}</span>
+          </div>
+          <div class="gv-admin-publish-group${imageRows.length ? '' : ' is-empty'}">
+            <span class="gv-admin-publish-group-label">Image / media references</span>
+            <span class="gv-admin-publish-group-count">${imageRows.length}</span>
+          </div>
+          <div class="gv-admin-publish-group${pendingCustomPublishRows.length ? '' : ' is-empty'}">
+            <span class="gv-admin-publish-group-label">Custom sections</span>
+            <span class="gv-admin-publish-group-count">${pendingCustomPublishRows.length}</span>
+          </div>
+          <div class="gv-admin-publish-group${tokenCount ? '' : ' is-empty'}">
+            <span class="gv-admin-publish-group-label">Visual / design tokens</span>
+            <span class="gv-admin-publish-group-count">${tokenCount}</span>
+          </div>
+          <div class="gv-admin-publish-group${sectionOrderCount ? '' : ' is-empty'}">
+            <span class="gv-admin-publish-group-label">Section order / visibility</span>
+            <span class="gv-admin-publish-group-count">${sectionOrderCount}</span>
+          </div>
+          <div class="gv-admin-publish-group${elementStyleCount ? '' : ' is-empty'}">
+            <span class="gv-admin-publish-group-label">Element style overrides</span>
+            <span class="gv-admin-publish-group-count">${elementStyleCount}</span>
+          </div>
+        </div>
+        <div class="gv-admin-warning">Publishing affects only this page. Global token publish is separate.</div>
       </div>
-      <div class="gv-admin-warning">This publishes current page only.</div>
       <div class="gv-admin-row-list gv-admin-row-list--compact">
         ${pendingPublishRows.map(row => `
           <article class="gv-admin-content-row">
             <div>
               <strong>${escapeHtml(row.edit_key || '')}</strong>
-              <span>${escapeHtml(row.section_id || 'No section')}</span>
+              <span>${escapeHtml(row.section_id || 'No section')} / ${escapeHtml(row.edit_type || 'text')}</span>
               <p>${escapeHtml((row.value_text || '').slice(0, 140))}</p>
             </div>
           </article>
-        `).join('') || '<p class="gv-admin-empty">No draft rows to publish.</p>'}
+        `).join('') || '<p class="gv-admin-empty">No draft content rows to publish.</p>'}
         ${pendingCustomPublishRows.map(row => `
           <article class="gv-admin-content-row">
             <div>
@@ -2079,7 +2222,8 @@
         publishError = caught;
       }
       if (publishError) {
-        statusMessage = 'Publish failed. Check owner role and RLS policies.';
+        statusMessage = `Publish failed: ${classifySupabaseError(publishError)}`;
+        if (cmsDebug) console.warn('[GROWVA CMS] publish-error', publishError);
         renderPanelEmpty();
         finishPublish();
         return;
@@ -2087,7 +2231,8 @@
     }
     const customPublish = await publishCustomSectionDrafts();
     if (customPublish.error) {
-      statusMessage = 'Publish failed while publishing custom sections.';
+      statusMessage = `Publish failed on custom sections: ${classifySupabaseError(customPublish.error)}`;
+      if (cmsDebug) console.warn('[GROWVA CMS] custom-section-publish-error', customPublish.error);
       renderPanelEmpty();
       finishPublish();
       return;
@@ -3786,6 +3931,10 @@
   }
 
   async function saveAllTokenDrafts() {
+    if (!canAdminEdit()) {
+      logCmsVisualDebug('save-tokens-denied', { role: getAdminRole() });
+      return;
+    }
     const visualTab = $('[data-admin-panel-body]', dashboard);
     const inputs = visualTab ? $all('[data-token-key]', dashboard) : [];
     let count = 0;
@@ -3973,6 +4122,7 @@
   }
 
   async function moveSectionRelative(sectionId, direction) {
+    if (!canAdminEdit()) return;
     const sections = getSections();
     const idx = sections.findIndex(s => s.dataset.sectionId === sectionId);
     if (idx < 0) return;
@@ -4002,6 +4152,7 @@
   }
 
   async function toggleSectionVisibility(sectionId) {
+    if (!canAdminEdit()) return;
     const el = $(`[data-section-id="${sectionId}"]`);
     if (!el) return;
     if (isSectionProtected(el)) {
@@ -4017,6 +4168,10 @@
   }
 
   async function saveSectionDraftFromUI(sectionId) {
+    if (!canAdminEdit()) {
+      logCmsVisualDebug('save-section-denied', { role: getAdminRole() });
+      return;
+    }
     const container = $(`[data-section-style-panel="${sectionId}"]`, dashboard);
     if (!container) return;
     const styleJson = {};
@@ -4033,6 +4188,11 @@
   }
 
   async function saveInspectorStyleDraft() {
+    if (!canAdminEdit()) {
+      const state = $('[data-admin-save-state]', panel);
+      if (state) state.textContent = 'Viewer access: style edits are disabled.';
+      return;
+    }
     if (!currentElement) return;
     const key = currentElement.dataset.editKey;
     if (!key) return;
@@ -4085,17 +4245,20 @@
     const unsavedNote = unsavedVisualCount > 0
       ? `<p class="gv-admin-note">${unsavedVisualCount} token(s) in draft.</p>` : '';
 
+    const canEdit = canAdminEdit();
+    const canPublish = canAdminPublish();
     return `
       <div class="gv-admin-visual-control">
+        ${getRoleAccessBanner('visual')}
         ${confirmHtml}
         <div class="gv-admin-subtabs">${tabsHtml}</div>
         ${panelHtml}
         ${unsavedNote}
         <div class="gv-admin-panel-actions" style="margin-top:12px">
-          <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="save-token-drafts">Save Draft</button>
-          <button class="gv-admin-action" type="button" data-admin-action="publish-tokens-page">Publish (This Page)</button>
-          <button class="gv-admin-action" type="button" data-admin-action="publish-tokens-global">Publish (Global)</button>
-          <button class="gv-admin-action gv-admin-action--danger" type="button" data-admin-action="reset-token-drafts">Reset Draft</button>
+          <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="save-token-drafts" ${canEdit ? '' : 'disabled'}>Save Draft</button>
+          <button class="gv-admin-action" type="button" data-admin-action="publish-tokens-page" ${canPublish ? '' : 'disabled'}>Publish (This Page)</button>
+          <button class="gv-admin-action" type="button" data-admin-action="publish-tokens-global" ${canPublish ? '' : 'disabled'}>Publish (Global)</button>
+          <button class="gv-admin-action gv-admin-action--danger" type="button" data-admin-action="reset-token-drafts" ${canEdit ? '' : 'disabled'}>Reset Draft</button>
         </div>
       </div>
     `;
@@ -4217,6 +4380,7 @@
     }
     return `
       <div class="gv-admin-section-manager">
+        ${getRoleAccessBanner('sections')}
         <p class="gv-admin-note">Manage section visibility, order, and style. Protected sections (animations, canvas, fixed) show a warning before changes.</p>
         ${sections.map((el, i) => renderSectionItem(el, i, sections.length)).join('')}
       </div>`;
@@ -4227,6 +4391,7 @@
     const rows = getCustomSectionRowsForRender(true);
     return `
       <div class="gv-admin-section-builder">
+        ${getRoleAccessBanner('builder')}
         <div class="gv-admin-builder-head">
           <div>
             <span class="gv-admin-pill">Safe templates only</span>

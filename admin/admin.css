@@ -1502,3 +1502,129 @@ body.editor-safe-mode [data-admin-ui="true"] {
   .gv-admin-builder-row,
   .gv-admin-builder-editor-head{flex-direction:column;align-items:stretch;}
 }
+
+/* ── Phase 12: Role access banners ───────────────────────────────────────── */
+
+.gv-admin-role-banner {
+  padding: 8px 12px;
+  border-radius: 5px;
+  font-size: 11px;
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.gv-admin-role-banner--viewer {
+  background: rgba(255, 80, 80, .1);
+  border: 1px solid rgba(255, 80, 80, .25);
+  color: #ff7070;
+}
+
+.gv-admin-role-banner--editor {
+  background: rgba(255, 180, 0, .09);
+  border: 1px solid rgba(255, 180, 0, .25);
+  color: #ffc800;
+}
+
+.gv-admin-role-banner--owner {
+  background: rgba(177, 250, 32, .07);
+  border: 1px solid rgba(177, 250, 32, .2);
+  color: var(--gv-admin-mint);
+}
+
+/* ── Phase 12: Role & Session tab ────────────────────────────────────────── */
+
+.gv-admin-role-matrix {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.gv-admin-role-matrix table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.gv-admin-role-matrix th,
+.gv-admin-role-matrix td {
+  padding: 5px 8px;
+  border: 1px solid var(--gv-admin-line);
+  text-align: left;
+}
+
+.gv-admin-role-matrix th {
+  background: rgba(246,246,246,.05);
+  font-family: var(--mono,'JetBrains Mono',monospace);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--gv-admin-muted);
+}
+
+.gv-admin-role-matrix tr.is-allowed td:first-child {
+  color: var(--gv-admin-ink);
+}
+
+.gv-admin-role-matrix tr.is-denied td:first-child {
+  color: var(--gv-admin-muted);
+  opacity: .65;
+}
+
+.gv-admin-perm-yes {
+  color: var(--gv-admin-mint);
+  font-weight: 700;
+}
+
+.gv-admin-perm-no {
+  color: rgba(255,80,80,.7);
+}
+
+.gv-admin-badge--editor {
+  background: rgba(255,180,0,.15);
+  color: #ffc800;
+}
+
+.gv-admin-badge--viewer {
+  background: rgba(255,80,80,.1);
+  color: #ff7070;
+}
+
+/* ── Phase 12: Publish dialog summary ────────────────────────────────────── */
+
+.gv-admin-publish-summary {
+  margin-bottom: 12px;
+}
+
+.gv-admin-publish-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.gv-admin-publish-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid var(--gv-admin-line);
+  border-radius: 5px;
+  font-size: 11px;
+}
+
+.gv-admin-publish-group.is-empty {
+  opacity: .45;
+}
+
+.gv-admin-publish-group-label {
+  color: var(--gv-admin-muted);
+}
+
+.gv-admin-publish-group-count {
+  font-family: var(--mono,'JetBrains Mono',monospace);
+  font-weight: 700;
+  color: var(--gv-admin-mint);
+}
+
+.gv-admin-publish-group.is-empty .gv-admin-publish-group-count {
+  color: var(--gv-admin-muted);
+}
