@@ -27,24 +27,26 @@
     'backgroundColor','color','paddingTop','paddingBottom','marginTop','marginBottom',
     'maxWidth','textAlign','borderRadius','borderColor','cardBackground','cardRadius'
   ]);
+  const CUSTOM_SECTION_IMAGE_POSITIONS = new Set(['left','right','top','bottom','background']);
+  const CUSTOM_SECTION_IMAGE_TEMPLATES = new Set(['simple_text','cta','feature_cards','project_highlight','logo_strip']);
   const CUSTOM_SECTION_TEMPLATES = {
     simple_text: {
       label: 'Simple Text Section',
       sectionType: 'custom-simple-text',
       description: 'Eyebrow, headline, body, and one button.',
-      defaults: { eyebrow: 'Studio note', heading: 'A focused section headline', body: 'Use this safe text section to add a concise page message.', buttonLabel: 'Learn More', buttonLink: 'about.html' }
+      defaults: { eyebrow: 'Studio note', heading: 'A focused section headline', body: 'Use this safe text section to add a concise page message.', buttonLabel: 'Learn More', buttonLink: 'about.html', image_asset_id: '', image_url: '', image_alt: '', image_position: 'right' }
     },
     cta: {
       label: 'CTA Section',
       sectionType: 'custom-cta',
       description: 'Conversion-focused call to action with two links.',
-      defaults: { heading: 'Ready to build a sharper commerce system?', body: 'Tell us what you are launching, improving, or scaling next.', primaryLabel: 'Start a Project', primaryLink: 'contact.html', secondaryLabel: 'View Work', secondaryLink: 'work.html' }
+      defaults: { heading: 'Ready to build a sharper commerce system?', body: 'Tell us what you are launching, improving, or scaling next.', primaryLabel: 'Start a Project', primaryLink: 'contact.html', secondaryLabel: 'View Work', secondaryLink: 'work.html', image_asset_id: '', image_url: '', image_alt: '', overlay_strength: '0.45' }
     },
     feature_cards: {
       label: 'Feature Cards Section',
       sectionType: 'custom-feature-cards',
       description: 'Three compact cards for services, benefits, or pillars.',
-      defaults: { eyebrow: 'Capabilities', heading: 'Built for brand and commerce momentum', cards: [{ title: 'Strategy', description: 'Clarify the offer and conversion path.', iconLabel: '01' }, { title: 'Design', description: 'Shape a premium visual system.', iconLabel: '02' }, { title: 'Growth', description: 'Improve the parts that move revenue.', iconLabel: '03' }] }
+      defaults: { eyebrow: 'Capabilities', heading: 'Built for brand and commerce momentum', cards: [{ title: 'Strategy', description: 'Clarify the offer and conversion path.', iconLabel: '01', image_asset_id: '', image_url: '', image_alt: '' }, { title: 'Design', description: 'Shape a premium visual system.', iconLabel: '02', image_asset_id: '', image_url: '', image_alt: '' }, { title: 'Growth', description: 'Improve the parts that move revenue.', iconLabel: '03', image_asset_id: '', image_url: '', image_alt: '' }] }
     },
     stats: {
       label: 'Stats Section',
@@ -62,13 +64,13 @@
       label: 'Project Highlight Section',
       sectionType: 'custom-project-highlight',
       description: 'A compact work teaser with category and metric.',
-      defaults: { eyebrow: 'Project highlight', heading: 'A refined commerce moment', description: 'Showcase one project outcome with a focused summary.', projectTitle: 'Noor Perfumery', category: 'Shopify / Brand', metric: '+28% add-to-cart rate', ctaLabel: 'View Project', ctaLink: 'work.html' }
+      defaults: { eyebrow: 'Project highlight', heading: 'A refined commerce moment', description: 'Showcase one project outcome with a focused summary.', projectTitle: 'Noor Perfumery', category: 'Shopify / Brand', metric: '+28% add-to-cart rate', ctaLabel: 'View Project', ctaLink: 'work.html', image_asset_id: '', image_url: '', image_alt: '' }
     },
     logo_strip: {
       label: 'Logo / Partners Strip',
       sectionType: 'custom-logo-strip',
       description: 'A simple text-based partner or logo strip.',
-      defaults: { heading: 'Trusted by focused brand teams', items: ['Noor', 'Vella', 'Atelier', 'Terra Grove'] }
+      defaults: { heading: 'Trusted by focused brand teams', items: [{ label: 'Noor', image_asset_id: '', image_url: '', image_alt: '' }, { label: 'Vella', image_asset_id: '', image_url: '', image_alt: '' }, { label: 'Atelier', image_asset_id: '', image_url: '', image_alt: '' }, { label: 'Terra Grove', image_asset_id: '', image_url: '', image_alt: '' }] }
     }
   };
 
@@ -136,6 +138,8 @@
   let customSectionDrafts = {};
   let customSectionPublished = {};
   let customSectionEditorId = null;
+  let customMediaPicker = null;
+  let customMediaPickerSearch = '';
 
   function $(selector, root = document) {
     return root.querySelector(selector);
@@ -1256,6 +1260,10 @@
     if (action === 'builder-add-item') addCustomSectionItem(actionElement.dataset.sectionId, actionElement.dataset.arrayKey);
     if (action === 'builder-remove-item') removeCustomSectionItem(actionElement.dataset.sectionId, actionElement.dataset.arrayKey, Number(actionElement.dataset.itemIndex || 0));
     if (action === 'builder-move-item') moveCustomSectionItem(actionElement.dataset.sectionId, actionElement.dataset.arrayKey, Number(actionElement.dataset.itemIndex || 0), Number(actionElement.dataset.direction || 0));
+    if (action === 'builder-open-media-picker') openCustomMediaPicker(actionElement);
+    if (action === 'builder-refresh-media') refreshCustomMediaPicker();
+    if (action === 'builder-select-media') selectCustomSectionMedia(actionElement);
+    if (action === 'builder-remove-image') removeCustomSectionImage(actionElement);
   }
 
   function openModal() {
@@ -2190,6 +2198,19 @@
     return false;
   }
 
+  function setAdminImagePreview(wrap, url, alt) {
+    if (!wrap || !url || !isSafeImageUrl(url)) return;
+    wrap.textContent = '';
+    const img = document.createElement('img');
+    img.className = 'gv-admin-image-preview';
+    img.src = url;
+    img.alt = sanitizeText(alt || '');
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.dataset.imagePreview = 'true';
+    wrap.appendChild(img);
+  }
+
   function getImageValueFromRow(row) {
     if (!row) return null;
     if (row.value_json && typeof row.value_json === 'object' && !Array.isArray(row.value_json)) return row.value_json;
@@ -2378,7 +2399,7 @@
       if (urlInput && asset) urlInput.value = asset.public_url;
       const previewWrap = $('.gv-admin-image-preview-wrap', panel);
       if (previewWrap && asset && isSafeImageUrl(asset.public_url)) {
-        previewWrap.innerHTML = '<img class="gv-admin-image-preview" src="' + escapeHtml(asset.public_url) + '" alt="' + escapeHtml(asset.alt_text || '') + '" data-image-preview>';
+        setAdminImagePreview(previewWrap, asset.public_url, asset.alt_text || '');
       }
       const note = $('[data-image-save-state]', panel);
       if (note && asset) note.textContent = 'Selected: ' + asset.file_name + '. Click Save Draft Image to apply.';
@@ -2470,7 +2491,7 @@
       const existing = $('[data-image-preview]', panel);
       const wrap = $('.gv-admin-image-preview-wrap', panel);
       if (existing) { existing.src = url; }
-      else if (wrap) { wrap.innerHTML = '<img class="gv-admin-image-preview" src="' + escapeHtml(url) + '" alt="" data-image-preview>'; }
+      else if (wrap) { setAdminImagePreview(wrap, url, ''); }
     });
   }
 
@@ -2494,7 +2515,7 @@
       mediaAssets.unshift(asset);
       const wrap = $('.gv-admin-image-preview-wrap', panel);
       if (wrap && isSafeImageUrl(asset.public_url)) {
-        wrap.innerHTML = '<img class="gv-admin-image-preview" src="' + escapeHtml(asset.public_url) + '" alt="" data-image-preview>';
+        setAdminImagePreview(wrap, asset.public_url, '');
       }
       if (note) note.textContent = 'Uploaded: ' + asset.file_name + '. Click Save Draft Image to apply.';
     }
@@ -2837,15 +2858,27 @@
       const url = sanitizeText(value).slice(0, 240);
       return isSafeCustomLink(url) ? url : '';
     };
+    const cleanImageUrl = value => {
+      const url = sanitizeText(value).slice(0, 600);
+      return url && isSafeImageUrl(url) ? url : '';
+    };
+    const cleanAssetId = value => sanitizeText(value).slice(0, 80);
+    const cleanAlt = value => sanitizeText(value).slice(0, 180);
+    const cleanImageFields = value => ({
+      image_asset_id: cleanAssetId(value?.image_asset_id),
+      image_url: cleanImageUrl(value?.image_url),
+      image_alt: cleanAlt(value?.image_alt)
+    });
     const cleanItemText = value => cleanText(value).slice(0, 180);
     if (templateId === 'simple_text') {
-      return { eyebrow: cleanText(source.eyebrow), heading: cleanText(source.heading), body: cleanText(source.body), buttonLabel: cleanText(source.buttonLabel), buttonLink: cleanUrl(source.buttonLink) };
+      return { eyebrow: cleanText(source.eyebrow), heading: cleanText(source.heading), body: cleanText(source.body), buttonLabel: cleanText(source.buttonLabel), buttonLink: cleanUrl(source.buttonLink), ...cleanImageFields(source), image_position: CUSTOM_SECTION_IMAGE_POSITIONS.has(source.image_position) ? source.image_position : 'right' };
     }
     if (templateId === 'cta') {
-      return { heading: cleanText(source.heading), body: cleanText(source.body), primaryLabel: cleanText(source.primaryLabel), primaryLink: cleanUrl(source.primaryLink), secondaryLabel: cleanText(source.secondaryLabel), secondaryLink: cleanUrl(source.secondaryLink) };
+      const overlay = Number(source.overlay_strength);
+      return { heading: cleanText(source.heading), body: cleanText(source.body), primaryLabel: cleanText(source.primaryLabel), primaryLink: cleanUrl(source.primaryLink), secondaryLabel: cleanText(source.secondaryLabel), secondaryLink: cleanUrl(source.secondaryLink), ...cleanImageFields(source), overlay_strength: Number.isFinite(overlay) ? String(Math.max(0, Math.min(0.85, overlay))) : '0.45' };
     }
     if (templateId === 'feature_cards') {
-      return { eyebrow: cleanText(source.eyebrow), heading: cleanText(source.heading), cards: sanitizeArray(source.cards, 6).map(item => ({ title: cleanItemText(item.title), description: cleanText(item.description), iconLabel: cleanItemText(item.iconLabel) })) };
+      return { eyebrow: cleanText(source.eyebrow), heading: cleanText(source.heading), cards: sanitizeArray(source.cards, 6).map(item => ({ title: cleanItemText(item.title), description: cleanText(item.description), iconLabel: cleanItemText(item.iconLabel), ...cleanImageFields(item) })) };
     }
     if (templateId === 'stats') {
       return { heading: cleanText(source.heading), stats: sanitizeArray(source.stats, 6).map(item => ({ value: cleanItemText(item.value), label: cleanItemText(item.label) })) };
@@ -2854,10 +2887,10 @@
       return { heading: cleanText(source.heading), questions: sanitizeArray(source.questions, 8).map(item => ({ question: cleanText(item.question), answer: cleanText(item.answer) })) };
     }
     if (templateId === 'project_highlight') {
-      return { eyebrow: cleanText(source.eyebrow), heading: cleanText(source.heading), description: cleanText(source.description), projectTitle: cleanText(source.projectTitle), category: cleanText(source.category), metric: cleanText(source.metric), ctaLabel: cleanText(source.ctaLabel), ctaLink: cleanUrl(source.ctaLink) };
+      return { eyebrow: cleanText(source.eyebrow), heading: cleanText(source.heading), description: cleanText(source.description), projectTitle: cleanText(source.projectTitle), category: cleanText(source.category), metric: cleanText(source.metric), ctaLabel: cleanText(source.ctaLabel), ctaLink: cleanUrl(source.ctaLink), ...cleanImageFields(source) };
     }
     if (templateId === 'logo_strip') {
-      return { heading: cleanText(source.heading), items: sanitizeArray(source.items, 12).map(item => cleanItemText(typeof item === 'string' ? item : item.label)) };
+      return { heading: cleanText(source.heading), items: sanitizeArray(source.items, 12).map(item => typeof item === 'string' ? { label: cleanItemText(item), image_asset_id: '', image_url: '', image_alt: '' } : ({ label: cleanItemText(item.label), ...cleanImageFields(item) })) };
     }
     return defaults;
   }
@@ -2972,14 +3005,63 @@
     return a;
   }
 
+  function createCustomImage(url, alt, className) {
+    if (!url || !isSafeImageUrl(url)) return null;
+    const img = document.createElement('img');
+    img.className = className;
+    img.src = url;
+    img.alt = sanitizeText(alt || '');
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.addEventListener('error', () => {
+      const wrap = img.closest('.gv-custom-image-wrap, .gv-custom-card-media, .gv-custom-logo-media');
+      if (wrap) wrap.classList.add('is-broken');
+      img.remove();
+    }, { once: true });
+    return img;
+  }
+
+  function appendCustomImage(parent, url, alt, wrapClass, imageClass) {
+    const img = createCustomImage(url, alt, imageClass || 'gv-custom-image');
+    if (!img) return null;
+    const wrap = document.createElement('div');
+    wrap.className = wrapClass || 'gv-custom-image-wrap';
+    wrap.appendChild(img);
+    parent.appendChild(wrap);
+    return wrap;
+  }
+
   function appendCustomTemplateContent(root, section) {
     const c = sanitizeCustomContent(section.template_id, section.content_json);
     if (section.template_id === 'simple_text') {
-      root.append(customField(section, 'p', 'gv-custom-eyebrow', 'eyebrow', c.eyebrow));
-      root.append(customField(section, 'h2', 'gv-custom-heading', 'heading', c.heading));
-      root.append(customField(section, 'p', 'gv-custom-body', 'body', c.body, 'richtext'));
-      root.append(customLink(section, c.buttonLabel, c.buttonLink, 'gv-custom-button'));
+      root.classList.add(`gv-custom-section__inner--image-${c.image_position || 'right'}`);
+      const copy = document.createElement('div');
+      copy.className = 'gv-custom-copy';
+      copy.append(customField(section, 'p', 'gv-custom-eyebrow', 'eyebrow', c.eyebrow));
+      copy.append(customField(section, 'h2', 'gv-custom-heading', 'heading', c.heading));
+      copy.append(customField(section, 'p', 'gv-custom-body', 'body', c.body, 'richtext'));
+      copy.append(customLink(section, c.buttonLabel, c.buttonLink, 'gv-custom-button'));
+      const image = appendCustomImage(document.createElement('div'), c.image_url, c.image_alt, 'gv-custom-image-wrap', 'gv-custom-image');
+      if (image && c.image_position !== 'background') {
+        if (c.image_position === 'left' || c.image_position === 'top') root.append(image, copy);
+        else root.append(copy, image);
+      } else {
+        root.append(copy);
+        if (image && c.image_position === 'background') {
+          image.classList.add('gv-custom-image-wrap--background');
+          root.prepend(image);
+        }
+      }
     } else if (section.template_id === 'cta') {
+      if (c.image_url && isSafeImageUrl(c.image_url)) {
+        const bg = appendCustomImage(root, c.image_url, c.image_alt, 'gv-custom-image-wrap gv-custom-image-wrap--background', 'gv-custom-image');
+        if (bg) {
+          const overlay = document.createElement('span');
+          overlay.className = 'gv-custom-image-overlay';
+          overlay.style.opacity = String(Math.max(0, Math.min(0.85, Number(c.overlay_strength) || 0.45)));
+          bg.appendChild(overlay);
+        }
+      }
       root.append(customField(section, 'h2', 'gv-custom-heading', 'heading', c.heading));
       root.append(customField(section, 'p', 'gv-custom-body', 'body', c.body, 'richtext'));
       const actions = document.createElement('div');
@@ -2995,6 +3077,7 @@
       c.cards.forEach((card, index) => {
         const article = document.createElement('article');
         article.className = 'gv-custom-card';
+        appendCustomImage(article, card.image_url, card.image_alt, 'gv-custom-card-media', 'gv-custom-card-image');
         article.append(customField(section, 'span', 'gv-custom-card-icon', `cards.${index}.iconLabel`, card.iconLabel));
         article.append(customField(section, 'h3', 'gv-custom-card-title', `cards.${index}.title`, card.title));
         article.append(customField(section, 'p', 'gv-custom-card-text', `cards.${index}.description`, card.description));
@@ -3029,6 +3112,7 @@
       root.append(customField(section, 'p', 'gv-custom-eyebrow', 'eyebrow', c.eyebrow));
       root.append(customField(section, 'h2', 'gv-custom-heading', 'heading', c.heading));
       root.append(customField(section, 'p', 'gv-custom-body', 'description', c.description, 'richtext'));
+      appendCustomImage(root, c.image_url, c.image_alt, 'gv-custom-project-image-wrap', 'gv-custom-project-image');
       const meta = document.createElement('div');
       meta.className = 'gv-custom-project-meta';
       meta.append(customField(section, 'strong', 'gv-custom-project-title', 'projectTitle', c.projectTitle));
@@ -3041,7 +3125,20 @@
       const strip = document.createElement('div');
       strip.className = 'gv-custom-logo-strip';
       c.items.forEach((item, index) => {
-        strip.append(customField(section, 'span', 'gv-custom-logo-item', `items.${index}`, item));
+        const label = typeof item === 'string' ? item : item.label;
+        const logo = document.createElement('span');
+        logo.className = 'gv-custom-logo-item';
+        logo.dataset.editKey = `${section.section_id}.items.${index}`;
+        logo.dataset.editType = 'text';
+        logo.dataset.sectionId = section.section_id;
+        if (item && typeof item === 'object' && item.image_url) {
+          appendCustomImage(logo, item.image_url, item.image_alt || label, 'gv-custom-logo-media', 'gv-custom-logo-image');
+        }
+        const fallback = document.createElement('span');
+        fallback.className = 'gv-custom-logo-label';
+        fallback.textContent = sanitizeText(label);
+        logo.appendChild(fallback);
+        strip.append(logo);
       });
       root.append(strip);
     }
@@ -3862,11 +3959,19 @@
           ? `<textarea data-custom-field="${escapeHtml(key)}">${escapeHtml(content[key] || '')}</textarea>`
           : `<input type="text" data-custom-field="${escapeHtml(key)}" value="${escapeHtml(content[key] || '')}">`}
       </div>`;
+    const sectionImage = (label, opts = {}) => renderCustomImageEditor(row, content, {
+      label,
+      scope: 'section',
+      fieldPrefix: '',
+      supportsPosition: Boolean(opts.position),
+      supportsOverlay: Boolean(opts.overlay),
+      canEdit
+    });
     let html = '';
     if (row.template_id === 'simple_text') {
-      html = field('eyebrow', 'Eyebrow') + field('heading', 'Heading') + field('body', 'Body', true) + field('buttonLabel', 'Button label') + field('buttonLink', 'Button link');
+      html = field('eyebrow', 'Eyebrow') + field('heading', 'Heading') + field('body', 'Body', true) + field('buttonLabel', 'Button label') + field('buttonLink', 'Button link') + sectionImage('Optional image', { position: true });
     } else if (row.template_id === 'cta') {
-      html = field('heading', 'Heading') + field('body', 'Body', true) + field('primaryLabel', 'Primary label') + field('primaryLink', 'Primary link') + field('secondaryLabel', 'Secondary label') + field('secondaryLink', 'Secondary link');
+      html = field('heading', 'Heading') + field('body', 'Body', true) + field('primaryLabel', 'Primary label') + field('primaryLink', 'Primary link') + field('secondaryLabel', 'Secondary label') + field('secondaryLink', 'Secondary link') + sectionImage('Background image', { overlay: true });
     } else if (row.template_id === 'feature_cards') {
       html = field('eyebrow', 'Eyebrow') + field('heading', 'Heading') + renderRepeatableEditor(row, 'cards', content.cards || [], [{ key: 'iconLabel', label: 'Icon label' }, { key: 'title', label: 'Title' }, { key: 'description', label: 'Description', multiline: true }], canEdit);
     } else if (row.template_id === 'stats') {
@@ -3874,15 +3979,103 @@
     } else if (row.template_id === 'faq') {
       html = field('heading', 'Heading') + renderRepeatableEditor(row, 'questions', content.questions || [], [{ key: 'question', label: 'Question' }, { key: 'answer', label: 'Answer', multiline: true }], canEdit);
     } else if (row.template_id === 'project_highlight') {
-      html = field('eyebrow', 'Eyebrow') + field('heading', 'Heading') + field('description', 'Description', true) + field('projectTitle', 'Project title') + field('category', 'Category') + field('metric', 'Metric') + field('ctaLabel', 'CTA label') + field('ctaLink', 'CTA link');
+      html = field('eyebrow', 'Eyebrow') + field('heading', 'Heading') + field('description', 'Description', true) + field('projectTitle', 'Project title') + field('category', 'Category') + field('metric', 'Metric') + field('ctaLabel', 'CTA label') + field('ctaLink', 'CTA link') + sectionImage('Project image');
     } else if (row.template_id === 'logo_strip') {
-      html = field('heading', 'Heading') + renderRepeatableEditor(row, 'items', (content.items || []).map(label => ({ label })), [{ key: 'label', label: 'Label' }], canEdit);
+      html = field('heading', 'Heading') + renderRepeatableEditor(row, 'items', (content.items || []).map(item => typeof item === 'string' ? ({ label: item }) : item), [{ key: 'label', label: 'Fallback text label' }], canEdit);
     }
     return `
       ${html}
       <p class="gv-admin-note" data-admin-save-state>Plain text only. Links allow relative, anchors, https, and validated mailto URLs.</p>
       <div class="gv-admin-panel-actions">
         <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="builder-save-section" data-section-id="${escapeHtml(row.section_id)}" ${canEdit ? '' : 'disabled'}>Save Section Draft</button>
+      </div>
+    `;
+  }
+
+  function renderCustomImageEditor(row, source, options) {
+    if (!CUSTOM_SECTION_IMAGE_TEMPLATES.has(row.template_id)) return '';
+    const scope = options.scope || 'section';
+    const indexAttr = options.index !== undefined ? ` data-item-index="${Number(options.index)}"` : '';
+    const arrayAttr = options.arrayKey ? ` data-array-key="${escapeHtml(options.arrayKey)}"` : '';
+    const url = source?.image_url || '';
+    const assetId = source?.image_asset_id || '';
+    const alt = source?.image_alt || '';
+    const pickerOpen = customMediaPicker
+      && customMediaPicker.sectionId === row.section_id
+      && customMediaPicker.scope === scope
+      && String(customMediaPicker.index ?? '') === String(options.index ?? '')
+      && String(customMediaPicker.arrayKey || '') === String(options.arrayKey || '');
+    return `
+      <div class="gv-admin-section-image" data-custom-image-editor data-image-scope="${escapeHtml(scope)}"${arrayAttr}${indexAttr}>
+        <div class="gv-admin-section-image-head">
+          <div>
+            <strong>${escapeHtml(options.label || 'Image')}</strong>
+            <span>${url ? escapeHtml(assetId || 'Selected image') : 'No image selected'}</span>
+          </div>
+          <div class="gv-admin-section-actions">
+            <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="builder-open-media-picker" data-section-id="${escapeHtml(row.section_id)}" data-image-scope="${escapeHtml(scope)}"${arrayAttr}${indexAttr} ${options.canEdit ? '' : 'disabled'}>${url ? 'Replace' : 'Choose from Media Library'}</button>
+            <button class="gv-admin-action gv-admin-action--sm gv-admin-action--danger" type="button" data-admin-action="builder-remove-image" data-section-id="${escapeHtml(row.section_id)}" data-image-scope="${escapeHtml(scope)}"${arrayAttr}${indexAttr} ${url && options.canEdit ? '' : 'disabled'}>Remove</button>
+          </div>
+        </div>
+        <div class="gv-admin-section-image-preview">
+          ${url && isSafeImageUrl(url)
+            ? `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async">`
+            : '<span>No selected image</span>'}
+        </div>
+        <input type="hidden" data-custom-image-field="image_asset_id" data-image-scope="${escapeHtml(scope)}"${arrayAttr}${indexAttr} value="${escapeHtml(assetId)}">
+        <input type="hidden" data-custom-image-field="image_url" data-image-scope="${escapeHtml(scope)}"${arrayAttr}${indexAttr} value="${escapeHtml(url)}">
+        <div class="gv-admin-field">
+          <label>Alt text</label>
+          <input type="text" data-custom-image-field="image_alt" data-image-scope="${escapeHtml(scope)}"${arrayAttr}${indexAttr} value="${escapeHtml(alt)}" ${options.canEdit ? '' : 'disabled'}>
+        </div>
+        ${options.supportsPosition ? `
+          <div class="gv-admin-field">
+            <label>Image position</label>
+            <select data-custom-field="image_position" ${options.canEdit ? '' : 'disabled'}>
+              ${['right','left','top','bottom','background'].map(pos => `<option value="${pos}" ${source.image_position === pos ? 'selected' : ''}>${pos}</option>`).join('')}
+            </select>
+          </div>
+        ` : ''}
+        ${options.supportsOverlay ? `
+          <div class="gv-admin-field">
+            <label>Overlay strength</label>
+            <input type="range" min="0" max="0.85" step="0.05" data-custom-field="overlay_strength" value="${escapeHtml(source.overlay_strength || '0.45')}" ${options.canEdit ? '' : 'disabled'}>
+          </div>
+        ` : ''}
+        ${pickerOpen ? renderCustomMediaPicker(row, options) : ''}
+      </div>
+    `;
+  }
+
+  function renderCustomMediaPicker(row, options) {
+    const search = customMediaPickerSearch.trim().toLowerCase();
+    const assets = mediaAssets.filter(asset => {
+      if (!asset.public_url || !isSafeImageUrl(asset.public_url)) return false;
+      const haystack = `${asset.file_name || ''} ${asset.alt_text || ''} ${asset.file_type || ''}`.toLowerCase();
+      return !search || haystack.includes(search);
+    });
+    const scope = options.scope || 'section';
+    const indexAttr = options.index !== undefined ? ` data-item-index="${Number(options.index)}"` : '';
+    const arrayAttr = options.arrayKey ? ` data-array-key="${escapeHtml(options.arrayKey)}"` : '';
+    return `
+      <div class="gv-admin-media-picker" data-custom-media-picker>
+        <div class="gv-admin-media-picker-toolbar">
+          <input type="search" data-media-picker-search placeholder="Search filename or alt text" value="${escapeHtml(customMediaPickerSearch)}">
+          <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="builder-refresh-media" data-section-id="${escapeHtml(row.section_id)}">Refresh</button>
+        </div>
+        ${!mediaLibraryLoaded ? '<p class="gv-admin-empty">Loading media assets...</p>' : !mediaAssets.length ? '<p class="gv-admin-empty">No media assets found. Upload images from the Media Library tab first.</p>' : !assets.length ? '<p class="gv-admin-empty">No assets match this search.</p>' : `
+          <div class="gv-admin-media-picker-grid">
+            ${assets.map(asset => `
+              <button class="gv-admin-media-picker-item${asset.id === options.currentAssetId ? ' is-selected' : ''}" type="button" data-admin-action="builder-select-media" data-section-id="${escapeHtml(row.section_id)}" data-asset-id="${escapeHtml(asset.id)}" data-image-scope="${escapeHtml(scope)}"${arrayAttr}${indexAttr}>
+                <span class="gv-admin-media-picker-thumb" style="background-image:url(${escapeHtml(asset.public_url)})"></span>
+                <span class="gv-admin-media-picker-meta">
+                  <strong>${escapeHtml(asset.file_name || 'Untitled asset')}</strong>
+                  <em>${escapeHtml(asset.file_type || 'image')}</em>
+                </span>
+              </button>
+            `).join('')}
+          </div>
+        `}
       </div>
     `;
   }
@@ -3910,6 +4103,13 @@
                   : `<input type="text" data-custom-array="${escapeHtml(arrayKey)}" data-custom-index="${index}" data-custom-item-field="${escapeHtml(field.key)}" value="${escapeHtml(item[field.key] || '')}">`}
               </div>
             `).join('')}
+            ${arrayKey === 'cards' || arrayKey === 'items' ? renderCustomImageEditor(row, item, {
+              label: arrayKey === 'cards' ? 'Card image/icon' : 'Logo image',
+              scope: 'item',
+              arrayKey,
+              index,
+              canEdit
+            }) : ''}
           </article>
         `).join('')}
       </div>
@@ -4092,6 +4292,134 @@
 
   // Phase 8: Section Builder actions
 
+  function getCustomImageContextFromAction(actionElement) {
+    return {
+      sectionId: actionElement.dataset.sectionId || '',
+      scope: actionElement.dataset.imageScope || 'section',
+      arrayKey: actionElement.dataset.arrayKey || '',
+      index: actionElement.dataset.itemIndex !== undefined ? Number(actionElement.dataset.itemIndex) : null
+    };
+  }
+
+  function canEditCustomSections() {
+    return ['owner', 'editor'].includes(adminProfile?.role || (isMockAdminSession() ? 'owner' : ''));
+  }
+
+  async function openCustomMediaPicker(actionElement) {
+    if (!canEditCustomSections()) return;
+    const context = getCustomImageContextFromAction(actionElement);
+    if (!context.sectionId) return;
+    customMediaPicker = context;
+    if (!mediaLibraryLoaded && supabaseClient && currentUser) await loadMediaAssets();
+    renderDashboard();
+    setTimeout(bindSectionBuilderEvents, 0);
+  }
+
+  async function refreshCustomMediaPicker() {
+    if (supabaseClient && currentUser) await loadMediaAssets();
+    renderDashboard();
+    setTimeout(bindSectionBuilderEvents, 0);
+  }
+
+  function mergeCustomEditorContent(sectionId) {
+    const row = customSectionDrafts[sectionId] || customSectionPublished[sectionId];
+    if (!row) return null;
+    const collected = collectCustomSectionContent(sectionId);
+    const next = Object.assign({}, row, {
+      content_json: collected || sanitizeCustomContent(row.template_id, row.content_json),
+      status: 'draft'
+    });
+    customSectionDrafts[sectionId] = next;
+    return next;
+  }
+
+  function setCustomImageInContent(content, context, asset) {
+    const imageData = {
+      image_asset_id: asset?.id || '',
+      image_url: asset?.public_url || '',
+      image_alt: asset?.alt_text || ''
+    };
+    if (context.scope === 'item') {
+      if (!Array.isArray(content[context.arrayKey])) content[context.arrayKey] = [];
+      if (!content[context.arrayKey][context.index] || typeof content[context.arrayKey][context.index] !== 'object') content[context.arrayKey][context.index] = {};
+      Object.assign(content[context.arrayKey][context.index], imageData);
+    } else {
+      Object.assign(content, imageData);
+    }
+  }
+
+  function getCustomImageEditorSelector(context) {
+    const array = context.arrayKey ? `[data-array-key="${cssEscape(context.arrayKey)}"]` : '';
+    const index = context.index !== null && context.index !== undefined ? `[data-item-index="${Number(context.index)}"]` : '';
+    return `[data-image-scope="${cssEscape(context.scope || 'section')}"]${array}${index}`;
+  }
+
+  function setCustomImageEditorDom(actionElement, context, asset) {
+    const editor = actionElement.closest('[data-builder-editor]');
+    if (!editor) return;
+    const selector = getCustomImageEditorSelector(context);
+    const values = {
+      image_asset_id: asset?.id || '',
+      image_url: asset?.public_url || '',
+      image_alt: asset?.alt_text || ''
+    };
+    Object.entries(values).forEach(([field, value]) => {
+      const input = $(`[data-custom-image-field="${field}"]${selector}`, editor);
+      if (input) input.value = value;
+    });
+    const block = actionElement.closest('[data-custom-image-editor]') || $(`[data-custom-image-editor]${selector}`, editor);
+    const preview = block ? $('.gv-admin-section-image-preview', block) : null;
+    if (preview) {
+      preview.textContent = '';
+      if (asset?.public_url && isSafeImageUrl(asset.public_url)) {
+        const img = document.createElement('img');
+        img.src = asset.public_url;
+        img.alt = sanitizeText(asset.alt_text || '');
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        preview.appendChild(img);
+      } else {
+        const empty = document.createElement('span');
+        empty.textContent = 'No selected image';
+        preview.appendChild(empty);
+      }
+    }
+    const picker = block ? $('[data-custom-media-picker]', block) : $('[data-custom-media-picker]', editor);
+    if (picker) picker.remove();
+  }
+
+  function selectCustomSectionMedia(actionElement) {
+    if (!canEditCustomSections()) return;
+    const context = getCustomImageContextFromAction(actionElement);
+    const asset = mediaAssets.find(item => item.id === actionElement.dataset.assetId);
+    if (!asset || !asset.public_url || !isSafeImageUrl(asset.public_url)) {
+      dashboardMessage = 'Selected media asset has an invalid URL.';
+      renderDashboard();
+      return;
+    }
+    setCustomImageEditorDom(actionElement, context, asset);
+    const row = mergeCustomEditorContent(context.sectionId);
+    if (!row) return;
+    customSectionDrafts[row.section_id] = row;
+    customMediaPicker = null;
+    dashboardMessage = 'Image selected. Save Section Draft to persist it.';
+    renderCustomSectionsForAdmin();
+    setTimeout(bindSectionBuilderEvents, 0);
+  }
+
+  function removeCustomSectionImage(actionElement) {
+    if (!canEditCustomSections()) return;
+    const context = getCustomImageContextFromAction(actionElement);
+    setCustomImageEditorDom(actionElement, context, null);
+    const row = mergeCustomEditorContent(context.sectionId);
+    if (!row) return;
+    customSectionDrafts[row.section_id] = row;
+    customMediaPicker = null;
+    dashboardMessage = 'Image removed. Save Section Draft to persist it.';
+    renderCustomSectionsForAdmin();
+    setTimeout(bindSectionBuilderEvents, 0);
+  }
+
   async function addCustomSectionFromTemplate(templateId) {
     const template = getTemplate(templateId);
     if (!template) return;
@@ -4163,9 +4491,20 @@
       if (!next[arrayKey][index] || typeof next[arrayKey][index] !== 'object') next[arrayKey][index] = {};
       next[arrayKey][index][field] = input.value;
     });
-    if (row.template_id === 'logo_strip' && Array.isArray(next.items)) {
-      next.items = next.items.map(item => typeof item === 'string' ? item : item.label);
-    }
+    $all('[data-custom-image-field]', editor).forEach(input => {
+      const scope = input.dataset.imageScope || 'section';
+      const field = input.dataset.customImageField;
+      const value = input.value || '';
+      if (scope === 'item') {
+        const arrayKey = input.dataset.arrayKey;
+        const index = Number(input.dataset.itemIndex || 0);
+        if (!Array.isArray(next[arrayKey])) next[arrayKey] = [];
+        if (!next[arrayKey][index] || typeof next[arrayKey][index] !== 'object') next[arrayKey][index] = {};
+        next[arrayKey][index][field] = value;
+      } else {
+        next[field] = value;
+      }
+    });
     return sanitizeCustomContent(row.template_id, next);
   }
 
@@ -4216,10 +4555,10 @@
   }
 
   function getDefaultRepeatableItem(arrayKey) {
-    if (arrayKey === 'cards') return { iconLabel: 'New', title: 'New card', description: 'Describe this card.' };
+    if (arrayKey === 'cards') return { iconLabel: 'New', title: 'New card', description: 'Describe this card.', image_asset_id: '', image_url: '', image_alt: '' };
     if (arrayKey === 'stats') return { value: '0', label: 'New stat' };
     if (arrayKey === 'questions') return { question: 'New question?', answer: 'Add a plain-text answer.' };
-    if (arrayKey === 'items') return 'New label';
+    if (arrayKey === 'items') return { label: 'New label', image_asset_id: '', image_url: '', image_alt: '' };
     return { label: 'New item' };
   }
 
@@ -4340,11 +4679,26 @@
     const editor = $('.gv-admin-builder-editor', dashboard);
     if (!editor || editor._boundBuilder) return;
     editor._boundBuilder = true;
-    $all('input, textarea', editor).forEach(input => {
+    $all('input, textarea, select', editor).forEach(input => {
       input.addEventListener('input', () => {
         inspectorDirty = true;
         unsavedCount = 1;
         updateTopbar();
+      });
+    });
+    const pickerSearch = $('[data-media-picker-search]', editor);
+    if (pickerSearch) {
+      pickerSearch.addEventListener('input', () => {
+        customMediaPickerSearch = pickerSearch.value || '';
+        renderDashboard();
+        setTimeout(bindSectionBuilderEvents, 0);
+      });
+    }
+    $all('[data-admin-action="builder-select-media"]', editor).forEach(button => {
+      button.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        selectCustomSectionMedia(button);
       });
     });
   }
