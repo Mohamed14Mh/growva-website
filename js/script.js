@@ -736,7 +736,11 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       createTween();
-      window.addEventListener('resize', createTween);
+      let _bentoResizeFrame = null;
+      window.addEventListener('resize', () => {
+        if (_bentoResizeFrame) cancelAnimationFrame(_bentoResizeFrame);
+        _bentoResizeFrame = requestAnimationFrame(() => { _bentoResizeFrame = null; createTween(); });
+      });
     }
 
     initBentoGallery();

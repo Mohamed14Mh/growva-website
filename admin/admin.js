@@ -1502,6 +1502,7 @@
     setEditorSafeMode(true);
     updateTopbar();
     renderPanelEmpty();
+    refreshScrollLayout();
     logCmsDebug('enter-admin-mode');
   }
 
@@ -1514,6 +1515,7 @@
     setAdminInteractionIsolation(false);
     editorSafeMode = true;
     mode = 'preview';
+    refreshScrollLayout();
   }
 
   function setAdminInteractionIsolation(active) {
@@ -3498,6 +3500,7 @@
     });
     refreshContentRegistry();
     applyCurrentSectionOrder();
+    refreshScrollLayout();
     logCmsCustomDebug('custom-sections-rendered', { count: rendered });
     return rendered;
   }
@@ -5359,6 +5362,18 @@
     });
   }
 
+  // ── Phase 14: Scroll layout refresh helper ───────────────────────────────
+
+  let _scrollRefreshFrame = null;
+  function refreshScrollLayout() {
+    if (_scrollRefreshFrame) cancelAnimationFrame(_scrollRefreshFrame);
+    _scrollRefreshFrame = requestAnimationFrame(() => {
+      _scrollRefreshFrame = null;
+      if (window._lenis && typeof window._lenis.resize === 'function') window._lenis.resize();
+      if (window.ScrollTrigger) window.ScrollTrigger.refresh();
+    });
+  }
+
   // ── Phase 13: Live Content Preview Mode + Revision History + Undo Draft ──
 
   function isDraftStale(row) {
@@ -5407,9 +5422,23 @@
     if (visitorPreviewType === 'draft') {
       applyDraftRows();
     } else {
-      applyPublishedEdits && applyPublishedEdits();
+      applyPublishedTextToDom();
     }
     logCmsDebug('enter-visitor-preview', { type: visitorPreviewType });
+  }
+
+  function applyPublishedTextToDom() {
+    const allEditable = document.querySelectorAll('[data-edit-key]');
+    allEditable.forEach(el => {
+      const key = el.dataset.editKey;
+      if (!key) return;
+      const pubRow = dashboardPublishedRows.find(r => r.edit_key === key);
+      if (pubRow && pubRow.value_text !== undefined) {
+        el.textContent = sanitizeText(pubRow.value_text);
+      } else if (originalValues[key] !== undefined) {
+        el.textContent = String(originalValues[key]);
+      }
+    });
   }
 
   function exitVisitorPreview() {
@@ -5420,6 +5449,7 @@
     const bar = document.getElementById('gv-preview-bar');
     if (bar) bar.remove();
     applyDraftRows();
+    refreshScrollLayout();
     logCmsDebug('exit-visitor-preview');
   }
 

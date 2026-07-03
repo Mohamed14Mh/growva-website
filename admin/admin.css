@@ -732,7 +732,12 @@ body.admin-edit-mode [data-edit-key].gv-admin-selected{
   }
   .gv-admin-dashboard-tabs{
     padding:10px;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    white-space:nowrap;
+    scrollbar-width:none;
   }
+  .gv-admin-dashboard-tabs::-webkit-scrollbar{display:none;}
   .gv-admin-dashboard-body{
     padding:12px;
   }
@@ -752,6 +757,23 @@ body.admin-edit-mode [data-edit-key].gv-admin-selected{
   .gv-admin-confirm-actions .gv-admin-action{
     width:100%;
     min-height:40px;
+  }
+  .gv-admin-stale-warning{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+  .gv-admin-compare-row-actions{
+    flex-wrap:wrap;
+  }
+  .gv-admin-exit-preview{
+    bottom:16px;
+    right:16px;
+    padding:9px 18px;
+    font-size:12px;
+  }
+  .gv-admin-visitor-preview-bar{
+    font-size:10px;
+    padding:4px 0;
   }
 }
 
