@@ -3,6 +3,7 @@
 
   const MOCK_SESSION_KEY = 'growva_admin_session';
   const MOCK_DRAFT_KEY = 'growva_admin_draft';
+  const MOCK_CUSTOM_SECTIONS_KEY = 'growva_admin_custom_sections';
   const MOCK_EMAIL = 'admin@growva.local';
   const MOCK_PASSWORD = 'growva-admin';
   const PLACEHOLDER_URL = 'https://YOUR_PROJECT.supabase.co';
@@ -22,6 +23,54 @@
   const SAFE_FONTS = ['Inter','Fraunces','Arial','Georgia','system-ui','sans-serif','serif'];
   const SAFE_TEXT_ALIGNS = new Set(['left','center','right','justify']);
   const SAFE_FONT_WEIGHTS = new Set(['100','200','300','400','500','600','700','800','900','normal','bold']);
+  const CUSTOM_SECTION_STYLE_PROPS = new Set([
+    'backgroundColor','color','paddingTop','paddingBottom','marginTop','marginBottom',
+    'maxWidth','textAlign','borderRadius','borderColor','cardBackground','cardRadius'
+  ]);
+  const CUSTOM_SECTION_TEMPLATES = {
+    simple_text: {
+      label: 'Simple Text Section',
+      sectionType: 'custom-simple-text',
+      description: 'Eyebrow, headline, body, and one button.',
+      defaults: { eyebrow: 'Studio note', heading: 'A focused section headline', body: 'Use this safe text section to add a concise page message.', buttonLabel: 'Learn More', buttonLink: 'about.html' }
+    },
+    cta: {
+      label: 'CTA Section',
+      sectionType: 'custom-cta',
+      description: 'Conversion-focused call to action with two links.',
+      defaults: { heading: 'Ready to build a sharper commerce system?', body: 'Tell us what you are launching, improving, or scaling next.', primaryLabel: 'Start a Project', primaryLink: 'contact.html', secondaryLabel: 'View Work', secondaryLink: 'work.html' }
+    },
+    feature_cards: {
+      label: 'Feature Cards Section',
+      sectionType: 'custom-feature-cards',
+      description: 'Three compact cards for services, benefits, or pillars.',
+      defaults: { eyebrow: 'Capabilities', heading: 'Built for brand and commerce momentum', cards: [{ title: 'Strategy', description: 'Clarify the offer and conversion path.', iconLabel: '01' }, { title: 'Design', description: 'Shape a premium visual system.', iconLabel: '02' }, { title: 'Growth', description: 'Improve the parts that move revenue.', iconLabel: '03' }] }
+    },
+    stats: {
+      label: 'Stats Section',
+      sectionType: 'custom-stats',
+      description: 'A headline with measurable proof points.',
+      defaults: { heading: 'Momentum you can measure', stats: [{ value: '35%', label: 'conversion lift' }, { value: '4wk', label: 'launch sprint' }, { value: '12+', label: 'systems optimized' }] }
+    },
+    faq: {
+      label: 'FAQ Section',
+      sectionType: 'custom-faq',
+      description: 'Plain-text questions and answers.',
+      defaults: { heading: 'Helpful answers', questions: [{ question: 'What can we edit here?', answer: 'Plain text only, stored as structured JSON.' }, { question: 'Can this include code?', answer: 'No. Phase 8 uses predefined safe templates only.' }] }
+    },
+    project_highlight: {
+      label: 'Project Highlight Section',
+      sectionType: 'custom-project-highlight',
+      description: 'A compact work teaser with category and metric.',
+      defaults: { eyebrow: 'Project highlight', heading: 'A refined commerce moment', description: 'Showcase one project outcome with a focused summary.', projectTitle: 'Noor Perfumery', category: 'Shopify / Brand', metric: '+28% add-to-cart rate', ctaLabel: 'View Project', ctaLink: 'work.html' }
+    },
+    logo_strip: {
+      label: 'Logo / Partners Strip',
+      sectionType: 'custom-logo-strip',
+      description: 'A simple text-based partner or logo strip.',
+      defaults: { heading: 'Trusted by focused brand teams', items: ['Noor', 'Vella', 'Atelier', 'Terra Grove'] }
+    }
+  };
 
   let mode = 'preview';
   let selectedElement = null;
@@ -49,6 +98,7 @@
   let unsavedCount = 0;
   let statusMessage = '';
   let mockDraft = readMockDraft();
+  let mockCustomSections = readMockCustomSections();
   let publishedRowsLoadedCount = 0;
   let draftRowsLoadedCount = 0;
   let saveInFlight = false;
@@ -63,6 +113,8 @@
   let dashboardMessage = '';
   let lastHealthResult = 'Health check has not run yet.';
   let pendingPublishRows = [];
+  let pendingCustomPublishRows = [];
+  let pendingVisualPublishCount = 0;
   let inspectorDirty = false;
   let inspectorBaselineValue = '';
   let mediaAssets = [];
@@ -81,6 +133,9 @@
   let unsavedVisualCount = 0;
   let sectionManagerExpanded = null;
   let globalTokenPublishPending = false;
+  let customSectionDrafts = {};
+  let customSectionPublished = {};
+  let customSectionEditorId = null;
 
   function $(selector, root = document) {
     return root.querySelector(selector);
@@ -235,6 +290,22 @@
     localStorage.setItem(MOCK_DRAFT_KEY, JSON.stringify(mockDraft));
   }
 
+  function readMockCustomSections() {
+    try {
+      return JSON.parse(localStorage.getItem(MOCK_CUSTOM_SECTIONS_KEY) || '{}');
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function saveMockCustomSections() {
+    localStorage.setItem(MOCK_CUSTOM_SECTIONS_KEY, JSON.stringify(mockCustomSections));
+  }
+
+  function isMockAdminSession() {
+    return mockAdminEnabled && localStorage.getItem(MOCK_SESSION_KEY) === 'true';
+  }
+
   function captureOriginalValues() {
     $all('[data-edit-key]').forEach(element => {
       const key = element.dataset.editKey;
@@ -262,6 +333,31 @@
         return fields[key] || null;
       }
     };
+  }
+
+  function refreshContentRegistry() {
+    const fields = {};
+    const duplicateKeys = [];
+    $all('[data-edit-key]').forEach(element => {
+      const key = element.dataset.editKey;
+      if (!key) return;
+      if (fields[key]) duplicateKeys.push(key);
+      else fields[key] = element;
+    });
+    window.GROWVA_CONTENT_REGISTRY = {
+      pageId: document.body.dataset.pageId || document.querySelector('[data-page-id]')?.dataset.pageId || 'unknown',
+      fields,
+      duplicateKeys,
+      sections: $all('[data-section-type]').filter(section => !section.closest('[data-admin-ui]')),
+      get(key) {
+        return fields[key] || null;
+      },
+      keys() {
+        return Object.keys(fields);
+      }
+    };
+    captureOriginalValues();
+    return window.GROWVA_CONTENT_REGISTRY;
   }
 
   function currentPageLabel() {
@@ -701,6 +797,7 @@
     setTimeout(bindMediaUploadAreaEvents, 0);
     if (dashboardTab === 'visual') setTimeout(bindVisualControlEvents, 0);
     if (dashboardTab === 'sections') setTimeout(bindSectionManagerEvents, 0);
+    if (dashboardTab === 'builder') setTimeout(bindSectionBuilderEvents, 0);
     logCmsDebug('dashboard-opened');
   }
 
@@ -716,6 +813,7 @@
     if (dashboardTab === 'media') setTimeout(bindMediaUploadAreaEvents, 0);
     if (dashboardTab === 'visual') setTimeout(bindVisualControlEvents, 0);
     if (dashboardTab === 'sections') setTimeout(bindSectionManagerEvents, 0);
+    if (dashboardTab === 'builder') setTimeout(bindSectionBuilderEvents, 0);
   }
 
   async function refreshDashboardData() {
@@ -729,6 +827,7 @@
     await loadDesignTokens();
     await loadSectionSettings();
     await loadElementStyles();
+    await loadCustomSections();
     logCmsDebug('dashboard-data-loaded');
   }
 
@@ -775,7 +874,8 @@
       ['health', 'System Health'],
       ['media', 'Media Library'],
       ['visual', 'Visual Control'],
-      ['sections', 'Section Manager']
+      ['sections', 'Section Manager'],
+      ['builder', 'Section Builder']
     ];
     $('[data-dashboard-tabs]', dashboard).innerHTML = tabs.map(([id, label]) => `
       <button type="button" class="${dashboardTab === id ? 'is-active' : ''}" data-admin-action="dashboard-tab" data-dashboard-tab="${id}">${escapeHtml(label)}</button>
@@ -795,6 +895,7 @@
     if (dashboardTab === 'media') return renderMediaLibraryTab();
     if (dashboardTab === 'visual') return renderVisualControlTab();
     if (dashboardTab === 'sections') return renderSectionManagerTab();
+    if (dashboardTab === 'builder') return renderSectionBuilderTab();
     return renderOverviewTab();
   }
 
@@ -808,6 +909,7 @@
         ${renderMetricCard('Editable fields', registry.keys().length)}
         ${renderMetricCard('Drafts on page', dashboardDraftRows.length)}
         ${renderMetricCard('Published overrides', dashboardPublishedRows.length)}
+        ${renderMetricCard('Custom sections', Object.keys(customSectionPublished).length + Object.keys(customSectionDrafts).length)}
         ${renderMetricCard('Last publish', formatDate(lastPublish))}
         ${renderMetricCard('Supabase', getConnectionLabel())}
         ${renderMetricCard('Unsafe key', supabaseState.unsafeKey ? 'Yes' : 'No')}
@@ -973,7 +1075,7 @@
   async function deleteDashboardDraft(key) {
     if (!key) return;
     if (!window.confirm('Delete this draft row? Published content will not be deleted.')) return;
-    if (mockAdminEnabled && !supabaseClient) {
+    if (isMockAdminSession()) {
       delete mockDraft[key];
       saveMockDraft();
       delete draftRows[key];
@@ -1105,6 +1207,11 @@
     }
     if (action === 'inspector-tab') {
       inspectorTab = actionElement.dataset.inspectorTab || 'content';
+      if (customSectionEditorId && dashboard && !dashboard.hidden) {
+        renderDashboard();
+        setTimeout(bindSectionBuilderEvents, 0);
+        return;
+      }
       if (currentElement) renderInspector(currentElement);
     }
     if (action === 'save-token-drafts') saveAllTokenDrafts();
@@ -1138,6 +1245,17 @@
     if (action === 'reset-section-draft') resetSectionDraft(actionElement.dataset.sectionId);
     if (action === 'save-element-style-draft') saveInspectorStyleDraft();
     if (action === 'reset-element-style-draft') resetElementStyleFromInspector();
+
+    // Phase 8 actions
+    if (action === 'builder-add-template') addCustomSectionFromTemplate(actionElement.dataset.templateId);
+    if (action === 'builder-edit-section') openCustomSectionEditor(actionElement.dataset.sectionId);
+    if (action === 'builder-delete-section') deleteCustomSection(actionElement.dataset.sectionId);
+    if (action === 'builder-duplicate-section') duplicateSection(actionElement.dataset.sectionId);
+    if (action === 'builder-save-section') saveCustomSectionFromEditor(actionElement.dataset.sectionId);
+    if (action === 'builder-style-section') saveCustomSectionStyleFromEditor(actionElement.dataset.sectionId);
+    if (action === 'builder-add-item') addCustomSectionItem(actionElement.dataset.sectionId, actionElement.dataset.arrayKey);
+    if (action === 'builder-remove-item') removeCustomSectionItem(actionElement.dataset.sectionId, actionElement.dataset.arrayKey, Number(actionElement.dataset.itemIndex || 0));
+    if (action === 'builder-move-item') moveCustomSectionItem(actionElement.dataset.sectionId, actionElement.dataset.arrayKey, Number(actionElement.dataset.itemIndex || 0), Number(actionElement.dataset.direction || 0));
   }
 
   function openModal() {
@@ -1187,7 +1305,9 @@
     await loadDesignTokens();
     await loadSectionSettings();
     await loadElementStyles();
+    await loadCustomSections();
     applyDraftRows();
+    renderCustomSectionsForAdmin();
     setEditorSafeMode(true);
     updateTopbar();
     renderPanelEmpty();
@@ -1334,6 +1454,11 @@
   }
 
   function renderInspector(element) {
+    const customSection = element.closest('[data-custom-section="true"]');
+    if (customSection) {
+      renderCustomSectionInspector(customSection.dataset.sectionId);
+      return;
+    }
     const type = element.dataset.editType || 'text';
     if (type === 'image' || type === 'background-image') { renderImageInspector(element); return; }
     const registry = getRegistry();
@@ -1447,7 +1572,7 @@
 
   function isSafeHref(value) {
     const href = String(value || '').trim();
-    return href.startsWith('https://') || href.startsWith('/') || href.startsWith('./') || href.startsWith('../') || /^[a-z0-9-]+\.html(?:[#?].*)?$/i.test(href);
+    return href.startsWith('#') || href.startsWith('https://') || href.startsWith('/') || href.startsWith('./') || href.startsWith('../') || /^[a-z0-9/_-]+\.html(?:[#?].*)?$/i.test(href) || /^mailto:[^@\s]+@[^@\s]+\.[^@\s]+$/i.test(href);
   }
 
   async function saveSelectedDraft() {
@@ -1470,7 +1595,7 @@
     updateTopbar();
     setEditableValue(selectedElement, value);
 
-    if (mockAdminEnabled && !supabaseClient) {
+    if (isMockAdminSession()) {
       mockDraft[key] = value;
       saveMockDraft();
       draftRows[key] = makeLocalDraftRow(selectedElement, value);
@@ -1569,7 +1694,7 @@
       if (resetButton) resetButton.disabled = false;
     };
 
-    if (mockAdminEnabled && !supabaseClient) {
+    if (isMockAdminSession()) {
       delete mockDraft[key];
       delete draftRows[key];
       saveMockDraft();
@@ -1649,7 +1774,7 @@
   }
 
   async function loadDraftEdits() {
-    if (mockAdminEnabled && !supabaseClient) {
+    if (isMockAdminSession()) {
       draftRows = {};
       Object.entries(mockDraft).forEach(([key, value]) => {
         const element = document.querySelector(`[data-edit-key="${cssEscape(key)}"]`);
@@ -1709,7 +1834,9 @@
       file_protocol: isLocalFileMode(),
       media_assets_count: mediaAssets.length,
       media_library_loaded: mediaLibraryLoaded,
-      selected_asset_id: mediaSelectedAssetId
+      selected_asset_id: mediaSelectedAssetId,
+      custom_sections_draft_count: Object.keys(customSectionDrafts).length,
+      custom_sections_published_count: Object.keys(customSectionPublished).length
     });
   }
 
@@ -1724,10 +1851,18 @@
     }, {});
   }
 
+  function getVisualDraftCount() {
+    return Object.keys(sectionSettingsDrafts).length + Object.keys(elementStyleDrafts).length + Object.keys(designTokenDrafts).length;
+  }
+
   async function publishCurrentPage() {
-    if (mockAdminEnabled && !supabaseClient) {
+    if (isMockAdminSession()) {
+      mockCustomSections = readMockCustomSections();
+      await loadCustomSections();
       pendingPublishRows = Object.values(draftRows);
-      if (!pendingPublishRows.length) {
+      pendingCustomPublishRows = Object.values(customSectionDrafts);
+      pendingVisualPublishCount = getVisualDraftCount();
+      if (!pendingPublishRows.length && !pendingCustomPublishRows.length && !pendingVisualPublishCount) {
         statusMessage = 'No draft changes to publish.';
         renderPanelEmpty();
         return;
@@ -1762,12 +1897,25 @@
       renderPanelEmpty();
       return;
     }
-    if (!drafts.length) {
+    let customDrafts = [];
+    try {
+      const { data: customData } = await supabaseClient
+        .from('cms_custom_sections')
+        .select('*')
+        .eq('page_path', pagePath)
+        .eq('status', 'draft');
+      if (Array.isArray(customData)) customDrafts = customData.map(row => normalizeCustomSectionRow(row, 'draft')).filter(Boolean);
+    } catch (caught) {
+      customDrafts = Object.values(customSectionDrafts);
+    }
+    pendingVisualPublishCount = getVisualDraftCount();
+    if (!drafts.length && !customDrafts.length && !pendingVisualPublishCount) {
       statusMessage = 'No draft changes to publish.';
       renderPanelEmpty();
       return;
     }
     pendingPublishRows = drafts;
+    pendingCustomPublishRows = customDrafts;
     openPublishDialog();
   }
 
@@ -1777,7 +1925,9 @@
     body.innerHTML = `
       <div class="gv-admin-meta">
         <div>Page path: <code>${escapeHtml(pagePath)}</code></div>
-        <div>Draft changes: <code>${pendingPublishRows.length}</code></div>
+        <div>Text/content changes: <code>${pendingPublishRows.length}</code></div>
+        <div>Custom section changes: <code>${pendingCustomPublishRows.length}</code></div>
+        <div>Visual/order changes: <code>${pendingVisualPublishCount}</code></div>
         <div>Scope: <code>Current page only</code></div>
       </div>
       <div class="gv-admin-warning">This publishes current page only.</div>
@@ -1791,6 +1941,15 @@
             </div>
           </article>
         `).join('') || '<p class="gv-admin-empty">No draft rows to publish.</p>'}
+        ${pendingCustomPublishRows.map(row => `
+          <article class="gv-admin-content-row">
+            <div>
+              <strong>${escapeHtml(row.title || row.section_id || '')}</strong>
+              <span>${escapeHtml(row.template_id || 'custom section')}</span>
+              <p>${escapeHtml((row.content_json?.heading || row.content_json?.body || row.section_id || '').slice(0, 140))}</p>
+            </div>
+          </article>
+        `).join('')}
       </div>
     `;
     publishDialog.hidden = false;
@@ -1799,12 +1958,16 @@
   function closePublishDialog() {
     if (!publishDialog) return;
     publishDialog.hidden = true;
-    if (!publishInFlight) pendingPublishRows = [];
+    if (!publishInFlight) {
+      pendingPublishRows = [];
+      pendingCustomPublishRows = [];
+      pendingVisualPublishCount = 0;
+    }
   }
 
   async function executePublishCurrentPage() {
     if (publishInFlight) return;
-    if (!pendingPublishRows.length) {
+    if (!pendingPublishRows.length && !pendingCustomPublishRows.length && !pendingVisualPublishCount) {
       statusMessage = 'No draft changes to publish.';
       closePublishDialog();
       renderPanelEmpty();
@@ -1832,10 +1995,13 @@
         confirmButton.textContent = 'Publish Current Page';
       }
     };
-    if (mockAdminEnabled && !supabaseClient) {
+    if (isMockAdminSession()) {
       publishedRows = Object.assign({}, publishedRows, draftRows);
       pendingPublishRows.forEach(applyRowToElement);
-      statusMessage = `Published ${pendingPublishRows.length} mock changes.`;
+      const customResult = await publishCustomSectionDrafts();
+      if (pendingVisualPublishCount) await publishCurrentPageVisuals();
+      renderCustomSections(getCustomSectionRowsForRender(false));
+      statusMessage = `Published ${pendingPublishRows.length} mock changes, ${customResult.count} custom sections, and ${pendingVisualPublishCount} visual changes.`;
       closePublishDialog();
       renderPanelEmpty();
       if (dashboard && !dashboard.hidden) {
@@ -1843,6 +2009,8 @@
         renderDashboard();
       }
       pendingPublishRows = [];
+      pendingCustomPublishRows = [];
+      pendingVisualPublishCount = 0;
       finishPublish();
       return;
     }
@@ -1867,35 +2035,46 @@
       updated_by: currentUser.id,
       updated_at: new Date().toISOString()
     }));
-    let published = null;
-    let publishError = null;
-    try {
-      ({ data: published, error: publishError } = await supabaseClient
-        .from('cms_content')
-        .upsert(publishedPayload, { onConflict: 'page_path,edit_key,status' })
-        .select());
-    } catch (caught) {
-      publishError = caught;
+    let published = [];
+    if (publishedPayload.length) {
+      let publishError = null;
+      try {
+        ({ data: published, error: publishError } = await supabaseClient
+          .from('cms_content')
+          .upsert(publishedPayload, { onConflict: 'page_path,edit_key,status' })
+          .select());
+      } catch (caught) {
+        publishError = caught;
+      }
+      if (publishError) {
+        statusMessage = 'Publish failed. Check owner role and RLS policies.';
+        renderPanelEmpty();
+        finishPublish();
+        return;
+      }
     }
-    if (publishError) {
-      statusMessage = 'Publish failed. Check owner role and RLS policies.';
+    const customPublish = await publishCustomSectionDrafts();
+    if (customPublish.error) {
+      statusMessage = 'Publish failed while publishing custom sections.';
       renderPanelEmpty();
       finishPublish();
       return;
     }
+    if (pendingVisualPublishCount) await publishCurrentPageVisuals();
     try {
       await supabaseClient.from('cms_publish_log').insert({
         page_path: pagePath,
         published_by: currentUser.id,
-        published_count: publishedPayload.length
+        published_count: publishedPayload.length + customPublish.count + pendingVisualPublishCount
       });
     } catch (error) {
       // Publishing succeeded; log write is best-effort and also protected by RLS.
     }
-    await insertAuditLog('publish_page', 'page', '', `Published ${publishedPayload.length} changes on ${pagePath}`);
+    await insertAuditLog('publish_page', 'page', '', `Published ${publishedPayload.length} content changes, ${customPublish.count} custom sections, and ${pendingVisualPublishCount} visual changes on ${pagePath}`);
     publishedRows = Object.assign({}, publishedRows, indexRows(published || publishedPayload));
     publishedPayload.forEach(applyRowToElement);
-    statusMessage = `Published ${publishedPayload.length} changes.`;
+    renderCustomSections(getCustomSectionRowsForRender(false));
+    statusMessage = `Published ${publishedPayload.length} changes, ${customPublish.count} custom sections, and ${pendingVisualPublishCount} visual changes.`;
     updateTopbar();
     closePublishDialog();
     renderPanelEmpty();
@@ -1904,6 +2083,8 @@
       renderDashboard();
     }
     pendingPublishRows = [];
+    pendingCustomPublishRows = [];
+    pendingVisualPublishCount = 0;
     finishPublish();
   }
 
@@ -2329,7 +2510,7 @@
     const valueJson = { url: url, alt: alt, media_asset_id: mediaSelectedAssetId || null, field: type === 'background-image' ? 'background-image' : 'src' };
     applyImageValueToElement(selectedElement, valueJson);
     if (note) note.textContent = 'Saving…';
-    if (mockAdminEnabled && !supabaseClient) {
+    if (isMockAdminSession()) {
       mockDraft[key] = url;
       saveMockDraft();
       draftRows[key] = { page_path: pagePath, page_id: getRegistry().pageId || '', edit_key: key, edit_type: type, section_id: selectedElement.dataset.sectionId || '', value_text: url, value_json: valueJson, status: 'draft' };
@@ -2609,12 +2790,411 @@
     });
   }
 
+  // Phase 8: safe custom section rendering
+
+  function cloneJson(value) {
+    return JSON.parse(JSON.stringify(value || {}));
+  }
+
+  function getTemplate(templateId) {
+    return CUSTOM_SECTION_TEMPLATES[templateId] || null;
+  }
+
+  function makeCustomSectionId(templateId) {
+    const safe = String(templateId || 'section').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase();
+    return `custom.${safe}.${Date.now()}`;
+  }
+
+  function normalizeCustomSectionRow(row, statusFallback) {
+    if (!row || !getTemplate(row.template_id)) return null;
+    const template = getTemplate(row.template_id);
+    return {
+      page_path: row.page_path || pagePath,
+      section_id: row.section_id || makeCustomSectionId(row.template_id),
+      section_type: row.section_type || template.sectionType,
+      template_id: row.template_id,
+      title: sanitizeText(row.title || template.label),
+      content_json: sanitizeCustomContent(row.template_id, row.content_json || template.defaults),
+      style_json: sanitizeCustomStyle(row.style_json || {}),
+      order_index: Number.isFinite(Number(row.order_index)) ? Number(row.order_index) : getSections().length,
+      is_visible: row.is_visible !== false,
+      status: row.status || statusFallback || 'draft',
+      updated_by: row.updated_by || (currentUser ? currentUser.id : null)
+    };
+  }
+
+  function sanitizeCustomContent(templateId, content) {
+    const defaults = cloneJson(getTemplate(templateId)?.defaults || {});
+    const source = Object.assign(defaults, content && typeof content === 'object' ? content : {});
+    const cleanText = value => sanitizeText(value).slice(0, 800);
+    const cleanUrl = value => {
+      const url = sanitizeText(value).slice(0, 240);
+      return isSafeCustomLink(url) ? url : '';
+    };
+    const cleanItemText = value => cleanText(value).slice(0, 180);
+    if (templateId === 'simple_text') {
+      return { eyebrow: cleanText(source.eyebrow), heading: cleanText(source.heading), body: cleanText(source.body), buttonLabel: cleanText(source.buttonLabel), buttonLink: cleanUrl(source.buttonLink) };
+    }
+    if (templateId === 'cta') {
+      return { heading: cleanText(source.heading), body: cleanText(source.body), primaryLabel: cleanText(source.primaryLabel), primaryLink: cleanUrl(source.primaryLink), secondaryLabel: cleanText(source.secondaryLabel), secondaryLink: cleanUrl(source.secondaryLink) };
+    }
+    if (templateId === 'feature_cards') {
+      return { eyebrow: cleanText(source.eyebrow), heading: cleanText(source.heading), cards: sanitizeArray(source.cards, 6).map(item => ({ title: cleanItemText(item.title), description: cleanText(item.description), iconLabel: cleanItemText(item.iconLabel) })) };
+    }
+    if (templateId === 'stats') {
+      return { heading: cleanText(source.heading), stats: sanitizeArray(source.stats, 6).map(item => ({ value: cleanItemText(item.value), label: cleanItemText(item.label) })) };
+    }
+    if (templateId === 'faq') {
+      return { heading: cleanText(source.heading), questions: sanitizeArray(source.questions, 8).map(item => ({ question: cleanText(item.question), answer: cleanText(item.answer) })) };
+    }
+    if (templateId === 'project_highlight') {
+      return { eyebrow: cleanText(source.eyebrow), heading: cleanText(source.heading), description: cleanText(source.description), projectTitle: cleanText(source.projectTitle), category: cleanText(source.category), metric: cleanText(source.metric), ctaLabel: cleanText(source.ctaLabel), ctaLink: cleanUrl(source.ctaLink) };
+    }
+    if (templateId === 'logo_strip') {
+      return { heading: cleanText(source.heading), items: sanitizeArray(source.items, 12).map(item => cleanItemText(typeof item === 'string' ? item : item.label)) };
+    }
+    return defaults;
+  }
+
+  function sanitizeArray(value, limit) {
+    return Array.isArray(value) ? value.slice(0, limit) : [];
+  }
+
+  function sanitizeCustomStyle(styleJson) {
+    const clean = {};
+    if (!styleJson || typeof styleJson !== 'object') return clean;
+    Object.entries(styleJson).forEach(([prop, value]) => {
+      if (!CUSTOM_SECTION_STYLE_PROPS.has(prop)) return;
+      const safe = sanitizeStyleValue(prop === 'cardBackground' ? 'backgroundColor' : prop === 'cardRadius' ? 'borderRadius' : prop, String(value));
+      if (safe !== null) clean[prop] = safe;
+    });
+    return clean;
+  }
+
+  function isSafeCustomLink(value) {
+    const href = String(value || '').trim();
+    if (!href) return true;
+    if (/^javascript:/i.test(href) || /^data:/i.test(href)) return false;
+    if (href.startsWith('#') || href.startsWith('/') || href.startsWith('./') || href.startsWith('../')) return true;
+    if (/^[a-z0-9/_-]+\.html(?:[#?].*)?$/i.test(href)) return true;
+    if (/^https:\/\/[^\s]+$/i.test(href)) return true;
+    if (/^mailto:[^@\s]+@[^@\s]+\.[^@\s]+$/i.test(href)) return true;
+    return false;
+  }
+
+  function getCustomSectionRowsForRender(includeDrafts) {
+    const rows = {};
+    Object.values(customSectionPublished).forEach(row => { rows[row.section_id] = row; });
+    if (includeDrafts) Object.values(customSectionDrafts).forEach(row => { rows[row.section_id] = row; });
+    return Object.values(rows)
+      .filter(row => row && row.is_visible !== false && getTemplate(row.template_id))
+      .sort((a, b) => (a.order_index ?? 9999) - (b.order_index ?? 9999));
+  }
+
+  function getCustomSectionHost() {
+    return document.querySelector('main') || document.body;
+  }
+
+  function renderCustomSections(rows) {
+    const host = getCustomSectionHost();
+    if (!host) return 0;
+    $all('[data-custom-section="true"]', host).forEach(section => section.remove());
+    let rendered = 0;
+    rows.forEach(row => {
+      const normalized = normalizeCustomSectionRow(row, row.status);
+      if (!normalized || normalized.is_visible === false) {
+        logCmsCustomDebug('custom-section-skipped', { sectionId: row?.section_id || '', templateId: row?.template_id || '' });
+        return;
+      }
+      host.appendChild(buildCustomSectionElement(normalized));
+      rendered++;
+    });
+    refreshContentRegistry();
+    logCmsCustomDebug('custom-sections-rendered', { count: rendered });
+    return rendered;
+  }
+
+  function renderCustomSectionsForAdmin() {
+    renderCustomSections(getCustomSectionRowsForRender(true));
+  }
+
+  function buildCustomSectionElement(row) {
+    const section = document.createElement('section');
+    section.className = `gv-custom-section gv-custom-section--${row.template_id.replace(/_/g, '-')}`;
+    section.dataset.customSection = 'true';
+    section.dataset.sectionId = row.section_id;
+    section.dataset.sectionType = row.section_type;
+    section.dataset.templateId = row.template_id;
+    section.dataset.pageId = getRegistry().pageId || '';
+    applyCustomSectionStyle(section, row.style_json || {});
+    const inner = document.createElement('div');
+    inner.className = 'gv-custom-section__inner';
+    section.appendChild(inner);
+    appendCustomTemplateContent(inner, row);
+    return section;
+  }
+
+  function applyCustomSectionStyle(section, styleJson) {
+    const clean = sanitizeCustomStyle(styleJson);
+    Object.entries(clean).forEach(([prop, value]) => {
+      if (prop === 'cardBackground') section.style.setProperty('--gv-custom-card-bg', value);
+      else if (prop === 'cardRadius') section.style.setProperty('--gv-custom-card-radius', value);
+      else section.style[prop] = value;
+    });
+  }
+
+  function customField(section, tagName, className, fieldName, value, editType = 'text') {
+    const el = document.createElement(tagName);
+    el.className = className;
+    el.textContent = sanitizeText(value);
+    el.dataset.editKey = `${section.section_id}.${fieldName}`;
+    el.dataset.editType = editType;
+    el.dataset.sectionId = section.section_id;
+    el.dataset.pageId = getRegistry().pageId || '';
+    return el;
+  }
+
+  function customLink(section, label, href, className) {
+    const a = document.createElement('a');
+    a.className = className;
+    a.textContent = sanitizeText(label);
+    a.href = isSafeCustomLink(href) && href ? href : '#';
+    a.dataset.editKey = `${section.section_id}.${className.replace(/[^a-z0-9]+/gi, '_')}`;
+    a.dataset.editType = 'link';
+    a.dataset.sectionId = section.section_id;
+    return a;
+  }
+
+  function appendCustomTemplateContent(root, section) {
+    const c = sanitizeCustomContent(section.template_id, section.content_json);
+    if (section.template_id === 'simple_text') {
+      root.append(customField(section, 'p', 'gv-custom-eyebrow', 'eyebrow', c.eyebrow));
+      root.append(customField(section, 'h2', 'gv-custom-heading', 'heading', c.heading));
+      root.append(customField(section, 'p', 'gv-custom-body', 'body', c.body, 'richtext'));
+      root.append(customLink(section, c.buttonLabel, c.buttonLink, 'gv-custom-button'));
+    } else if (section.template_id === 'cta') {
+      root.append(customField(section, 'h2', 'gv-custom-heading', 'heading', c.heading));
+      root.append(customField(section, 'p', 'gv-custom-body', 'body', c.body, 'richtext'));
+      const actions = document.createElement('div');
+      actions.className = 'gv-custom-actions';
+      actions.append(customLink(section, c.primaryLabel, c.primaryLink, 'gv-custom-button'));
+      actions.append(customLink(section, c.secondaryLabel, c.secondaryLink, 'gv-custom-link'));
+      root.append(actions);
+    } else if (section.template_id === 'feature_cards') {
+      root.append(customField(section, 'p', 'gv-custom-eyebrow', 'eyebrow', c.eyebrow));
+      root.append(customField(section, 'h2', 'gv-custom-heading', 'heading', c.heading));
+      const grid = document.createElement('div');
+      grid.className = 'gv-custom-card-grid';
+      c.cards.forEach((card, index) => {
+        const article = document.createElement('article');
+        article.className = 'gv-custom-card';
+        article.append(customField(section, 'span', 'gv-custom-card-icon', `cards.${index}.iconLabel`, card.iconLabel));
+        article.append(customField(section, 'h3', 'gv-custom-card-title', `cards.${index}.title`, card.title));
+        article.append(customField(section, 'p', 'gv-custom-card-text', `cards.${index}.description`, card.description));
+        grid.append(article);
+      });
+      root.append(grid);
+    } else if (section.template_id === 'stats') {
+      root.append(customField(section, 'h2', 'gv-custom-heading', 'heading', c.heading));
+      const grid = document.createElement('div');
+      grid.className = 'gv-custom-stats';
+      c.stats.forEach((stat, index) => {
+        const item = document.createElement('div');
+        item.className = 'gv-custom-stat';
+        item.append(customField(section, 'strong', 'gv-custom-stat-value', `stats.${index}.value`, stat.value));
+        item.append(customField(section, 'span', 'gv-custom-stat-label', `stats.${index}.label`, stat.label));
+        grid.append(item);
+      });
+      root.append(grid);
+    } else if (section.template_id === 'faq') {
+      root.append(customField(section, 'h2', 'gv-custom-heading', 'heading', c.heading));
+      const list = document.createElement('div');
+      list.className = 'gv-custom-faq-list';
+      c.questions.forEach((item, index) => {
+        const faq = document.createElement('article');
+        faq.className = 'gv-custom-faq';
+        faq.append(customField(section, 'h3', 'gv-custom-faq-question', `questions.${index}.question`, item.question));
+        faq.append(customField(section, 'p', 'gv-custom-faq-answer', `questions.${index}.answer`, item.answer));
+        list.append(faq);
+      });
+      root.append(list);
+    } else if (section.template_id === 'project_highlight') {
+      root.append(customField(section, 'p', 'gv-custom-eyebrow', 'eyebrow', c.eyebrow));
+      root.append(customField(section, 'h2', 'gv-custom-heading', 'heading', c.heading));
+      root.append(customField(section, 'p', 'gv-custom-body', 'description', c.description, 'richtext'));
+      const meta = document.createElement('div');
+      meta.className = 'gv-custom-project-meta';
+      meta.append(customField(section, 'strong', 'gv-custom-project-title', 'projectTitle', c.projectTitle));
+      meta.append(customField(section, 'span', 'gv-custom-project-category', 'category', c.category));
+      meta.append(customField(section, 'span', 'gv-custom-project-metric', 'metric', c.metric));
+      root.append(meta);
+      root.append(customLink(section, c.ctaLabel, c.ctaLink, 'gv-custom-button'));
+    } else if (section.template_id === 'logo_strip') {
+      root.append(customField(section, 'h2', 'gv-custom-heading', 'heading', c.heading));
+      const strip = document.createElement('div');
+      strip.className = 'gv-custom-logo-strip';
+      c.items.forEach((item, index) => {
+        strip.append(customField(section, 'span', 'gv-custom-logo-item', `items.${index}`, item));
+      });
+      root.append(strip);
+    }
+  }
+
+  function logCmsCustomDebug(context, extra = {}) {
+    if (!cmsDebug) return;
+    console.info('[GROWVA CMS Section Builder]', { context, page_path: pagePath, ...extra });
+  }
+
   function applySectionOrder(rows) {
     const ordered = rows.slice().sort((a, b) => (a.order_index ?? 999) - (b.order_index ?? 999));
     ordered.forEach(r => {
       const el = $(`[data-section-id="${r.section_id}"]`);
       if (el && el.parentElement) el.parentElement.appendChild(el);
     });
+  }
+
+  async function loadPublishedCustomSections() {
+    if (!supabaseClient) return;
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_custom_sections')
+        .select('*')
+        .eq('page_path', pagePath)
+        .eq('status', 'published')
+        .lt('created_at', cmsFreshReadCutoff());
+      if (error || !Array.isArray(data)) return;
+      customSectionPublished = {};
+      data.forEach(row => {
+        const normalized = normalizeCustomSectionRow(row, 'published');
+        if (normalized) customSectionPublished[normalized.section_id] = normalized;
+        else logCmsCustomDebug('invalid-template-skipped', { templateId: row.template_id });
+      });
+      renderCustomSections(getCustomSectionRowsForRender(false));
+      logCmsCustomDebug('custom-sections-loaded', { status: 'published', count: data.length });
+    } catch (error) {
+      logCmsCustomDebug('custom-sections-load-error', { status: 'published', error: String(error) });
+    }
+  }
+
+  async function loadCustomSections() {
+    if (isMockAdminSession()) {
+      const rows = mockCustomSections[pagePath] || [];
+      customSectionDrafts = {};
+      customSectionPublished = {};
+      rows.forEach(row => {
+        const normalized = normalizeCustomSectionRow(row, row.status || 'draft');
+        if (!normalized) return;
+        if (normalized.status === 'published') customSectionPublished[normalized.section_id] = normalized;
+        else customSectionDrafts[normalized.section_id] = normalized;
+      });
+      renderCustomSectionsForAdmin();
+      return;
+    }
+    if (!supabaseClient || !currentUser || !adminProfile) return;
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_custom_sections')
+        .select('*')
+        .eq('page_path', pagePath)
+        .in('status', ['draft', 'published']);
+      if (error || !Array.isArray(data)) return;
+      customSectionDrafts = {};
+      customSectionPublished = {};
+      data.forEach(row => {
+        const normalized = normalizeCustomSectionRow(row, row.status);
+        if (!normalized) {
+          logCmsCustomDebug('invalid-template-skipped', { templateId: row.template_id });
+          return;
+        }
+        if (normalized.status === 'draft') customSectionDrafts[normalized.section_id] = normalized;
+        else customSectionPublished[normalized.section_id] = normalized;
+      });
+      renderCustomSectionsForAdmin();
+      logCmsCustomDebug('custom-sections-loaded', { status: 'all', count: data.length });
+    } catch (error) {
+      logCmsCustomDebug('custom-sections-load-error', { status: 'all', error: String(error) });
+    }
+  }
+
+  async function saveCustomSectionDraft(row) {
+    const normalized = normalizeCustomSectionRow(Object.assign({}, row, { status: 'draft' }), 'draft');
+    if (!normalized) return new Error('Invalid section template.');
+    if (!['owner', 'editor'].includes(adminProfile?.role || (isMockAdminSession() ? 'owner' : ''))) return new Error('Only owners and editors can save section drafts.');
+    if (isMockAdminSession()) {
+      const rows = (mockCustomSections[pagePath] || []).filter(item => !(item.section_id === normalized.section_id && item.status === 'draft'));
+      rows.push(normalized);
+      mockCustomSections[pagePath] = rows;
+      saveMockCustomSections();
+      customSectionDrafts[normalized.section_id] = normalized;
+      renderCustomSectionsForAdmin();
+      return null;
+    }
+    if (!supabaseClient || !currentUser) return new Error('Supabase admin access is required.');
+    const { error } = await supabaseClient
+      .from('cms_custom_sections')
+      .upsert(Object.assign({}, normalized, { updated_by: currentUser.id }), { onConflict: 'page_path,section_id,status' })
+      .select()
+      .single();
+    if (!error) {
+      customSectionDrafts[normalized.section_id] = normalized;
+      renderCustomSectionsForAdmin();
+    }
+    return error || null;
+  }
+
+  async function deleteCustomSectionDraft(sectionId) {
+    const row = customSectionDrafts[sectionId] || customSectionPublished[sectionId];
+    if (!row) return;
+    if (!['owner', 'editor'].includes(adminProfile?.role || (isMockAdminSession() ? 'owner' : ''))) {
+      window.alert('Viewers can inspect sections but cannot delete drafts.');
+      return;
+    }
+    if (!window.confirm('Delete this custom section draft? Published content is not removed.')) return;
+    if (isMockAdminSession()) {
+      mockCustomSections[pagePath] = (mockCustomSections[pagePath] || []).filter(item => !(item.section_id === sectionId && item.status === 'draft'));
+      saveMockCustomSections();
+      delete customSectionDrafts[sectionId];
+      renderCustomSectionsForAdmin();
+      logCmsCustomDebug('custom-section-deleted', { sectionId });
+      return;
+    }
+    if (supabaseClient && currentUser) {
+      await supabaseClient.from('cms_custom_sections')
+        .delete()
+        .eq('page_path', pagePath)
+        .eq('section_id', sectionId)
+        .eq('status', 'draft');
+    }
+    delete customSectionDrafts[sectionId];
+    renderCustomSectionsForAdmin();
+    logCmsCustomDebug('custom-section-deleted', { sectionId });
+  }
+
+  async function publishCustomSectionDrafts() {
+    const drafts = Object.values(customSectionDrafts);
+    if (!drafts.length) return { count: 0, error: null };
+    if (isMockAdminSession()) {
+      drafts.forEach(draft => {
+        customSectionPublished[draft.section_id] = Object.assign({}, draft, { status: 'published' });
+      });
+      const nonPublished = (mockCustomSections[pagePath] || []).filter(row => row.status !== 'published');
+      mockCustomSections[pagePath] = nonPublished.concat(Object.values(customSectionPublished));
+      saveMockCustomSections();
+      return { count: drafts.length, error: null };
+    }
+    if (!supabaseClient || !currentUser || !adminProfile || adminProfile.role !== 'owner') {
+      return { count: 0, error: new Error('Only owners can publish custom sections.') };
+    }
+    const payload = drafts.map(row => Object.assign({}, row, {
+      status: 'published',
+      updated_by: currentUser.id,
+      updated_at: new Date().toISOString()
+    }));
+    const { error } = await supabaseClient
+      .from('cms_custom_sections')
+      .upsert(payload, { onConflict: 'page_path,section_id,status' });
+    if (!error) payload.forEach(row => { customSectionPublished[row.section_id] = row; });
+    return { count: payload.length, error };
   }
 
   // ── Phase 7: Supabase data loaders ───────────────────────────────────────
@@ -3131,9 +3711,193 @@
       </div>`;
   }
 
+  function renderSectionBuilderTab() {
+    const canEdit = ['owner', 'editor'].includes(adminProfile?.role || (mockAdminEnabled ? 'owner' : ''));
+    const rows = getCustomSectionRowsForRender(true);
+    return `
+      <div class="gv-admin-section-builder">
+        <div class="gv-admin-builder-head">
+          <div>
+            <span class="gv-admin-pill">Safe templates only</span>
+            <p class="gv-admin-note">Add predefined sections to this page. No raw HTML, scripts, custom code, or arbitrary CSS.</p>
+          </div>
+          <div class="gv-admin-meta"><div>Role: <code>${escapeHtml(adminProfile?.role || (mockAdminEnabled ? 'owner' : 'viewer'))}</code></div></div>
+        </div>
+        <div class="gv-admin-template-grid">
+          ${Object.entries(CUSTOM_SECTION_TEMPLATES).map(([id, template]) => `
+            <article class="gv-admin-template-card">
+              <strong>${escapeHtml(template.label)}</strong>
+              <p>${escapeHtml(template.description)}</p>
+              <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="builder-add-template" data-template-id="${escapeHtml(id)}" ${canEdit ? '' : 'disabled'}>Add to Current Page</button>
+            </article>
+          `).join('')}
+        </div>
+        <div class="gv-admin-divider"></div>
+        <div class="gv-admin-builder-sections">
+          <h3>Custom sections on this page</h3>
+          ${rows.length ? rows.map(row => renderBuilderSectionRow(row, canEdit)).join('') : '<p class="gv-admin-empty">No custom sections yet. Add one from the template library above.</p>'}
+        </div>
+        ${customSectionEditorId ? renderCustomSectionEditor(customSectionEditorId, canEdit) : ''}
+      </div>
+    `;
+  }
+
+  function renderBuilderSectionRow(row, canEdit) {
+    const template = getTemplate(row.template_id);
+    const isDraft = Boolean(customSectionDrafts[row.section_id]);
+    return `
+      <article class="gv-admin-builder-row">
+        <div>
+          <strong>${escapeHtml(row.title || template?.label || row.section_id)}</strong>
+          <span>${escapeHtml(row.section_id)} / ${escapeHtml(template?.label || row.template_id)} / ${isDraft ? 'Draft' : 'Published'}</span>
+        </div>
+        <div class="gv-admin-section-actions">
+          <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="section-scroll" data-section-id="${escapeHtml(row.section_id)}">Scroll</button>
+          <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="builder-edit-section" data-section-id="${escapeHtml(row.section_id)}">Edit</button>
+          <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="builder-duplicate-section" data-section-id="${escapeHtml(row.section_id)}" ${canEdit ? '' : 'disabled'}>Duplicate</button>
+          <button class="gv-admin-action gv-admin-action--sm gv-admin-action--danger" type="button" data-admin-action="builder-delete-section" data-section-id="${escapeHtml(row.section_id)}" ${canEdit ? '' : 'disabled'}>Delete Draft</button>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderCustomSectionEditor(sectionId, canEdit = true) {
+    const row = customSectionDrafts[sectionId] || customSectionPublished[sectionId];
+    if (!row) return '<p class="gv-admin-empty">Select a custom section to edit it.</p>';
+    const template = getTemplate(row.template_id);
+    const content = sanitizeCustomContent(row.template_id, row.content_json);
+    return `
+      <div class="gv-admin-builder-editor" data-builder-editor="${escapeHtml(sectionId)}">
+        <div class="gv-admin-builder-editor-head">
+          <div>
+            <span class="gv-admin-pill">${escapeHtml(template?.label || 'Custom Section')}</span>
+            <h3>${escapeHtml(row.title || sectionId)}</h3>
+          </div>
+          <button class="gv-admin-action" type="button" data-admin-action="builder-edit-section" data-section-id="">Close Editor</button>
+        </div>
+        <div class="gv-inspector-tabs" role="tablist">
+          <button type="button" class="${inspectorTab === 'content' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="content">Content</button>
+          <button type="button" class="${inspectorTab === 'style' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="style">Style</button>
+          <button type="button" class="${inspectorTab === 'section' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="section">Section</button>
+        </div>
+        ${inspectorTab === 'style' ? renderCustomSectionStyleEditor(row, canEdit) : inspectorTab === 'section' ? renderCustomSectionMetaEditor(row, canEdit) : renderCustomSectionContentEditor(row, content, canEdit)}
+      </div>
+    `;
+  }
+
+  function renderCustomSectionContentEditor(row, content, canEdit) {
+    const field = (key, label, multiline = false) => `
+      <div class="gv-admin-field">
+        <label>${escapeHtml(label)}</label>
+        ${multiline
+          ? `<textarea data-custom-field="${escapeHtml(key)}">${escapeHtml(content[key] || '')}</textarea>`
+          : `<input type="text" data-custom-field="${escapeHtml(key)}" value="${escapeHtml(content[key] || '')}">`}
+      </div>`;
+    let html = '';
+    if (row.template_id === 'simple_text') {
+      html = field('eyebrow', 'Eyebrow') + field('heading', 'Heading') + field('body', 'Body', true) + field('buttonLabel', 'Button label') + field('buttonLink', 'Button link');
+    } else if (row.template_id === 'cta') {
+      html = field('heading', 'Heading') + field('body', 'Body', true) + field('primaryLabel', 'Primary label') + field('primaryLink', 'Primary link') + field('secondaryLabel', 'Secondary label') + field('secondaryLink', 'Secondary link');
+    } else if (row.template_id === 'feature_cards') {
+      html = field('eyebrow', 'Eyebrow') + field('heading', 'Heading') + renderRepeatableEditor(row, 'cards', content.cards || [], [{ key: 'iconLabel', label: 'Icon label' }, { key: 'title', label: 'Title' }, { key: 'description', label: 'Description', multiline: true }], canEdit);
+    } else if (row.template_id === 'stats') {
+      html = field('heading', 'Heading') + renderRepeatableEditor(row, 'stats', content.stats || [], [{ key: 'value', label: 'Value' }, { key: 'label', label: 'Label' }], canEdit);
+    } else if (row.template_id === 'faq') {
+      html = field('heading', 'Heading') + renderRepeatableEditor(row, 'questions', content.questions || [], [{ key: 'question', label: 'Question' }, { key: 'answer', label: 'Answer', multiline: true }], canEdit);
+    } else if (row.template_id === 'project_highlight') {
+      html = field('eyebrow', 'Eyebrow') + field('heading', 'Heading') + field('description', 'Description', true) + field('projectTitle', 'Project title') + field('category', 'Category') + field('metric', 'Metric') + field('ctaLabel', 'CTA label') + field('ctaLink', 'CTA link');
+    } else if (row.template_id === 'logo_strip') {
+      html = field('heading', 'Heading') + renderRepeatableEditor(row, 'items', (content.items || []).map(label => ({ label })), [{ key: 'label', label: 'Label' }], canEdit);
+    }
+    return `
+      ${html}
+      <p class="gv-admin-note" data-admin-save-state>Plain text only. Links allow relative, anchors, https, and validated mailto URLs.</p>
+      <div class="gv-admin-panel-actions">
+        <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="builder-save-section" data-section-id="${escapeHtml(row.section_id)}" ${canEdit ? '' : 'disabled'}>Save Section Draft</button>
+      </div>
+    `;
+  }
+
+  function renderRepeatableEditor(row, arrayKey, items, fields, canEdit) {
+    return `
+      <div class="gv-admin-repeatable" data-repeatable-key="${escapeHtml(arrayKey)}">
+        <div class="gv-admin-repeatable-head">
+          <strong>${escapeHtml(arrayKey)}</strong>
+          <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="builder-add-item" data-section-id="${escapeHtml(row.section_id)}" data-array-key="${escapeHtml(arrayKey)}" ${canEdit ? '' : 'disabled'}>Add Item</button>
+        </div>
+        ${items.map((item, index) => `
+          <article class="gv-admin-repeatable-item">
+            <div class="gv-admin-repeatable-controls">
+              <span>#${index + 1}</span>
+              <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="builder-move-item" data-section-id="${escapeHtml(row.section_id)}" data-array-key="${escapeHtml(arrayKey)}" data-item-index="${index}" data-direction="-1" ${index === 0 || !canEdit ? 'disabled' : ''}>Up</button>
+              <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="builder-move-item" data-section-id="${escapeHtml(row.section_id)}" data-array-key="${escapeHtml(arrayKey)}" data-item-index="${index}" data-direction="1" ${index === items.length - 1 || !canEdit ? 'disabled' : ''}>Down</button>
+              <button class="gv-admin-action gv-admin-action--sm gv-admin-action--danger" type="button" data-admin-action="builder-remove-item" data-section-id="${escapeHtml(row.section_id)}" data-array-key="${escapeHtml(arrayKey)}" data-item-index="${index}" ${!canEdit ? 'disabled' : ''}>Remove</button>
+            </div>
+            ${fields.map(field => `
+              <div class="gv-admin-field">
+                <label>${escapeHtml(field.label)}</label>
+                ${field.multiline
+                  ? `<textarea data-custom-array="${escapeHtml(arrayKey)}" data-custom-index="${index}" data-custom-item-field="${escapeHtml(field.key)}">${escapeHtml(item[field.key] || '')}</textarea>`
+                  : `<input type="text" data-custom-array="${escapeHtml(arrayKey)}" data-custom-index="${index}" data-custom-item-field="${escapeHtml(field.key)}" value="${escapeHtml(item[field.key] || '')}">`}
+              </div>
+            `).join('')}
+          </article>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function renderCustomSectionStyleEditor(row, canEdit) {
+    const style = sanitizeCustomStyle(row.style_json || {});
+    const props = [
+      ['backgroundColor', 'Background color', '#080808'],
+      ['color', 'Text color', '#f6f6f6'],
+      ['paddingTop', 'Padding top', '96px'],
+      ['paddingBottom', 'Padding bottom', '96px'],
+      ['marginTop', 'Margin top', '0'],
+      ['marginBottom', 'Margin bottom', '0'],
+      ['maxWidth', 'Max width', '1180px'],
+      ['textAlign', 'Text alignment', 'left'],
+      ['borderRadius', 'Border radius', '0'],
+      ['borderColor', 'Border color', '#222222'],
+      ['cardBackground', 'Card background', '#121212'],
+      ['cardRadius', 'Card radius', '8px']
+    ];
+    return `
+      ${props.map(([prop, label, placeholder]) => `
+        <div class="gv-admin-field">
+          <label>${escapeHtml(label)}</label>
+          <input type="text" data-custom-style="${escapeHtml(prop)}" value="${escapeHtml(style[prop] || '')}" placeholder="${escapeHtml(placeholder)}">
+        </div>
+      `).join('')}
+      <p class="gv-admin-note">Whitelisted style properties only. Unsafe values are skipped.</p>
+      <div class="gv-admin-panel-actions">
+        <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="builder-style-section" data-section-id="${escapeHtml(row.section_id)}" ${canEdit ? '' : 'disabled'}>Save Style Draft</button>
+      </div>
+    `;
+  }
+
+  function renderCustomSectionMetaEditor(row, canEdit) {
+    return `
+      <div class="gv-admin-field">
+        <label>Section title</label>
+        <input type="text" data-custom-meta="title" value="${escapeHtml(row.title || '')}">
+      </div>
+      <div class="gv-admin-field">
+        <label>Order index</label>
+        <input type="number" data-custom-meta="order_index" value="${Number(row.order_index || 0)}">
+      </div>
+      <label class="gv-admin-checkline"><input type="checkbox" data-custom-meta="is_visible" ${row.is_visible !== false ? 'checked' : ''}> Visible</label>
+      <div class="gv-admin-panel-actions">
+        <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="builder-save-section" data-section-id="${escapeHtml(row.section_id)}" ${canEdit ? '' : 'disabled'}>Save Section Draft</button>
+      </div>
+    `;
+  }
+
   function renderSectionItem(el, idx, total) {
     const sid = el.dataset.sectionId || '';
     const isProtected = isSectionProtected(el);
+    const isCustom = el.dataset.customSection === 'true';
     const draft = sectionSettingsDrafts[sid] || {};
     const isVisible = el.style.display !== 'none';
     const isExpanded = sectionManagerExpanded === sid;
@@ -3148,6 +3912,9 @@
             <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="section-move-up" data-section-id="${sid}" ${idx === 0 ? 'disabled' : ''}>↑</button>
             <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="section-move-down" data-section-id="${sid}" ${idx === total - 1 ? 'disabled' : ''}>↓</button>
             <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="section-scroll" data-section-id="${sid}">Scroll To</button>
+            <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="builder-duplicate-section" data-section-id="${sid}">Duplicate</button>
+            ${isCustom ? `<button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="builder-edit-section" data-section-id="${sid}">Edit</button>` : ''}
+            ${isCustom ? `<button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--danger" data-admin-action="builder-delete-section" data-section-id="${sid}">Delete Draft</button>` : ''}
             <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="section-expand" data-section-id="${sid}">${isExpanded ? 'Close' : 'Style'}</button>
           </div>
         </div>
@@ -3254,6 +4021,265 @@
       </div>`;
   }
 
+  // Phase 8: Section Builder actions
+
+  async function addCustomSectionFromTemplate(templateId) {
+    const template = getTemplate(templateId);
+    if (!template) return;
+    if (!['owner', 'editor'].includes(adminProfile?.role || (mockAdminEnabled ? 'owner' : ''))) {
+      window.alert('Viewers can browse templates but cannot add sections.');
+      return;
+    }
+    const row = normalizeCustomSectionRow({
+      page_path: pagePath,
+      section_id: makeCustomSectionId(templateId),
+      section_type: template.sectionType,
+      template_id: templateId,
+      title: template.label,
+      content_json: cloneJson(template.defaults),
+      style_json: {},
+      order_index: getSections().length,
+      is_visible: true,
+      status: 'draft'
+    }, 'draft');
+    const error = await saveCustomSectionDraft(row);
+    if (error) {
+      dashboardMessage = 'Section add failed. Check Supabase policies and schema.';
+    } else {
+      customSectionEditorId = row.section_id;
+      inspectorTab = 'content';
+      dashboardMessage = 'Section added as draft.';
+      logCmsCustomDebug('custom-section-added', { sectionId: row.section_id, templateId });
+    }
+    renderDashboard();
+    setTimeout(bindSectionBuilderEvents, 0);
+  }
+
+  function openCustomSectionEditor(sectionId) {
+    customSectionEditorId = sectionId || null;
+    inspectorTab = 'content';
+    if (dashboard && !dashboard.hidden) {
+      renderDashboard();
+      setTimeout(bindSectionBuilderEvents, 0);
+    }
+    if (!sectionId || !panel) return;
+    const section = $(`[data-section-id="${cssEscape(sectionId)}"]`);
+    if (section) {
+      if (selectedElement) selectedElement.classList.remove('gv-admin-selected');
+      selectedElement = section;
+      selectedElement.classList.add('gv-admin-selected');
+      renderCustomSectionInspector(sectionId);
+    }
+  }
+
+  function getCustomSectionEditorElement(sectionId) {
+    return (dashboard ? $(`[data-builder-editor="${cssEscape(sectionId)}"]`, dashboard) : null)
+      || (panel ? $(`[data-builder-editor="${cssEscape(sectionId)}"]`, panel) : null);
+  }
+
+  function collectCustomSectionContent(sectionId) {
+    const row = customSectionDrafts[sectionId] || customSectionPublished[sectionId];
+    if (!row) return null;
+    const editor = getCustomSectionEditorElement(sectionId);
+    const next = sanitizeCustomContent(row.template_id, row.content_json);
+    if (!editor) return next;
+    $all('[data-custom-field]', editor).forEach(input => {
+      next[input.dataset.customField] = input.value;
+    });
+    $all('[data-custom-array]', editor).forEach(input => {
+      const arrayKey = input.dataset.customArray;
+      const index = Number(input.dataset.customIndex || 0);
+      const field = input.dataset.customItemField;
+      if (!Array.isArray(next[arrayKey])) next[arrayKey] = [];
+      if (!next[arrayKey][index] || typeof next[arrayKey][index] !== 'object') next[arrayKey][index] = {};
+      next[arrayKey][index][field] = input.value;
+    });
+    if (row.template_id === 'logo_strip' && Array.isArray(next.items)) {
+      next.items = next.items.map(item => typeof item === 'string' ? item : item.label);
+    }
+    return sanitizeCustomContent(row.template_id, next);
+  }
+
+  function collectCustomSectionMeta(sectionId, baseRow) {
+    const editor = getCustomSectionEditorElement(sectionId);
+    const meta = {};
+    if (!editor) return meta;
+    const title = $('[data-custom-meta="title"]', editor);
+    const order = $('[data-custom-meta="order_index"]', editor);
+    const visible = $('[data-custom-meta="is_visible"]', editor);
+    if (title) meta.title = sanitizeText(title.value).slice(0, 180);
+    if (order) meta.order_index = Number(order.value || baseRow.order_index || 0);
+    if (visible) meta.is_visible = visible.checked;
+    return meta;
+  }
+
+  async function saveCustomSectionFromEditor(sectionId) {
+    const row = customSectionDrafts[sectionId] || customSectionPublished[sectionId];
+    if (!row) return;
+    const content = collectCustomSectionContent(sectionId) || row.content_json;
+    const meta = collectCustomSectionMeta(sectionId, row);
+    const next = Object.assign({}, row, meta, { content_json: content, status: 'draft' });
+    const error = await saveCustomSectionDraft(next);
+    dashboardMessage = error ? 'Section draft save failed.' : 'Section draft saved.';
+    logCmsCustomDebug('custom-section-draft-saved', { sectionId, error: error ? String(error.message || error) : null });
+    renderDashboard();
+    setTimeout(bindSectionBuilderEvents, 0);
+    if (panel && selectedElement?.dataset?.sectionId === sectionId) renderCustomSectionInspector(sectionId);
+  }
+
+  async function saveCustomSectionStyleFromEditor(sectionId) {
+    const row = customSectionDrafts[sectionId] || customSectionPublished[sectionId];
+    if (!row) return;
+    const editor = getCustomSectionEditorElement(sectionId);
+    const styleJson = {};
+    if (editor) {
+      $all('[data-custom-style]', editor).forEach(input => {
+        const prop = input.dataset.customStyle;
+        const raw = input.value.trim();
+        const safe = sanitizeStyleValue(prop === 'cardBackground' ? 'backgroundColor' : prop === 'cardRadius' ? 'borderRadius' : prop, raw);
+        if (raw && safe !== null) styleJson[prop] = safe;
+      });
+    }
+    const error = await saveCustomSectionDraft(Object.assign({}, row, { style_json: styleJson, status: 'draft' }));
+    dashboardMessage = error ? 'Section style save failed.' : 'Section style draft saved.';
+    renderDashboard();
+    setTimeout(bindSectionBuilderEvents, 0);
+  }
+
+  function getDefaultRepeatableItem(arrayKey) {
+    if (arrayKey === 'cards') return { iconLabel: 'New', title: 'New card', description: 'Describe this card.' };
+    if (arrayKey === 'stats') return { value: '0', label: 'New stat' };
+    if (arrayKey === 'questions') return { question: 'New question?', answer: 'Add a plain-text answer.' };
+    if (arrayKey === 'items') return 'New label';
+    return { label: 'New item' };
+  }
+
+  async function addCustomSectionItem(sectionId, arrayKey) {
+    const row = customSectionDrafts[sectionId] || customSectionPublished[sectionId];
+    if (!row) return;
+    const content = collectCustomSectionContent(sectionId) || sanitizeCustomContent(row.template_id, row.content_json);
+    if (!Array.isArray(content[arrayKey])) content[arrayKey] = [];
+    content[arrayKey].push(getDefaultRepeatableItem(arrayKey));
+    await saveCustomSectionDraft(Object.assign({}, row, { content_json: content, status: 'draft' }));
+    customSectionEditorId = sectionId;
+    renderDashboard();
+    setTimeout(bindSectionBuilderEvents, 0);
+  }
+
+  async function removeCustomSectionItem(sectionId, arrayKey, index) {
+    const row = customSectionDrafts[sectionId] || customSectionPublished[sectionId];
+    if (!row) return;
+    const content = collectCustomSectionContent(sectionId) || sanitizeCustomContent(row.template_id, row.content_json);
+    if (Array.isArray(content[arrayKey])) content[arrayKey].splice(index, 1);
+    await saveCustomSectionDraft(Object.assign({}, row, { content_json: content, status: 'draft' }));
+    customSectionEditorId = sectionId;
+    renderDashboard();
+    setTimeout(bindSectionBuilderEvents, 0);
+  }
+
+  async function moveCustomSectionItem(sectionId, arrayKey, index, direction) {
+    const row = customSectionDrafts[sectionId] || customSectionPublished[sectionId];
+    if (!row) return;
+    const content = collectCustomSectionContent(sectionId) || sanitizeCustomContent(row.template_id, row.content_json);
+    const list = content[arrayKey];
+    const nextIndex = index + direction;
+    if (!Array.isArray(list) || nextIndex < 0 || nextIndex >= list.length) return;
+    const [item] = list.splice(index, 1);
+    list.splice(nextIndex, 0, item);
+    await saveCustomSectionDraft(Object.assign({}, row, { content_json: content, status: 'draft' }));
+    customSectionEditorId = sectionId;
+    renderDashboard();
+    setTimeout(bindSectionBuilderEvents, 0);
+  }
+
+  async function duplicateSection(sectionId) {
+    const el = $(`[data-section-id="${cssEscape(sectionId)}"]`);
+    if (!el) return;
+    if (isSectionProtected(el)) {
+      window.alert('This section is protected because it may be connected to animations. Duplicate is disabled.');
+      logCmsCustomDebug('protected-section-duplicate-blocked', { sectionId });
+      return;
+    }
+    const existing = customSectionDrafts[sectionId] || customSectionPublished[sectionId];
+    const source = existing || makeSectionCopyFromHardcoded(el);
+    if (!source) return;
+    const newId = makeCustomSectionId(source.template_id || 'simple_text');
+    const copy = normalizeCustomSectionRow(Object.assign({}, source, {
+      section_id: newId,
+      title: `${source.title || 'Section'} Copy`,
+      order_index: getSections().length,
+      status: 'draft'
+    }), 'draft');
+    const error = await saveCustomSectionDraft(copy);
+    dashboardMessage = error ? 'Duplicate failed.' : 'Section duplicated as draft.';
+    customSectionEditorId = error ? customSectionEditorId : newId;
+    logCmsCustomDebug('custom-section-duplicated', { sourceId: sectionId, sectionId: newId });
+    renderDashboard();
+    setTimeout(bindSectionBuilderEvents, 0);
+  }
+
+  function makeSectionCopyFromHardcoded(el) {
+    const heading = el.querySelector('h1,h2,h3')?.textContent?.trim() || 'Duplicated section';
+    const eyebrow = el.querySelector('.eyebrow,.section-eyebrow')?.textContent?.trim() || 'Custom copy';
+    const body = el.querySelector('p')?.textContent?.trim() || 'Edit this duplicated safe text section.';
+    return normalizeCustomSectionRow({
+      page_path: pagePath,
+      section_id: makeCustomSectionId('simple_text'),
+      section_type: CUSTOM_SECTION_TEMPLATES.simple_text.sectionType,
+      template_id: 'simple_text',
+      title: heading,
+      content_json: { eyebrow, heading, body, buttonLabel: 'Learn More', buttonLink: 'about.html' },
+      style_json: {},
+      order_index: getSections().length,
+      is_visible: true,
+      status: 'draft'
+    }, 'draft');
+  }
+
+  async function deleteCustomSection(sectionId) {
+    if (customSectionDrafts[sectionId]) {
+      await deleteCustomSectionDraft(sectionId);
+      customSectionEditorId = customSectionEditorId === sectionId ? null : customSectionEditorId;
+      renderDashboard();
+      setTimeout(bindSectionBuilderEvents, 0);
+      return;
+    }
+    const published = customSectionPublished[sectionId];
+    if (published) {
+      if (!window.confirm('This section is published. Create a hidden draft for the current page instead?')) return;
+      await saveCustomSectionDraft(Object.assign({}, published, { is_visible: false, status: 'draft' }));
+      dashboardMessage = 'Published section hidden as a draft. Publish current page to hide it publicly.';
+      customSectionEditorId = null;
+      renderDashboard();
+      setTimeout(bindSectionBuilderEvents, 0);
+      return;
+    }
+    window.alert('Hardcoded sections cannot be permanently deleted. Use Hide in Section Manager instead.');
+  }
+
+  function renderCustomSectionInspector(sectionId) {
+    const row = customSectionDrafts[sectionId] || customSectionPublished[sectionId];
+    if (!panel || !row) return;
+    customSectionEditorId = sectionId;
+    const canEdit = ['owner', 'editor'].includes(adminProfile?.role || (mockAdminEnabled ? 'owner' : ''));
+    $('[data-admin-panel-title]', panel).textContent = 'Editing custom section';
+    $('[data-admin-panel-body]', panel).innerHTML = renderCustomSectionEditor(sectionId, canEdit);
+  }
+
+  function bindSectionBuilderEvents() {
+    if (!dashboard) return;
+    const editor = $('.gv-admin-builder-editor', dashboard);
+    if (!editor || editor._boundBuilder) return;
+    editor._boundBuilder = true;
+    $all('input, textarea', editor).forEach(input => {
+      input.addEventListener('input', () => {
+        inspectorDirty = true;
+        unsavedCount = 1;
+        updateTopbar();
+      });
+    });
+  }
+
   // ── Phase 7: Event binding ────────────────────────────────────────────────
 
   function bindVisualControlEvents() {
@@ -3350,6 +4376,7 @@
     await loadPublishedEdits();
     await applyPublishedImageEdits();
     await applyPublishedDesignTokens();
+    await loadPublishedCustomSections();
     await applyPublishedSectionSettings();
     await applyPublishedElementStyles();
     logCmsDebug('boot');
@@ -3357,6 +4384,7 @@
       await loadPublishedEdits();
       await applyPublishedImageEdits();
       await applyPublishedDesignTokens();
+      await loadPublishedCustomSections();
       await applyPublishedSectionSettings();
       await applyPublishedElementStyles();
       await enterAdminMode();
