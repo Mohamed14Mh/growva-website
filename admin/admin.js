@@ -1899,11 +1899,17 @@
     }
     let customDrafts = [];
     try {
-      const { data: customData } = await supabaseClient
+      const { data: customData, error: customError } = await supabaseClient
         .from('cms_custom_sections')
         .select('*')
         .eq('page_path', pagePath)
         .eq('status', 'draft');
+      if (customError) {
+        statusMessage = getCustomSectionsTableMessage(customError);
+        renderPanelEmpty();
+        logCmsCustomDebug('custom-section-publish-load-failed', { error: getSupabaseErrorMessage(customError) });
+        return;
+      }
       if (Array.isArray(customData)) customDrafts = customData.map(row => normalizeCustomSectionRow(row, 'draft')).filter(Boolean);
     } catch (caught) {
       customDrafts = Object.values(customSectionDrafts);
@@ -2910,6 +2916,7 @@
       rendered++;
     });
     refreshContentRegistry();
+    applyCurrentSectionOrder();
     logCmsCustomDebug('custom-sections-rendered', { count: rendered });
     return rendered;
   }
@@ -3062,7 +3069,10 @@
         .eq('page_path', pagePath)
         .eq('status', 'published')
         .lt('created_at', cmsFreshReadCutoff());
-      if (error || !Array.isArray(data)) return;
+      if (error || !Array.isArray(data)) {
+        logCmsCustomDebug('custom-sections-fetch-failed', { status: 'published', error: getSupabaseErrorMessage(error) });
+        return;
+      }
       customSectionPublished = {};
       data.forEach(row => {
         const normalized = normalizeCustomSectionRow(row, 'published');
@@ -3097,7 +3107,11 @@
         .select('*')
         .eq('page_path', pagePath)
         .in('status', ['draft', 'published']);
-      if (error || !Array.isArray(data)) return;
+      if (error || !Array.isArray(data)) {
+        dashboardMessage = getCustomSectionsTableMessage(error);
+        logCmsCustomDebug('custom-sections-fetch-failed', { status: 'all', error: getSupabaseErrorMessage(error) });
+        return;
+      }
       customSectionDrafts = {};
       customSectionPublished = {};
       data.forEach(row => {
@@ -3140,6 +3154,22 @@
       renderCustomSectionsForAdmin();
     }
     return error || null;
+  }
+
+  function getSupabaseErrorMessage(error) {
+    if (!error) return '';
+    return String(error.message || error.details || error.code || error).slice(0, 240);
+  }
+
+  function getCustomSectionsTableMessage(error) {
+    const message = getSupabaseErrorMessage(error);
+    if (/not found|404|schema cache|cms_custom_sections/i.test(message)) {
+      return 'Section Builder table is unavailable. Run supabase/phase-8-section-builder.sql, then refresh.';
+    }
+    if (/permission|policy|rls|denied/i.test(message)) {
+      return 'Section Builder access was denied by Supabase RLS. Check admin role policies.';
+    }
+    return message ? `Section Builder load failed: ${message}` : 'Section Builder data could not be loaded.';
   }
 
   async function deleteCustomSectionDraft(sectionId) {
@@ -3448,7 +3478,44 @@
   // ── Phase 7: Section management ──────────────────────────────────────────
 
   function getSections() {
-    return Array.from($all('[data-section-id]')).filter(el => !el.closest('[data-admin-ui]'));
+    return Array.from($all('[data-section-type][data-section-id]')).filter(el => !el.closest('[data-admin-ui]'));
+  }
+
+  function getSectionOrderValue(el, fallback) {
+    if (!el) return fallback;
+    const sid = el.dataset.sectionId || '';
+    const custom = customSectionDrafts[sid] || customSectionPublished[sid];
+    const setting = sectionSettingsDrafts[sid] || sectionSettingsPublished[sid];
+    const value = custom?.order_index ?? setting?.order_index ?? el.dataset.sectionOrder;
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : fallback;
+  }
+
+  function applyCurrentSectionOrder() {
+    const sections = getSections();
+    const groups = new Map();
+    sections.forEach((section, index) => {
+      const parent = section.parentElement;
+      if (!parent) return;
+      if (!groups.has(parent)) groups.set(parent, []);
+      groups.get(parent).push({ section, index });
+    });
+    groups.forEach(group => {
+      group
+        .sort((a, b) => getSectionOrderValue(a.section, a.index) - getSectionOrderValue(b.section, b.index))
+        .forEach(item => item.section.parentElement && item.section.parentElement.appendChild(item.section));
+    });
+  }
+
+  async function saveSectionOrderDraft(section, orderIndex) {
+    const sid = section?.dataset?.sectionId || '';
+    if (!sid) return;
+    if (section.dataset.customSection === 'true') {
+      const row = customSectionDrafts[sid] || customSectionPublished[sid];
+      if (row) await saveCustomSectionDraft(Object.assign({}, row, { order_index: orderIndex, status: 'draft' }));
+      return;
+    }
+    await saveSectionSettingDraft(sid, { order_index: orderIndex });
   }
 
   function isSectionProtected(el) {
@@ -3471,21 +3538,23 @@
     if (isSectionProtected(el)) {
       if (!window.confirm('This section may contain animations (GSAP/ScrollTrigger). Reordering it could break them. Continue?')) return;
     }
-    const swapIdx = idx + direction;
-    if (swapIdx < 0 || swapIdx >= sections.length) return;
-    const swapEl = sections[swapIdx];
     const parent = el.parentElement;
     if (!parent) return;
+    const siblingSections = sections.filter(section => section.parentElement === parent);
+    const siblingIdx = siblingSections.findIndex(s => s.dataset.sectionId === sectionId);
+    const swapIdx = siblingIdx + direction;
+    if (swapIdx < 0 || swapIdx >= siblingSections.length) return;
+    const swapEl = siblingSections[swapIdx];
     if (direction === -1) {
       parent.insertBefore(el, swapEl);
     } else {
       parent.insertBefore(swapEl, el);
     }
-    const newSections = getSections();
+    const newSections = getSections().filter(section => section.parentElement === parent);
     for (let i = 0; i < newSections.length; i++) {
-      const sid = newSections[i].dataset.sectionId;
-      if (sid) await saveSectionSettingDraft(sid, { order_index: i });
+      await saveSectionOrderDraft(newSections[i], i);
     }
+    applyCurrentSectionOrder();
     renderDashboard();
     setTimeout(bindSectionManagerEvents, 0);
   }
@@ -3755,7 +3824,7 @@
           <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="section-scroll" data-section-id="${escapeHtml(row.section_id)}">Scroll</button>
           <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="builder-edit-section" data-section-id="${escapeHtml(row.section_id)}">Edit</button>
           <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="builder-duplicate-section" data-section-id="${escapeHtml(row.section_id)}" ${canEdit ? '' : 'disabled'}>Duplicate</button>
-          <button class="gv-admin-action gv-admin-action--sm gv-admin-action--danger" type="button" data-admin-action="builder-delete-section" data-section-id="${escapeHtml(row.section_id)}" ${canEdit ? '' : 'disabled'}>Delete Draft</button>
+          <button class="gv-admin-action gv-admin-action--sm gv-admin-action--danger" type="button" data-admin-action="builder-delete-section" data-section-id="${escapeHtml(row.section_id)}" ${canEdit ? '' : 'disabled'}>${customSectionPublished[row.section_id] ? 'Hide Published' : 'Delete Draft'}</button>
         </div>
       </article>
     `;
@@ -3914,7 +3983,7 @@
             <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="section-scroll" data-section-id="${sid}">Scroll To</button>
             <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="builder-duplicate-section" data-section-id="${sid}">Duplicate</button>
             ${isCustom ? `<button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="builder-edit-section" data-section-id="${sid}">Edit</button>` : ''}
-            ${isCustom ? `<button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--danger" data-admin-action="builder-delete-section" data-section-id="${sid}">Delete Draft</button>` : ''}
+            ${isCustom ? `<button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--danger" data-admin-action="builder-delete-section" data-section-id="${sid}">${customSectionPublished[sid] ? 'Hide Published' : 'Delete Draft'}</button>` : ''}
             <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="section-expand" data-section-id="${sid}">${isExpanded ? 'Close' : 'Style'}</button>
           </div>
         </div>
@@ -4237,19 +4306,19 @@
   }
 
   async function deleteCustomSection(sectionId) {
-    if (customSectionDrafts[sectionId]) {
-      await deleteCustomSectionDraft(sectionId);
-      customSectionEditorId = customSectionEditorId === sectionId ? null : customSectionEditorId;
-      renderDashboard();
-      setTimeout(bindSectionBuilderEvents, 0);
-      return;
-    }
     const published = customSectionPublished[sectionId];
     if (published) {
       if (!window.confirm('This section is published. Create a hidden draft for the current page instead?')) return;
       await saveCustomSectionDraft(Object.assign({}, published, { is_visible: false, status: 'draft' }));
       dashboardMessage = 'Published section hidden as a draft. Publish current page to hide it publicly.';
       customSectionEditorId = null;
+      renderDashboard();
+      setTimeout(bindSectionBuilderEvents, 0);
+      return;
+    }
+    if (customSectionDrafts[sectionId]) {
+      await deleteCustomSectionDraft(sectionId);
+      customSectionEditorId = customSectionEditorId === sectionId ? null : customSectionEditorId;
       renderDashboard();
       setTimeout(bindSectionBuilderEvents, 0);
       return;
