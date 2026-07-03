@@ -123,6 +123,14 @@
   let mediaUploadInFlight = false;
   let mediaSelectedAssetId = null;
   let mediaLibraryLoaded = false;
+  let mediaLibraryMessage = '';
+  let mediaLibrarySearch = '';
+  let mediaShowArchived = false;
+  let mediaSchemaSupportsManagement = false;
+  let mediaSchemaWarning = '';
+  let mediaAssetUsage = {};
+  let mediaUsageLoaded = false;
+  let mediaDetailAssetId = null;
   let editorSafeMode = true;
   let inspectorTab = 'content';
   let visualControlTab = 'tokens';
@@ -799,6 +807,7 @@
     dashboardMessage = '';
     renderDashboard();
     setTimeout(bindMediaUploadAreaEvents, 0);
+    if (dashboardTab === 'media') setTimeout(bindMediaLibraryEvents, 0);
     if (dashboardTab === 'visual') setTimeout(bindVisualControlEvents, 0);
     if (dashboardTab === 'sections') setTimeout(bindSectionManagerEvents, 0);
     if (dashboardTab === 'builder') setTimeout(bindSectionBuilderEvents, 0);
@@ -814,7 +823,10 @@
   function switchDashboardTab(tab) {
     dashboardTab = tab || 'overview';
     renderDashboard();
-    if (dashboardTab === 'media') setTimeout(bindMediaUploadAreaEvents, 0);
+    if (dashboardTab === 'media') {
+      setTimeout(bindMediaUploadAreaEvents, 0);
+      setTimeout(bindMediaLibraryEvents, 0);
+    }
     if (dashboardTab === 'visual') setTimeout(bindVisualControlEvents, 0);
     if (dashboardTab === 'sections') setTimeout(bindSectionManagerEvents, 0);
     if (dashboardTab === 'builder') setTimeout(bindSectionBuilderEvents, 0);
@@ -1191,9 +1203,15 @@
     if (action === 'cancel-publish') closePublishDialog();
     if (action === 'confirm-publish-page') executePublishCurrentPage();
     if (action === 'media-upload-trigger') { const fi = $('[data-admin-media-input]', dashboard); if (fi) fi.click(); }
-    if (action === 'media-refresh') { loadMediaAssets().then(() => { renderDashboard(); setTimeout(bindMediaUploadAreaEvents, 0); }); }
+    if (action === 'media-refresh') { loadMediaAssets().then(() => { renderDashboard(); setTimeout(bindMediaUploadAreaEvents, 0); setTimeout(bindMediaLibraryEvents, 0); }); }
     if (action === 'media-select-asset') selectMediaAsset(actionElement.dataset.assetId);
     if (action === 'media-copy-url') copyMediaUrl(actionElement.dataset.assetUrl);
+    if (action === 'media-detail') openMediaDetail(actionElement.dataset.assetId);
+    if (action === 'media-close-detail') closeMediaDetail();
+    if (action === 'media-save-metadata') saveMediaMetadata(actionElement.dataset.assetId);
+    if (action === 'media-archive-asset') archiveMediaAsset(actionElement.dataset.assetId);
+    if (action === 'media-delete-asset') deleteMediaAsset(actionElement.dataset.assetId);
+    if (action === 'media-toggle-archived') { mediaShowArchived = !mediaShowArchived; renderDashboard(); setTimeout(bindMediaLibraryEvents, 0); }
     if (action === 'image-save-draft') saveImageDraft();
     if (action === 'image-reset-draft') resetImageDraft();
     if (action === 'image-choose-media') { switchDashboardTab('media'); openDashboard(); }
@@ -2230,18 +2248,86 @@
   async function loadMediaAssets() {
     if (!supabaseClient || !currentUser || !adminProfile) { mediaAssets = []; return; }
     try {
-      const { data, error } = await supabaseClient
+      let { data, error } = await supabaseClient
         .from('cms_media_assets')
-        .select('id,storage_path,public_url,file_name,file_type,file_size,width,height,alt_text,caption,folder,uploaded_by,created_at')
+        .select('id,storage_path,public_url,file_name,file_type,file_size,width,height,alt_text,caption,title,description,metadata_json,is_archived,folder,uploaded_by,created_at,updated_at')
         .order('created_at', { ascending: false })
         .limit(200);
+      mediaSchemaSupportsManagement = !error;
+      mediaSchemaWarning = '';
+      if (error) {
+        mediaSchemaSupportsManagement = false;
+        mediaSchemaWarning = 'Phase 11 metadata columns are not applied yet. Alt text and caption remain editable; title, description, and archive controls require supabase/phase-11-media-asset-management.sql.';
+        const fallback = await supabaseClient
+          .from('cms_media_assets')
+          .select('id,storage_path,public_url,file_name,file_type,file_size,width,height,alt_text,caption,folder,uploaded_by,created_at,updated_at')
+          .order('created_at', { ascending: false })
+          .limit(200);
+        data = fallback.data;
+        error = fallback.error;
+      }
       if (error || !Array.isArray(data)) { mediaAssets = []; logCmsMediaDebug('load-assets-error', { error: error ? error.message : 'unknown' }); return; }
-      mediaAssets = data;
+      mediaAssets = data.map(asset => Object.assign({
+        title: '',
+        description: '',
+        metadata_json: {},
+        is_archived: false
+      }, asset));
       mediaLibraryLoaded = true;
+      await loadMediaUsage();
       logCmsMediaDebug('load-assets-ok', { count: data.length });
     } catch (e) {
       mediaAssets = [];
     }
+  }
+
+  async function loadMediaUsage() {
+    mediaAssetUsage = {};
+    mediaUsageLoaded = false;
+    if (!supabaseClient || !currentUser || !adminProfile || !mediaAssets.length) return;
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_custom_sections')
+        .select('page_path,section_id,template_id,status,is_visible,content_json')
+        .limit(500);
+      if (error || !Array.isArray(data)) {
+        mediaLibraryMessage = 'Usage lookup is unavailable. Media actions remain conservative.';
+        return;
+      }
+      data.forEach(row => {
+        const refs = collectMediaRefs(row.content_json);
+        mediaAssets.forEach(asset => {
+          const usedById = asset.id && refs.assetIds.has(asset.id);
+          const usedByUrl = asset.public_url && refs.urls.has(asset.public_url);
+          if (!usedById && !usedByUrl) return;
+          if (!mediaAssetUsage[asset.id]) mediaAssetUsage[asset.id] = [];
+          mediaAssetUsage[asset.id].push({
+            page_path: row.page_path || '',
+            section_id: row.section_id || '',
+            template_id: row.template_id || '',
+            status: row.status || '',
+            is_visible: row.is_visible !== false
+          });
+        });
+      });
+      mediaUsageLoaded = true;
+    } catch (error) {
+      mediaLibraryMessage = 'Usage lookup failed. Cleanup actions are restricted until usage can be checked.';
+    }
+  }
+
+  function collectMediaRefs(value, refs = { assetIds: new Set(), urls: new Set() }) {
+    if (!value || typeof value !== 'object') return refs;
+    if (Array.isArray(value)) {
+      value.forEach(item => collectMediaRefs(item, refs));
+      return refs;
+    }
+    Object.entries(value).forEach(([key, val]) => {
+      if ((key === 'image_asset_id' || key === 'media_asset_id') && val) refs.assetIds.add(String(val));
+      else if ((key === 'image_url' || key === 'url') && val && isSafeImageUrl(String(val))) refs.urls.add(String(val));
+      else if (val && typeof val === 'object') collectMediaRefs(val, refs);
+    });
+    return refs;
   }
 
   async function uploadMediaFile(file) {
@@ -2312,44 +2398,158 @@
     return `
       <div class="gv-admin-media-library">
         ${fileWarning}
+        ${mediaSchemaWarning ? `<div class="gv-admin-warning">${escapeHtml(mediaSchemaWarning)}</div>` : ''}
+        ${mediaLibraryMessage ? `<div class="gv-admin-dashboard-message">${escapeHtml(mediaLibraryMessage)}</div>` : ''}
         ${uploadArea}
         <div class="gv-admin-media-toolbar">
           <span class="gv-admin-pill">Media Library</span>
           <span class="gv-admin-media-count">${mediaAssets.length} asset${mediaAssets.length !== 1 ? 's' : ''}</span>
+          <input class="gv-admin-media-search" type="search" data-media-search placeholder="Search assets" value="${escapeHtml(mediaLibrarySearch)}">
+          <button class="gv-admin-action" type="button" data-admin-action="media-toggle-archived">${mediaShowArchived ? 'Hide Archived' : 'Show Archived'}</button>
           <button class="gv-admin-action" type="button" data-admin-action="media-refresh">Refresh</button>
         </div>
         ${renderMediaGrid()}
+        ${renderMediaDetailPanel()}
       </div>
     `;
   }
 
   function renderMediaGrid() {
     if (!mediaLibraryLoaded) return '<p class="gv-admin-empty">Loading media assets&hellip;</p>';
+    const visibleAssets = getVisibleMediaAssets();
     if (!mediaAssets.length) return `
       <div class="gv-admin-media-empty">
         <p class="gv-admin-empty">No images uploaded yet.</p>
         <p class="gv-admin-note">Upload your first image above and it will appear here.</p>
       </div>
     `;
+    if (!visibleAssets.length) return '<p class="gv-admin-empty">No assets match this filter.</p>';
     return `
       <div class="gv-admin-media-grid">
-        ${mediaAssets.map(asset => `
-          <div class="gv-admin-media-item${mediaSelectedAssetId === asset.id ? ' is-selected' : ''}" data-admin-action="media-select-asset" data-asset-id="${escapeHtml(asset.id)}" title="${escapeHtml(asset.file_name)}">
+        ${visibleAssets.map(asset => {
+          const usage = getMediaUsage(asset);
+          return `
+          <div class="gv-admin-media-item${mediaSelectedAssetId === asset.id ? ' is-selected' : ''}${asset.is_archived ? ' is-archived' : ''}${usage.length ? ' is-used' : ' is-unused'}" data-admin-action="media-detail" data-asset-id="${escapeHtml(asset.id)}" title="${escapeHtml(asset.file_name)}">
             <div class="gv-admin-media-thumb" style="background-image:url(${escapeHtml(asset.public_url)})"></div>
             <div class="gv-admin-media-info">
-              <strong>${escapeHtml(asset.file_name.length > 28 ? asset.file_name.slice(0, 26) + '…' : asset.file_name)}</strong>
-              <span>${escapeHtml(asset.width && asset.height ? asset.width + '\xd7' + asset.height + ' · ' : '') + escapeHtml(formatFileSize(asset.file_size))}</span>
-              ${asset.alt_text ? '<span>' + escapeHtml(asset.alt_text.slice(0, 36)) + '</span>' : ''}
+              <strong>${escapeHtml(getMediaDisplayName(asset))}</strong>
+              <span>${escapeHtml(asset.file_type || 'image')} ${escapeHtml(asset.width && asset.height ? ' / ' + asset.width + 'x' + asset.height : '')} ${escapeHtml(asset.file_size ? ' / ' + formatFileSize(asset.file_size) : '')}</span>
+              <span>${escapeHtml(asset.created_at ? new Date(asset.created_at).toLocaleDateString() : 'No date')}</span>
+              ${asset.alt_text ? '<span>' + escapeHtml(asset.alt_text.slice(0, 60)) + '</span>' : '<span>No alt text</span>'}
+              <span class="gv-admin-media-badges">
+                <em class="${usage.length ? 'is-used' : 'is-unused'}">${usage.length ? 'Used' : 'Unused'}</em>
+                ${asset.is_archived ? '<em>Archived</em>' : ''}
+                ${isQaMediaAsset(asset) ? '<em>QA/Test</em>' : ''}
+              </span>
             </div>
             <div class="gv-admin-media-item-actions">
+              <button class="gv-admin-action" type="button" data-admin-action="media-detail" data-asset-id="${escapeHtml(asset.id)}">Details</button>
               <button class="gv-admin-action" type="button" data-admin-action="media-copy-url" data-asset-id="${escapeHtml(asset.id)}" data-asset-url="${escapeHtml(asset.public_url)}">Copy URL</button>
             </div>
+          </div>
+        `; }).join('')}
+      </div>
+    `;
+  }
+
+  function getVisibleMediaAssets() {
+    const query = mediaLibrarySearch.trim().toLowerCase();
+    return mediaAssets.filter(asset => {
+      if (asset.is_archived && !mediaShowArchived) return false;
+      if (!query) return true;
+      return [asset.file_name, asset.title, asset.alt_text, asset.caption, asset.description, asset.file_type]
+        .some(value => String(value || '').toLowerCase().includes(query));
+    });
+  }
+
+  function getMediaDisplayName(asset) {
+    return asset.title || asset.file_name || 'Untitled asset';
+  }
+
+  function getMediaUsage(asset) {
+    return mediaAssetUsage[asset?.id] || [];
+  }
+
+  function isQaMediaAsset(asset) {
+    return /phase-10-probe\.png/i.test(asset?.file_name || '') || /phase-10-probe/i.test(asset?.storage_path || '');
+  }
+
+  function renderMediaDetailPanel() {
+    const asset = mediaAssets.find(item => item.id === mediaDetailAssetId);
+    if (!asset) return '';
+    const usage = getMediaUsage(asset);
+    const canEdit = ['owner', 'editor'].includes(adminProfile?.role || '');
+    const isOwner = adminProfile?.role === 'owner';
+    const usedInVisiblePublished = usage.some(item => item.status === 'published' && item.is_visible !== false);
+    const canArchive = isOwner && mediaSchemaSupportsManagement && !usedInVisiblePublished;
+    const canDelete = isOwner && usage.length === 0;
+    return `
+      <aside class="gv-admin-media-detail" data-media-detail="${escapeHtml(asset.id)}">
+        <div class="gv-admin-builder-editor-head">
+          <div>
+            <span class="gv-admin-pill">${isQaMediaAsset(asset) ? 'QA/Test Asset' : 'Asset Detail'}</span>
+            <h3>${escapeHtml(getMediaDisplayName(asset))}</h3>
+          </div>
+          <button class="gv-admin-action" type="button" data-admin-action="media-close-detail">Close</button>
+        </div>
+        <div class="gv-admin-media-detail-grid">
+          <div class="gv-admin-media-detail-preview">
+            ${asset.public_url && isSafeImageUrl(asset.public_url) ? `<img src="${escapeHtml(asset.public_url)}" alt="${escapeHtml(asset.alt_text || '')}" loading="lazy" decoding="async">` : '<span>Preview unavailable</span>'}
+          </div>
+          <div class="gv-admin-media-detail-fields">
+            ${renderMediaMetaField('title', 'Title', asset.title || '', canEdit && mediaSchemaSupportsManagement)}
+            ${renderMediaMetaField('alt_text', 'Alt text', asset.alt_text || '', canEdit)}
+            ${renderMediaMetaField('caption', 'Caption', asset.caption || '', canEdit, true)}
+            ${renderMediaMetaField('description', 'Description', asset.description || '', canEdit && mediaSchemaSupportsManagement, true)}
+            <div class="gv-admin-meta">
+              <div>Filename: <code>${escapeHtml(asset.file_name || '')}</code></div>
+              <div>Type: <code>${escapeHtml(asset.file_type || '')}</code></div>
+              <div>Size: <code>${escapeHtml(formatFileSize(asset.file_size))}</code></div>
+              <div>Storage: <code>${escapeHtml(asset.storage_path || '')}</code></div>
+              <div>Updated: <code>${escapeHtml(asset.updated_at ? new Date(asset.updated_at).toLocaleString() : 'Unknown')}</code></div>
+            </div>
+            ${renderMediaUsageList(asset)}
+            <div class="gv-admin-panel-actions">
+              <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="media-save-metadata" data-asset-id="${escapeHtml(asset.id)}" ${canEdit ? '' : 'disabled'}>Save Metadata</button>
+              <button class="gv-admin-action" type="button" data-admin-action="media-archive-asset" data-asset-id="${escapeHtml(asset.id)}" ${canArchive ? '' : 'disabled'}>${asset.is_archived ? 'Unarchive' : 'Archive'}</button>
+              <button class="gv-admin-action gv-admin-action--danger" type="button" data-admin-action="media-delete-asset" data-asset-id="${escapeHtml(asset.id)}" ${canDelete ? '' : 'disabled'}>Delete Permanently</button>
+            </div>
+            ${usedInVisiblePublished ? '<p class="gv-admin-note">Cleanup is blocked because this asset is used by visible published content.</p>' : ''}
+            ${usage.length && !usedInVisiblePublished ? '<p class="gv-admin-note">Deletion is blocked while historical draft or hidden published references exist. Archive is preferred after the Phase 11 SQL patch is applied.</p>' : ''}
+          </div>
+        </div>
+      </aside>
+    `;
+  }
+
+  function renderMediaMetaField(key, label, value, canEdit, multiline = false) {
+    return `
+      <div class="gv-admin-field">
+        <label>${escapeHtml(label)}</label>
+        ${multiline
+          ? `<textarea data-media-meta="${escapeHtml(key)}" ${canEdit ? '' : 'disabled'}>${escapeHtml(value || '')}</textarea>`
+          : `<input type="text" data-media-meta="${escapeHtml(key)}" value="${escapeHtml(value || '')}" ${canEdit ? '' : 'disabled'}>`}
+      </div>
+    `;
+  }
+
+  function renderMediaUsageList(asset) {
+    const usage = getMediaUsage(asset);
+    if (!mediaUsageLoaded) return '<div class="gv-admin-warning">Usage lookup has not completed.</div>';
+    if (!usage.length) return '<div class="gv-admin-dashboard-message">Not used in custom sections.</div>';
+    return `
+      <div class="gv-admin-media-usage">
+        <strong>Usage</strong>
+        ${usage.slice(0, 12).map(item => `
+          <div>
+            <span>${escapeHtml(item.page_path || 'unknown page')}</span>
+            <code>${escapeHtml(item.section_id || '')}</code>
+            <em>${escapeHtml(item.template_id || '')} / ${escapeHtml(item.status || '')}${item.is_visible === false ? ' / hidden' : ''}</em>
           </div>
         `).join('')}
       </div>
     `;
   }
-
   function bindMediaUploadAreaEvents() {
     const area = $('[data-admin-action="media-upload-area"]', dashboard);
     if (!area || area._mediaBound) return;
@@ -2388,6 +2588,7 @@
     }
     renderDashboard();
     setTimeout(bindMediaUploadAreaEvents, 0);
+    setTimeout(bindMediaLibraryEvents, 0);
   }
 
   function selectMediaAsset(assetId) {
@@ -2406,6 +2607,150 @@
     }
     renderDashboard();
     setTimeout(bindMediaUploadAreaEvents, 0);
+    setTimeout(bindMediaLibraryEvents, 0);
+  }
+
+  function bindMediaLibraryEvents() {
+    if (!dashboard) return;
+    const search = $('[data-media-search]', dashboard);
+    if (search && !search._mediaSearchBound) {
+      search._mediaSearchBound = true;
+      search.addEventListener('input', () => {
+        mediaLibrarySearch = search.value || '';
+        renderDashboard();
+        setTimeout(bindMediaUploadAreaEvents, 0);
+        setTimeout(bindMediaLibraryEvents, 0);
+      });
+    }
+  }
+
+  function openMediaDetail(assetId) {
+    mediaDetailAssetId = assetId || null;
+    mediaSelectedAssetId = assetId || mediaSelectedAssetId;
+    renderDashboard();
+    setTimeout(bindMediaUploadAreaEvents, 0);
+    setTimeout(bindMediaLibraryEvents, 0);
+  }
+
+  function closeMediaDetail() {
+    mediaDetailAssetId = null;
+    renderDashboard();
+    setTimeout(bindMediaUploadAreaEvents, 0);
+    setTimeout(bindMediaLibraryEvents, 0);
+  }
+
+  function readMediaMetadataPayload(asset) {
+    const detail = dashboard ? $(`[data-media-detail="${cssEscape(asset.id)}"]`, dashboard) : null;
+    const get = key => {
+      const input = detail ? $(`[data-media-meta="${key}"]`, detail) : null;
+      return sanitizeText(input ? input.value : asset[key] || '').slice(0, key === 'alt_text' ? 240 : 1200);
+    };
+    const payload = {
+      alt_text: get('alt_text'),
+      caption: get('caption'),
+      updated_at: new Date().toISOString()
+    };
+    if (mediaSchemaSupportsManagement) {
+      payload.title = get('title').slice(0, 180);
+      payload.description = get('description');
+    }
+    return payload;
+  }
+
+  async function saveMediaMetadata(assetId) {
+    const asset = mediaAssets.find(item => item.id === assetId);
+    if (!asset) return;
+    if (!supabaseClient || !currentUser || !['owner', 'editor'].includes(adminProfile?.role || '')) {
+      mediaLibraryMessage = 'Metadata save requires owner or editor role.';
+      renderDashboard();
+      return;
+    }
+    const payload = readMediaMetadataPayload(asset);
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_media_assets')
+        .update(payload)
+        .eq('id', asset.id)
+        .select()
+        .single();
+      if (error) {
+        mediaLibraryMessage = 'Metadata save failed. Check RLS and Phase 11 schema.';
+      } else {
+        Object.assign(asset, data || payload);
+        mediaLibraryMessage = 'Metadata saved.';
+        await insertMediaAuditLog('media_metadata_update', asset.id, payload);
+      }
+    } catch (error) {
+      mediaLibraryMessage = 'Metadata save failed. Supabase connection error.';
+    }
+    renderDashboard();
+    setTimeout(bindMediaUploadAreaEvents, 0);
+    setTimeout(bindMediaLibraryEvents, 0);
+  }
+
+  async function archiveMediaAsset(assetId) {
+    const asset = mediaAssets.find(item => item.id === assetId);
+    if (!asset || adminProfile?.role !== 'owner') return;
+    const usage = getMediaUsage(asset);
+    if (usage.some(item => item.status === 'published' && item.is_visible !== false)) {
+      mediaLibraryMessage = 'Archive blocked: asset is used by visible published content.';
+      renderDashboard();
+      return;
+    }
+    if (!mediaSchemaSupportsManagement) {
+      mediaLibraryMessage = 'Archive requires supabase/phase-11-media-asset-management.sql.';
+      renderDashboard();
+      return;
+    }
+    const nextArchived = !asset.is_archived;
+    if (!window.confirm(`${nextArchived ? 'Archive' : 'Unarchive'} this media asset? Existing published URLs will not be removed.`)) return;
+    const { error } = await supabaseClient
+      .from('cms_media_assets')
+      .update({ is_archived: nextArchived, updated_at: new Date().toISOString() })
+      .eq('id', asset.id);
+    if (error) mediaLibraryMessage = 'Archive update failed. Check RLS.';
+    else {
+      asset.is_archived = nextArchived;
+      mediaLibraryMessage = nextArchived ? 'Asset archived.' : 'Asset unarchived.';
+      await insertMediaAuditLog(nextArchived ? 'media_archive' : 'media_unarchive', asset.id, { storage_path: asset.storage_path });
+    }
+    renderDashboard();
+    setTimeout(bindMediaLibraryEvents, 0);
+  }
+
+  async function deleteMediaAsset(assetId) {
+    const asset = mediaAssets.find(item => item.id === assetId);
+    if (!asset || adminProfile?.role !== 'owner') return;
+    const usage = getMediaUsage(asset);
+    if (usage.length) {
+      mediaLibraryMessage = 'Delete blocked: this asset is referenced by custom sections.';
+      renderDashboard();
+      return;
+    }
+    const phrase = `DELETE ${asset.file_name || asset.id}`;
+    const answer = window.prompt(`Permanent delete removes the database record and Storage object. Type "${phrase}" to continue.`);
+    if (answer !== phrase) return;
+    let storageError = null;
+    if (asset.storage_path) {
+      const storageResult = await supabaseClient.storage.from('cms-media').remove([asset.storage_path]);
+      storageError = storageResult.error;
+    }
+    if (storageError) {
+      mediaLibraryMessage = 'Storage delete failed. Database record was not removed.';
+      renderDashboard();
+      return;
+    }
+    const { error } = await supabaseClient.from('cms_media_assets').delete().eq('id', asset.id);
+    if (error) mediaLibraryMessage = 'Asset delete failed. Check owner role and RLS.';
+    else {
+      mediaAssets = mediaAssets.filter(item => item.id !== asset.id);
+      delete mediaAssetUsage[asset.id];
+      if (mediaDetailAssetId === asset.id) mediaDetailAssetId = null;
+      mediaLibraryMessage = 'Unused asset permanently deleted.';
+      await insertMediaAuditLog('media_delete', asset.id, { storage_path: asset.storage_path });
+    }
+    renderDashboard();
+    setTimeout(bindMediaLibraryEvents, 0);
   }
 
   async function copyMediaUrl(url) {
@@ -4050,6 +4395,7 @@
   function renderCustomMediaPicker(row, options) {
     const search = customMediaPickerSearch.trim().toLowerCase();
     const assets = mediaAssets.filter(asset => {
+      if (asset.is_archived) return false;
       if (!asset.public_url || !isSafeImageUrl(asset.public_url)) return false;
       const haystack = `${asset.file_name || ''} ${asset.alt_text || ''} ${asset.file_type || ''}`.toLowerCase();
       return !search || haystack.includes(search);
