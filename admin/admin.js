@@ -920,9 +920,9 @@
     if (dashboardTab === 'visual') setTimeout(bindVisualControlEvents, 0);
     if (dashboardTab === 'sections') setTimeout(bindSectionManagerEvents, 0);
     if (dashboardTab === 'builder') setTimeout(bindSectionBuilderEvents, 0);
-    // Phase 19: load leads on first open of Leads tab
+    // Phase 19/21: load leads + notification logs on first open of Leads tab
     if (dashboardTab === 'leads' && leadsData.length === 0 && !leadsLoading) {
-      loadLeads().then(() => renderDashboard());
+      Promise.all([loadLeads(), loadNotificationLogs()]).then(() => renderDashboard());
     }
   }
 
@@ -1505,7 +1505,7 @@
       if (selectedElement && canAdminEdit()) saveVisualStyleDraft(selectedElement);
     }
     // Phase 19: Leads tab actions
-    if (action === 'leads-refresh') { loadLeads().then(() => renderDashboard()); }
+    if (action === 'leads-refresh') { Promise.all([loadLeads(), loadNotificationLogs()]).then(() => renderDashboard()); }
     if (action === 'leads-filter') {
       leadsFilter = actionElement.dataset.leadsFilter || 'all';
       renderDashboard();
@@ -1519,7 +1519,8 @@
     if (action === 'lead-mark-new')    updateLeadStatus(actionElement.dataset.leadId, 'new');
     if (action === 'lead-archive')     updateLeadArchived(actionElement.dataset.leadId, true);
     if (action === 'lead-unarchive')   updateLeadArchived(actionElement.dataset.leadId, false);
-    if (action === 'lead-test-notify') sendTestNotification();
+    if (action === 'lead-test-notify')  sendTestNotification();
+    if (action === 'lead-retry-notify') retryNotification(actionElement.dataset.leadId);
 
     // Phase 18: Responsive preview frame
     if (action === 'vd18-resp-preview') {
@@ -5829,6 +5830,10 @@
   // Phase 20: test notification state
   let leadsNotifyState = 'idle'; // 'idle' | 'sending' | 'ok' | 'error'
   let leadsNotifyMsg = '';
+  // Phase 21: notification log state
+  let notificationLogs = [];
+  let notificationLogsLoading = false;
+  let leadRetrying = null; // lead ID currently being retried
 
   // ── VD: Extended sanitizer ────────────────────────────────────────────────
 
@@ -6675,6 +6680,22 @@
     leadsLoading = false;
   }
 
+  async function loadNotificationLogs() {
+    if (!supabaseClient || !currentUser || !adminProfile) return;
+    notificationLogsLoading = true;
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_notification_log')
+        .select('id,lead_id,status,event_type,recipient_email,provider_message_id,error_message,created_at')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      notificationLogs = (!error && Array.isArray(data)) ? data : [];
+    } catch (e) {
+      notificationLogs = [];
+    }
+    notificationLogsLoading = false;
+  }
+
   async function updateLeadStatus(id, status) {
     if (!id || !canAdminEdit()) return;
     if (!supabaseClient || !currentUser) return;
@@ -6740,6 +6761,37 @@
       leadsNotifyState = 'error';
       leadsNotifyMsg = (e && typeof e.message === 'string') ? e.message : 'Failed to send. Check Edge Function logs.';
     }
+    // Phase 21: reload logs so the test entry appears immediately
+    await loadNotificationLogs();
+    renderDashboard();
+  }
+
+  async function retryNotification(leadId) {
+    if (!supabaseClient || !currentUser || adminProfile?.role !== 'owner') return;
+    if (!leadId) return;
+    const lead = leadsData.find(l => l.id === leadId);
+    if (!lead) return;
+    if (typeof supabaseClient.functions?.invoke !== 'function') {
+      leadsNotifyState = 'error';
+      leadsNotifyMsg = 'Supabase Functions not available in this client version.';
+      renderDashboard();
+      return;
+    }
+    leadRetrying = leadId;
+    renderDashboard();
+    try {
+      const { error } = await supabaseClient.functions.invoke('contact-notify', {
+        body: { record: lead, retry: true },
+      });
+      if (error) throw error;
+      leadsNotifyState = 'ok';
+      leadsNotifyMsg = 'Retry sent. Check your inbox.';
+    } catch (e) {
+      leadsNotifyState = 'error';
+      leadsNotifyMsg = (e && typeof e.message === 'string') ? e.message : 'Retry failed. Check Edge Function logs.';
+    }
+    leadRetrying = null;
+    await loadNotificationLogs();
     renderDashboard();
   }
 
@@ -6806,6 +6858,12 @@
       return notifyPanel + filterBar + `<p class="gv-admin-empty">${escapeHtml(emptyMsg)}</p>`;
     }
 
+    // Phase 21: helper for notification status badges (values are fixed strings — no user content)
+    const notifBadgeHtml = (st) => {
+      const safeClass = { sent:'sent', failed:'failed', test:'test', skipped:'skip' }[st] || 'skip';
+      return `<span class="gv-notif-badge gv-notif-badge--${safeClass}">${escapeHtml(st || '—')}</span>`;
+    };
+
     const rows = visible.map(lead => {
       const isExpanded = leadsExpanded === lead.id;
       const statusBadge = lead.status === 'new'
@@ -6814,6 +6872,7 @@
       const msgPreview = escapeHtml((lead.message || '').slice(0, 120));
       const createdDate = lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '';
 
+      // Collapsed-state lead management actions (mark read/new, archive)
       const actions = canEdit ? `
         <div class="gv-lead-actions">
           ${lead.status !== 'read' ? `<button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="lead-mark-read" data-lead-id="${escapeHtml(lead.id)}">Mark Read</button>` : ''}
@@ -6821,6 +6880,25 @@
           ${!lead.is_archived ? `<button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--warn" data-admin-action="lead-archive"   data-lead-id="${escapeHtml(lead.id)}">Archive</button>` : ''}
           ${lead.is_archived  ? `<button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="lead-unarchive" data-lead-id="${escapeHtml(lead.id)}">Unarchive</button>` : ''}
         </div>` : '';
+
+      // Phase 21: notification history for this lead (max 5 entries, newest first)
+      const leadLogs = notificationLogs.filter(lg => lg.lead_id === lead.id).slice(0, 5);
+      const isRetryingThis = leadRetrying === lead.id;
+
+      const logsHtml = leadLogs.length ? `
+        <div class="gv-notif-log">
+          <div class="gv-notif-log-title">Notification history</div>
+          ${leadLogs.map(lg => `
+            <div class="gv-notif-log-row">
+              ${notifBadgeHtml(lg.status)}
+              <span class="gv-notif-log-time">${escapeHtml(lg.created_at ? new Date(lg.created_at).toLocaleString() : '—')}</span>
+              <span class="gv-notif-log-type">${escapeHtml(lg.event_type || 'notification')}</span>
+              ${lg.status === 'failed' && lg.error_message ? `<div class="gv-notif-err">${escapeHtml(String(lg.error_message).slice(0, 120))}</div>` : ''}
+            </div>`).join('')}
+        </div>` : `<div class="gv-notif-log"><div class="gv-notif-log-empty">No notification history.</div></div>`;
+
+      const retryBtn = adminProfile?.role === 'owner' ? `
+        <button type="button" class="gv-admin-action gv-admin-action--sm"${isRetryingThis ? ' disabled' : ''} data-admin-action="lead-retry-notify" data-lead-id="${escapeHtml(lead.id)}">${isRetryingThis ? 'Retrying…' : 'Retry Notification'}</button>` : '';
 
       const detail = isExpanded ? `
         <div class="gv-lead-detail">
@@ -6834,7 +6912,16 @@
           </div>
           <div class="gv-lead-message">${escapeHtml(lead.message || '')}</div>
           ${lead.user_agent ? `<div class="gv-lead-ua">${escapeHtml((lead.user_agent || '').slice(0, 120))}</div>` : ''}
-          ${actions}
+          ${logsHtml}
+          <div class="gv-lead-actions">
+            ${canEdit ? `
+              ${lead.status !== 'read' ? `<button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="lead-mark-read" data-lead-id="${escapeHtml(lead.id)}">Mark Read</button>` : ''}
+              ${lead.status !== 'new'  ? `<button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="lead-mark-new"  data-lead-id="${escapeHtml(lead.id)}">Mark New</button>` : ''}
+              ${!lead.is_archived ? `<button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--warn" data-admin-action="lead-archive"   data-lead-id="${escapeHtml(lead.id)}">Archive</button>` : ''}
+              ${lead.is_archived  ? `<button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="lead-unarchive" data-lead-id="${escapeHtml(lead.id)}">Unarchive</button>` : ''}
+            ` : ''}
+            ${retryBtn}
+          </div>
         </div>` : actions;
 
       return `

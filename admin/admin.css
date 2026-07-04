@@ -2313,3 +2313,65 @@ body.gv-cms-loading [data-edit-key] {
 }
 .gv-leads-notify-status--ok  { color: #86efac; }
 .gv-leads-notify-status--err { color: #fca5a5; }
+
+/* Phase 21: notification log history (inside expanded lead detail) */
+.gv-notif-log {
+  margin: 10px 0 6px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  padding-top: 10px;
+}
+.gv-notif-log-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 6px;
+}
+.gv-notif-log-empty {
+  font-size: 11px;
+  color: rgba(255,255,255,0.30);
+  font-style: italic;
+}
+.gv-notif-log-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  flex-wrap: wrap;
+}
+.gv-notif-log-row:last-child { border-bottom: none; }
+.gv-notif-log-time {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  white-space: nowrap;
+}
+.gv-notif-log-type {
+  font-size: 10px;
+  color: rgba(255,255,255,0.25);
+  font-style: italic;
+}
+.gv-notif-err {
+  width: 100%;
+  font-size: 11px;
+  color: #fca5a5;
+  margin-top: 2px;
+  word-break: break-word;
+}
+/* Notification status badges */
+.gv-notif-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.gv-notif-badge--sent    { background: rgba(134,239,172,0.15); color: #86efac; }
+.gv-notif-badge--failed  { background: rgba(252,165,165,0.15); color: #fca5a5; }
+.gv-notif-badge--test    { background: rgba(253,224,71,0.15);  color: #fde047; }
+.gv-notif-badge--skip    { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.40); }

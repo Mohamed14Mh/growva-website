@@ -1,6 +1,5 @@
 // contact-notify — Supabase Edge Function
-// Sends an email via Resend when a new cms_contact_submissions row is inserted.
-// Triggered by a Supabase Database Webhook (INSERT) or owner admin test call.
+// Sends a Resend email and writes a delivery log row to cms_notification_log.
 //
 // Required secrets (set with `supabase secrets set`):
 //   RESEND_API_KEY               — Resend API key
@@ -8,7 +7,12 @@
 //   CONTACT_NOTIFY_FROM_EMAIL    — verified sender address in Resend
 //
 // Optional:
-//   CONTACT_NOTIFY_WEBHOOK_SECRET — shared secret validated via x-contact-notify-secret header
+//   CONTACT_NOTIFY_WEBHOOK_SECRET — guards webhook endpoint (x-contact-notify-secret header)
+//
+// Built-in (automatically injected by Supabase, no manual setup needed):
+//   SUPABASE_URL                 — project URL used for log writes
+//   SUPABASE_ANON_KEY            — used to verify user JWT on test/retry calls
+//   SUPABASE_SERVICE_ROLE_KEY    — used to write notification logs (bypasses RLS)
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -39,6 +43,32 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
+// Write a row to cms_notification_log using service-role client (bypasses RLS).
+// Returns true if the insert succeeded, false otherwise.
+// Never throws — logging must never prevent the email result from being returned.
+async function insertLog(row: Record<string, unknown>): Promise<boolean> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!supabaseUrl || !serviceKey) {
+    console.warn('[contact-notify] SUPABASE_SERVICE_ROLE_KEY not available — log skipped');
+    return false;
+  }
+  try {
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { error } = await admin.from('cms_notification_log').insert([row]);
+    if (error) {
+      console.error('[contact-notify] Log insert error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('[contact-notify] Log insert exception:', String(err));
+    return false;
+  }
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 serve(async (req: Request) => {
@@ -54,22 +84,23 @@ serve(async (req: Request) => {
     return json({ error: 'Invalid JSON body' }, 400);
   }
 
-  const isTest = body.test === true;
+  const isTest  = body.test  === true;
+  const isRetry = body.retry === true && !isTest;
   const webhookSecret = Deno.env.get('CONTACT_NOTIFY_WEBHOOK_SECRET');
 
   // ── Auth check ──────────────────────────────────────────────────────────────
   // If CONTACT_NOTIFY_WEBHOOK_SECRET is set:
-  //   • Webhook calls  → must include matching x-contact-notify-secret header
-  //   • Test calls     → must have a valid Supabase user session (Authorization: Bearer <jwt>)
-  // If secret is NOT set → all POST requests accepted (OK for local dev; set in production)
+  //   • Webhook calls        → must include matching x-contact-notify-secret header
+  //   • Test / retry calls   → must have a valid Supabase user session (JWT)
+  // If secret is NOT set → all POST requests accepted (fine for dev; set in production)
 
   if (webhookSecret) {
-    if (isTest) {
+    if (isTest || isRetry) {
       const authHeader = req.headers.get('Authorization');
       if (!authHeader?.startsWith('Bearer ')) {
-        return json({ error: 'Unauthorized: test requires authenticated session' }, 401);
+        return json({ error: 'Unauthorized: test/retry requires authenticated session' }, 401);
       }
-      const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+      const supabaseUrl    = Deno.env.get('SUPABASE_URL') ?? '';
       const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
       if (supabaseUrl && supabaseAnonKey) {
         const client = createClient(supabaseUrl, supabaseAnonKey, {
@@ -89,8 +120,7 @@ serve(async (req: Request) => {
   }
 
   // ── Webhook event filtering ─────────────────────────────────────────────────
-  // Supabase DB webhooks include { type, table, record, ... }
-  if (!isTest && typeof body.type === 'string') {
+  if (!isTest && !isRetry && typeof body.type === 'string') {
     if (body.type !== 'INSERT') {
       return json({ ignored: true, reason: 'not an INSERT event' }, 200);
     }
@@ -106,18 +136,19 @@ serve(async (req: Request) => {
   }
 
   // ── Read secrets ────────────────────────────────────────────────────────────
-  const resendKey  = Deno.env.get('RESEND_API_KEY');
-  const toEmail    = Deno.env.get('CONTACT_NOTIFY_TO_EMAIL');
-  const fromEmail  = Deno.env.get('CONTACT_NOTIFY_FROM_EMAIL');
+  const resendKey = Deno.env.get('RESEND_API_KEY');
+  const toEmail   = Deno.env.get('CONTACT_NOTIFY_TO_EMAIL');
+  const fromEmail = Deno.env.get('CONTACT_NOTIFY_FROM_EMAIL');
 
   if (!resendKey || !toEmail || !fromEmail) {
     return json(
-      { error: 'Email notification not configured — set RESEND_API_KEY, CONTACT_NOTIFY_TO_EMAIL, CONTACT_NOTIFY_FROM_EMAIL' },
+      { error: 'Email not configured — set RESEND_API_KEY, CONTACT_NOTIFY_TO_EMAIL, CONTACT_NOTIFY_FROM_EMAIL' },
       500,
     );
   }
 
   // ── Sanitise lead fields ────────────────────────────────────────────────────
+  const leadId      = typeof record.id === 'string' ? record.id : undefined;
   const name        = trunc(record.name,         200);
   const email       = trunc(record.email,        320);
   const company     = trunc(record.company,      200);
@@ -129,15 +160,17 @@ serve(async (req: Request) => {
     ? new Date(String(record.created_at)).toUTCString()
     : new Date().toUTCString();
 
-  // Only use lead email as reply-to if it passes format check
   const replyTo = isEmail(email) ? email : undefined;
+
+  // ── Determine event type ────────────────────────────────────────────────────
+  const eventType = isTest ? 'test_notification' : isRetry ? 'retry_notification' : 'lead_notification';
 
   // ── Build email ─────────────────────────────────────────────────────────────
   const subject = isTest
     ? `[TEST] New GROWVA lead: ${name} — ${projectType || 'No project type'}`
     : `New GROWVA lead: ${name} — ${projectType || 'No project type'}`;
 
-  const row = (label: string, value: string) =>
+  const tdRow = (label: string, value: string) =>
     `<tr>
       <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;font-weight:600;width:110px;vertical-align:top;">${label}</td>
       <td style="padding:8px 0 8px 12px;border-bottom:1px solid #e5e7eb;">${value}</td>
@@ -148,14 +181,15 @@ serve(async (req: Request) => {
 <head><meta charset="UTF-8"><title>New Lead</title></head>
 <body style="font-family:system-ui,sans-serif;color:#111827;max-width:600px;margin:0 auto;padding:24px;">
 ${isTest ? `<p style="background:#fef3c7;border:1px solid #f59e0b;padding:12px 16px;border-radius:6px;margin-bottom:20px;font-size:13px;"><strong>Test notification</strong> — no real lead was submitted.</p>` : ''}
+${isRetry ? `<p style="background:#dbeafe;border:1px solid #93c5fd;padding:12px 16px;border-radius:6px;margin-bottom:20px;font-size:13px;"><strong>Retry notification</strong> — manually re-sent from the admin dashboard.</p>` : ''}
 <h2 style="margin:0 0 20px;font-size:20px;color:#111827;">New Contact Form Lead</h2>
 <table style="width:100%;border-collapse:collapse;font-size:14px;">
-  ${row('Name',     esc(name))}
-  ${row('Email',    `<a href="mailto:${esc(email)}" style="color:#2563eb;">${esc(email)}</a>`)}
-  ${company     ? row('Company',  esc(company))     : ''}
-  ${projectType ? row('Project',  esc(projectType)) : ''}
-  ${budget      ? row('Budget',   esc(budget))      : ''}
-  ${pagePath    ? row('Page',     esc(pagePath))    : ''}
+  ${tdRow('Name',  esc(name))}
+  ${tdRow('Email', `<a href="mailto:${esc(email)}" style="color:#2563eb;">${esc(email)}</a>`)}
+  ${company     ? tdRow('Company', esc(company))     : ''}
+  ${projectType ? tdRow('Project', esc(projectType)) : ''}
+  ${budget      ? tdRow('Budget',  esc(budget))      : ''}
+  ${pagePath    ? tdRow('Page',    esc(pagePath))    : ''}
   <tr>
     <td style="padding:8px 0;font-weight:600;vertical-align:top;">Received</td>
     <td style="padding:8px 0 8px 12px;">${esc(createdAt)}</td>
@@ -170,8 +204,9 @@ ${isTest ? `<p style="background:#fef3c7;border:1px solid #f59e0b;padding:12px 1
 </body>
 </html>`;
 
-  const textLines = [
-    isTest ? '[TEST NOTIFICATION — no real lead was submitted]\n' : '',
+  const textBody = [
+    isTest  ? '[TEST NOTIFICATION — no real lead was submitted]\n' : '',
+    isRetry ? '[RETRY — manually re-sent from admin dashboard]\n'  : '',
     'New Contact Form Lead',
     '=====================',
     `Name:     ${name}`,
@@ -184,20 +219,22 @@ ${isTest ? `<p style="background:#fef3c7;border:1px solid #f59e0b;padding:12px 1
     '',
     'Message:',
     message,
-  ].filter(Boolean);
-  const textBody = textLines.join('\n');
+  ].filter(Boolean).join('\n');
 
   // ── Call Resend API ─────────────────────────────────────────────────────────
-  const payload: Record<string, unknown> = {
+  const emailPayload: Record<string, unknown> = {
     from: fromEmail,
     to: [toEmail],
     subject,
     html: htmlBody,
     text: textBody,
   };
-  if (replyTo) payload.reply_to = replyTo;
+  if (replyTo) emailPayload.reply_to = replyTo;
 
   let resendStatus: number;
+  let resendJson: Record<string, unknown> = {};
+  let providerMessageId: string | undefined;
+
   try {
     const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -205,17 +242,63 @@ ${isTest ? `<p style="background:#fef3c7;border:1px solid #f59e0b;padding:12px 1
         Authorization: `Bearer ${resendKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(emailPayload),
     });
     resendStatus = resendRes.status;
+    // Parse response to capture provider message ID
+    try {
+      resendJson = await resendRes.json() as Record<string, unknown>;
+      if (typeof resendJson.id === 'string') {
+        providerMessageId = resendJson.id;
+      }
+    } catch {
+      // Non-JSON response — ignore, status code is the authority
+    }
   } catch (err) {
-    return json({ error: 'Failed to reach Resend API', detail: String(err) }, 502);
+    // Network-level failure — log and return error
+    const errMsg = trunc(String(err), 500);
+    await insertLog({
+      lead_id:         leadId ?? null,
+      event_type:      eventType,
+      status:          'failed',
+      recipient_email: toEmail,
+      sender_email:    fromEmail,
+      subject:         trunc(subject, 500),
+      error_message:   errMsg,
+      metadata:        { reason: 'network_error' },
+    });
+    return json({ error: 'Failed to reach Resend API', logged: true }, 502);
   }
 
+  // ── Handle Resend failure ───────────────────────────────────────────────────
   if (resendStatus < 200 || resendStatus >= 300) {
     console.error(`[contact-notify] Resend returned HTTP ${resendStatus}`);
-    return json({ error: 'Email delivery failed', resend_status: resendStatus }, 502);
+    const errMsg = trunc(`Resend HTTP ${resendStatus}`, 500);
+    await insertLog({
+      lead_id:         leadId ?? null,
+      event_type:      eventType,
+      status:          'failed',
+      recipient_email: toEmail,
+      sender_email:    fromEmail,
+      subject:         trunc(subject, 500),
+      error_message:   errMsg,
+      metadata:        { resend_status: resendStatus },
+    });
+    return json({ error: 'Email delivery failed', resend_status: resendStatus, logged: true }, 502);
   }
 
-  return json({ ok: true, test: isTest });
+  // ── Log success ─────────────────────────────────────────────────────────────
+  const logStatus = isTest ? 'test' : 'sent';
+  const logged = await insertLog({
+    lead_id:             leadId ?? null,
+    event_type:          eventType,
+    status:              logStatus,
+    recipient_email:     toEmail,
+    sender_email:        fromEmail,
+    subject:             trunc(subject, 500),
+    provider_message_id: providerMessageId ?? null,
+    metadata:            { resend_status: resendStatus },
+  });
+
+  return json({ ok: true, test: isTest, retry: isRetry, logged });
 });
