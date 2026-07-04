@@ -537,6 +537,7 @@
       <div class="gv-admin-actions">
         <span class="gv-admin-state" data-admin-counts>Unsaved 0 / Drafts 0</span>
         <span class="gv-admin-state" data-admin-connection><span class="gv-admin-status-dot"></span>Offline</span>
+        <span class="sr-only" aria-live="polite" aria-atomic="true" data-admin-live-status></span>
         <button class="gv-admin-action" type="button" data-admin-action="toggle-safe-mode" data-admin-safe-mode-btn>Safe Mode: ON</button>
         <button class="gv-admin-action" type="button" data-admin-action="enter-visitor-preview">Preview as Visitor</button>
         <button class="gv-admin-action" type="button" data-admin-action="open-dashboard">CMS Dashboard</button>
@@ -570,14 +571,16 @@
     dashboard.className = 'gv-admin-dashboard';
     dashboard.dataset.adminUi = 'true';
     dashboard.setAttribute('data-lenis-prevent', '');
-    dashboard.setAttribute('aria-label', 'GROWVA CMS dashboard');
+    dashboard.setAttribute('role', 'dialog');
+    dashboard.setAttribute('aria-modal', 'true');
+    dashboard.setAttribute('aria-labelledby', 'gvDashboardTitle');
     dashboard.hidden = true;
     dashboard.innerHTML = `
       <div class="gv-admin-dashboard-shell">
         <div class="gv-admin-dashboard-head">
           <div>
             <span class="gv-admin-pill">CMS Dashboard</span>
-            <h2>Content Control Room</h2>
+            <h2 id="gvDashboardTitle">Content Control Room</h2>
             <p>Manage this page's drafts, published overrides, audit history, role access, and system health.</p>
           </div>
           <button class="gv-admin-close" type="button" aria-label="Close dashboard" data-admin-action="close-dashboard">x</button>
@@ -593,13 +596,16 @@
     publishDialog = document.createElement('div');
     publishDialog.className = 'gv-admin-confirm';
     publishDialog.dataset.adminUi = 'true';
+    publishDialog.setAttribute('role', 'dialog');
+    publishDialog.setAttribute('aria-modal', 'true');
+    publishDialog.setAttribute('aria-labelledby', 'gvPublishDialogTitle');
     publishDialog.hidden = true;
     publishDialog.innerHTML = `
       <div class="gv-admin-confirm-card">
         <div class="gv-admin-dashboard-head">
           <div>
             <span class="gv-admin-pill">Publish Current Page</span>
-            <h2>Review draft changes</h2>
+            <h2 id="gvPublishDialogTitle">Review draft changes</h2>
             <p>This publishes current page only.</p>
           </div>
           <button class="gv-admin-close" type="button" aria-label="Cancel publish" data-admin-action="cancel-publish">x</button>
@@ -664,6 +670,17 @@
         else if (dashboard && !dashboard.hidden) closeDashboard();
         else if (modal && modal.classList.contains('is-open')) closeModal();
         else if (selectedElement) clearSelection();
+      }
+      // Phase 14: Visual Designer Engine undo/redo
+      if (event.ctrlKey && !event.shiftKey && event.key.toLowerCase() === 'z') {
+        if (!document.body.classList.contains('admin-edit-mode')) return;
+        event.preventDefault();
+        vdHistoryUndo();
+      }
+      if (event.ctrlKey && (event.key.toLowerCase() === 'y' || (event.shiftKey && event.key.toLowerCase() === 'z'))) {
+        if (!document.body.classList.contains('admin-edit-mode')) return;
+        event.preventDefault();
+        vdHistoryRedo();
       }
     });
   }
@@ -968,7 +985,7 @@
       ['builder', 'Section Builder']
     ];
     $('[data-dashboard-tabs]', dashboard).innerHTML = tabs.map(([id, label]) => `
-      <button type="button" class="${dashboardTab === id ? 'is-active' : ''}" data-admin-action="dashboard-tab" data-dashboard-tab="${id}">${escapeHtml(label)}</button>
+      <button type="button" role="tab" aria-selected="${dashboardTab === id ? 'true' : 'false'}" class="${dashboardTab === id ? 'is-active' : ''}" data-admin-action="dashboard-tab" data-dashboard-tab="${id}">${escapeHtml(label)}</button>
     `).join('');
     $('[data-dashboard-body]', dashboard).innerHTML = `
       ${dashboardMessage ? `<div class="gv-admin-dashboard-message">${escapeHtml(dashboardMessage)}</div>` : ''}
@@ -1380,7 +1397,7 @@
         setTimeout(bindSectionBuilderEvents, 0);
         return;
       }
-      if (currentElement) renderInspector(currentElement);
+      if (selectedElement) renderInspector(selectedElement);
     }
     if (action === 'save-token-drafts') saveAllTokenDrafts();
     if (action === 'publish-tokens-page') publishCurrentPageVisuals();
@@ -1502,6 +1519,7 @@
     setEditorSafeMode(true);
     updateTopbar();
     renderPanelEmpty();
+    vdActivate();
     refreshScrollLayout();
     logCmsDebug('enter-admin-mode');
   }
@@ -1511,6 +1529,7 @@
     inspectorDirty = false;
     unsavedCount = 0;
     clearSelection();
+    vdDeactivate();
     document.body.classList.remove('admin-mode', 'admin-edit-mode', 'admin-preview-mode', 'editor-safe-mode');
     setAdminInteractionIsolation(false);
     editorSafeMode = true;
@@ -1590,6 +1609,8 @@
       safeModeBtn.textContent = 'Safe Mode: ' + (editorSafeMode ? 'ON' : 'OFF');
       safeModeBtn.classList.toggle('is-safe-mode-on', editorSafeMode);
     }
+    const liveStatus = $('[data-admin-live-status]', adminRoot);
+    if (liveStatus) liveStatus.textContent = statusMessage || '';
   }
 
   function renderPanelEmpty() {
@@ -1633,12 +1654,14 @@
     if (selectedElement) selectedElement.classList.remove('gv-admin-selected');
     selectedElement = element;
     selectedElement.classList.add('gv-admin-selected');
+    vdSelect(element);
     renderInspector(element);
   }
 
   function clearSelection(renderEmpty = true) {
     if (inspectorDirty && !window.confirm('You have unsaved inspector changes. Close the inspector anyway?')) return false;
     if (selectedElement) selectedElement.classList.remove('gv-admin-selected');
+    vdDeselect();
     selectedElement = null;
     inspectorDirty = false;
     inspectorBaselineValue = '';
@@ -1668,8 +1691,8 @@
     $('[data-admin-panel-title]', panel).textContent = draftRows[key] ? 'Editing draft override' : 'Editing field';
     const tabsHtml = `
       <div class="gv-inspector-tabs" role="tablist">
-        <button type="button" class="${inspectorTab === 'content' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="content">Content</button>
-        <button type="button" class="${inspectorTab === 'style' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="style">Style</button>
+        <button type="button" role="tab" aria-selected="${inspectorTab === 'content' ? 'true' : 'false'}" class="${inspectorTab === 'content' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="content">Content</button>
+        <button type="button" role="tab" aria-selected="${inspectorTab === 'style' ? 'true' : 'false'}" class="${inspectorTab === 'style' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="style">Style</button>
       </div>
     `;
     if (inspectorTab === 'style') {
@@ -3979,7 +4002,7 @@
     const payload = {
       page_path: pagePath,
       edit_key: editKey,
-      section_id: currentElement ? (currentElement.dataset.sectionId || null) : null,
+      section_id: selectedElement ? (selectedElement.dataset.sectionId || null) : null,
       style_json: styleJson,
       status: 'draft',
       updated_by: currentUser.id
@@ -4109,8 +4132,8 @@
   }
 
   async function resetElementStyleFromInspector() {
-    if (!currentElement) return;
-    const key = currentElement.dataset.editKey;
+    if (!selectedElement) return;
+    const key = selectedElement.dataset.editKey;
     if (!key) return;
     if (supabaseClient && currentUser) {
       await supabaseClient.from('cms_element_styles')
@@ -4120,11 +4143,11 @@
         .eq('status', 'draft');
     }
     delete elementStyleDrafts[key];
-    const el = currentElement;
+    const el = selectedElement;
     ALLOWED_STYLE_PROPS.forEach(prop => { el.style[prop] = ''; });
     const published = elementStylesPublished[key];
     if (published) applyElementStyleJson(el, published);
-    if (currentElement) renderInspector(currentElement);
+    if (selectedElement) renderInspector(selectedElement);
   }
 
   // ── Phase 7: Section management ──────────────────────────────────────────
@@ -4254,8 +4277,8 @@
       if (state) state.textContent = 'Viewer access: style edits are disabled.';
       return;
     }
-    if (!currentElement) return;
-    const key = currentElement.dataset.editKey;
+    if (!selectedElement) return;
+    const key = selectedElement.dataset.editKey;
     if (!key) return;
     const styleInputs = $all('[data-style-prop]', panel);
     const styles = {};
@@ -4266,7 +4289,7 @@
       if (safe !== null) styles[prop] = safe;
     });
     const styleJson = { styles };
-    applyElementStyleJson(currentElement, styleJson);
+    applyElementStyleJson(selectedElement, styleJson);
     const err = await saveElementStyleDraftData(key, styleJson);
     const state = $('[data-admin-save-state]', panel);
     if (state) state.textContent = err ? 'Save failed.' : 'Style draft saved.';
@@ -4513,9 +4536,9 @@
           <button class="gv-admin-action" type="button" data-admin-action="builder-edit-section" data-section-id="">Close Editor</button>
         </div>
         <div class="gv-inspector-tabs" role="tablist">
-          <button type="button" class="${inspectorTab === 'content' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="content">Content</button>
-          <button type="button" class="${inspectorTab === 'style' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="style">Style</button>
-          <button type="button" class="${inspectorTab === 'section' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="section">Section</button>
+          <button type="button" role="tab" aria-selected="${inspectorTab === 'content' ? 'true' : 'false'}" class="${inspectorTab === 'content' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="content">Content</button>
+          <button type="button" role="tab" aria-selected="${inspectorTab === 'style' ? 'true' : 'false'}" class="${inspectorTab === 'style' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="style">Style</button>
+          <button type="button" role="tab" aria-selected="${inspectorTab === 'section' ? 'true' : 'false'}" class="${inspectorTab === 'section' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="section">Section</button>
         </div>
         ${inspectorTab === 'style' ? renderCustomSectionStyleEditor(row, canEdit) : inspectorTab === 'section' ? renderCustomSectionMetaEditor(row, canEdit) : renderCustomSectionContentEditor(row, content, canEdit)}
       </div>
@@ -5328,10 +5351,10 @@
     container._boundIS = true;
     $all('[data-style-prop]', container).forEach(inp => {
       inp.addEventListener('input', () => {
-        if (!currentElement) return;
+        if (!selectedElement) return;
         const prop = inp.dataset.styleProp;
         const safe = sanitizeStyleValue(prop, inp.value.trim());
-        if (safe !== null) currentElement.style[prop] = safe;
+        if (safe !== null) selectedElement.style[prop] = safe;
       });
     });
   }
@@ -5589,6 +5612,473 @@
     renderDashboard();
     logCmsDebug('reset-draft-to-published', { editKey });
   }
+
+  // ── Phase 14: Visual Designer Engine ─────────────────────────────────────────
+  //
+  // Self-contained runtime engine. No new Supabase tables; style store is
+  // in-memory only. Future phases add persistence and UI panels.
+  // Public API exposed via window.GV_ADMIN_VISUAL for future panels.
+
+  const VD_ALLOWED_STYLE_PROPS = new Set([
+    // Inherited — also covered by existing ALLOWED_STYLE_PROPS sanitizers
+    'color','backgroundColor','fontSize','fontFamily','fontWeight',
+    'lineHeight','letterSpacing','textAlign',
+    'marginTop','marginBottom','marginLeft','marginRight',
+    'paddingTop','paddingBottom','paddingLeft','paddingRight',
+    'borderColor','borderRadius','opacity','maxWidth',
+    // Phase 14 additions
+    'borderWidth','borderStyle',
+    'borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth',
+    'borderTopColor','borderRightColor','borderBottomColor','borderLeftColor',
+    'boxShadow','textDecoration','textTransform',
+    'display','flexDirection','flexWrap','justifyContent','alignItems','alignSelf','gap',
+    'width','height','minHeight','minWidth','maxHeight',
+    'transform','transition','overflow','objectFit','zIndex'
+  ]);
+
+  const VD_SAFE_DISPLAY = new Set(['block','inline','inline-block','flex','inline-flex','grid','inline-grid','none','contents','flow-root','table','table-cell','table-row']);
+  const VD_SAFE_FLEX_DIR = new Set(['row','row-reverse','column','column-reverse']);
+  const VD_SAFE_FLEX_WRAP = new Set(['nowrap','wrap','wrap-reverse']);
+  const VD_SAFE_JUSTIFY = new Set(['flex-start','flex-end','center','space-between','space-around','space-evenly','start','end','normal']);
+  const VD_SAFE_ALIGN = new Set(['flex-start','flex-end','center','baseline','stretch','start','end','normal','auto']);
+  const VD_SAFE_OVERFLOW = new Set(['visible','hidden','scroll','auto','clip']);
+  const VD_SAFE_TEXT_DEC = new Set(['none','underline','overline','line-through']);
+  const VD_SAFE_TEXT_TRANS = new Set(['none','uppercase','lowercase','capitalize']);
+  const VD_SAFE_OBJECT_FIT = new Set(['fill','contain','cover','none','scale-down']);
+  const VD_SAFE_BORDER_STYLE = new Set(['none','solid','dashed','dotted','double','groove','ridge','inset','outset','hidden']);
+  const VD_BREAKPOINTS = ['desktop', 'tablet', 'mobile'];
+  const VD_MAX_HISTORY = 50;
+
+  // ── VD state ──────────────────────────────────────────────────────────────
+
+  let vdActive = false;
+  let vdSelectedEl = null;
+  let vdBreakpoint = 'desktop';
+  let vdStyleStore = {};      // { storeKey: { desktop:{}, tablet:{}, mobile:{} } }
+  let vdHistory = [];         // [ { storeKey, prop, breakpoint, before, after } ]
+  let vdHistoryIndex = -1;
+  let vdClipboard = null;     // { styles: {prop:val} }
+  let vdOverlay = null;
+  let vdOverlayRaf = null;
+  let vdBatchRaf = null;
+  let vdBatchQueue = null;
+  let vdScrollBound = false;
+
+  // ── VD: Extended sanitizer ────────────────────────────────────────────────
+
+  function vdSanitizeStyleValue(prop, v) {
+    if (!prop || typeof v !== 'string') return null;
+    v = v.trim();
+    if (!VD_ALLOWED_STYLE_PROPS.has(prop)) return null;
+    // Re-use existing sanitizers for inherited props
+    if (ALLOWED_STYLE_PROPS.has(prop)) return sanitizeStyleValue(prop, v);
+    if (!v) return '';
+    if (prop === 'display') return VD_SAFE_DISPLAY.has(v) ? v : null;
+    if (prop === 'flexDirection') return VD_SAFE_FLEX_DIR.has(v) ? v : null;
+    if (prop === 'flexWrap') return VD_SAFE_FLEX_WRAP.has(v) ? v : null;
+    if (prop === 'justifyContent') return VD_SAFE_JUSTIFY.has(v) ? v : null;
+    if (prop === 'alignItems' || prop === 'alignSelf') return VD_SAFE_ALIGN.has(v) ? v : null;
+    if (prop === 'overflow') return VD_SAFE_OVERFLOW.has(v) ? v : null;
+    if (prop === 'textDecoration') return VD_SAFE_TEXT_DEC.has(v) ? v : null;
+    if (prop === 'textTransform') return VD_SAFE_TEXT_TRANS.has(v) ? v : null;
+    if (prop === 'objectFit') return VD_SAFE_OBJECT_FIT.has(v) ? v : null;
+    if (prop === 'borderStyle') return VD_SAFE_BORDER_STYLE.has(v) ? v : null;
+    if (['borderTopColor','borderRightColor','borderBottomColor','borderLeftColor'].includes(prop)) return sanitizeColorValue(v);
+    if (prop === 'boxShadow') {
+      if (v === 'none') return 'none';
+      if (/^[\d\s\-\.px%rgba(),#a-fA-F]+$/.test(v) && v.length < 120) return v;
+      return null;
+    }
+    if (prop === 'transform') {
+      if (v === 'none') return 'none';
+      if (/^(translate|scale|rotate|skew)(X|Y|Z|3d)?\([\d\-\.,\s%pxdegradturn]+\)$/.test(v)) return v;
+      return null;
+    }
+    if (prop === 'transition') {
+      if (v === 'none' || v === 'all 0s') return v;
+      if (/^[\w\s,\.\-]+$/.test(v) && v.length < 80) return v;
+      return null;
+    }
+    if (prop === 'zIndex') {
+      const n = parseInt(v, 10);
+      return (!isNaN(n) && n >= -999 && n <= 9999) ? String(n) : null;
+    }
+    if (prop === 'gap') return sanitizeSizeValue(v);
+    if (['width','height','minHeight','minWidth','maxHeight',
+         'borderWidth','borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth'].includes(prop)) {
+      if (v === 'auto') return 'auto';
+      return sanitizeSizeValue(v);
+    }
+    return null;
+  }
+
+  // ── VD: Style store ───────────────────────────────────────────────────────
+
+  function vdGetStoreKey(el) {
+    if (!el) return null;
+    return el.dataset.editKey || el.dataset.sectionId || null;
+  }
+
+  function vdGetStoredStyles(el, bp) {
+    const key = vdGetStoreKey(el);
+    if (!key) return {};
+    return (vdStyleStore[key] && vdStyleStore[key][bp]) ? Object.assign({}, vdStyleStore[key][bp]) : {};
+  }
+
+  function vdSetStoredStyle(el, prop, val, bp) {
+    const key = vdGetStoreKey(el);
+    if (!key) return;
+    if (!vdStyleStore[key]) vdStyleStore[key] = { desktop: {}, tablet: {}, mobile: {} };
+    if (!vdStyleStore[key][bp]) vdStyleStore[key][bp] = {};
+    if (val === '' || val === null) delete vdStyleStore[key][bp][prop];
+    else vdStyleStore[key][bp][prop] = val;
+  }
+
+  function vdGetComputedStyleSnapshot(el) {
+    if (!el) return {};
+    try {
+      const cs = window.getComputedStyle(el);
+      const out = {};
+      VD_ALLOWED_STYLE_PROPS.forEach(prop => {
+        try { out[prop] = cs[prop] || ''; } catch (e) { /* skip */ }
+      });
+      return out;
+    } catch (e) { return {}; }
+  }
+
+  function vdReadElementStyles(el) {
+    return {
+      computed: vdGetComputedStyleSnapshot(el),
+      stored: {
+        desktop: vdGetStoredStyles(el, 'desktop'),
+        tablet: vdGetStoredStyles(el, 'tablet'),
+        mobile: vdGetStoredStyles(el, 'mobile')
+      }
+    };
+  }
+
+  // ── VD: Style writing ─────────────────────────────────────────────────────
+
+  function vdApplyStyleDirect(el, prop, val) {
+    if (!el) return;
+    try { el.style[prop] = val; } catch (e) { /* skip */ }
+  }
+
+  function vdWriteStyle(el, prop, val, breakpoint) {
+    if (!el || !prop) return false;
+    const bp = VD_BREAKPOINTS.includes(breakpoint) ? breakpoint : vdBreakpoint;
+    const safe = vdSanitizeStyleValue(prop, String(val != null ? val : ''));
+    if (safe === null) return false;
+    const before = (vdGetStoredStyles(el, bp))[prop] || '';
+    vdSetStoredStyle(el, prop, safe, bp);
+    if (bp === vdBreakpoint) vdApplyStyleDirect(el, prop, safe);
+    vdHistoryPush({ storeKey: vdGetStoreKey(el), prop, breakpoint: bp, before, after: safe });
+    return true;
+  }
+
+  function vdBatchWriteStyles(el, styles, breakpoint) {
+    if (!el || !styles) return;
+    if (vdBatchRaf) cancelAnimationFrame(vdBatchRaf);
+    if (!vdBatchQueue) vdBatchQueue = { el, styles: {}, breakpoint: breakpoint || vdBreakpoint };
+    Object.assign(vdBatchQueue.styles, styles);
+    vdBatchRaf = requestAnimationFrame(() => {
+      vdBatchRaf = null;
+      if (!vdBatchQueue) return;
+      const { el: bEl, styles: bStyles, breakpoint: bBp } = vdBatchQueue;
+      vdBatchQueue = null;
+      Object.entries(bStyles).forEach(([p, v]) => vdWriteStyle(bEl, p, v, bBp));
+      vdScheduleOverlayUpdate();
+    });
+  }
+
+  function vdApplyBreakpointStyles(el, bp) {
+    if (!el) return;
+    const target = VD_BREAKPOINTS.includes(bp) ? bp : vdBreakpoint;
+    const desktop = vdGetStoredStyles(el, 'desktop');
+    const stored = vdGetStoredStyles(el, target);
+    VD_ALLOWED_STYLE_PROPS.forEach(prop => { try { el.style[prop] = ''; } catch (e) {} });
+    if (target !== 'desktop') Object.entries(desktop).forEach(([p, v]) => vdApplyStyleDirect(el, p, v));
+    Object.entries(stored).forEach(([p, v]) => vdApplyStyleDirect(el, p, v));
+  }
+
+  function vdSetBreakpoint(bp) {
+    if (!VD_BREAKPOINTS.includes(bp)) return;
+    vdBreakpoint = bp;
+    if (vdSelectedEl) vdApplyBreakpointStyles(vdSelectedEl, bp);
+  }
+
+  // ── VD: History (undo/redo) ───────────────────────────────────────────────
+
+  function vdHistoryPush(entry) {
+    vdHistory = vdHistory.slice(0, vdHistoryIndex + 1);
+    vdHistory.push(entry);
+    if (vdHistory.length > VD_MAX_HISTORY) vdHistory.shift();
+    else vdHistoryIndex = vdHistory.length - 1;
+  }
+
+  function vdFindEl(storeKey) {
+    if (!storeKey) return null;
+    return document.querySelector(`[data-edit-key="${cssEscape(storeKey)}"]`) ||
+           document.querySelector(`[data-section-id="${cssEscape(storeKey)}"]`);
+  }
+
+  function vdHistoryUndo() {
+    if (vdHistoryIndex < 0) return false;
+    const entry = vdHistory[vdHistoryIndex];
+    vdHistoryIndex--;
+    if (!entry) return false;
+    const el = vdFindEl(entry.storeKey);
+    if (el) {
+      vdSetStoredStyle(el, entry.prop, entry.before, entry.breakpoint);
+      if (entry.breakpoint === vdBreakpoint) vdApplyStyleDirect(el, entry.prop, entry.before);
+    }
+    return true;
+  }
+
+  function vdHistoryRedo() {
+    if (vdHistoryIndex >= vdHistory.length - 1) return false;
+    vdHistoryIndex++;
+    const entry = vdHistory[vdHistoryIndex];
+    if (!entry) return false;
+    const el = vdFindEl(entry.storeKey);
+    if (el) {
+      vdSetStoredStyle(el, entry.prop, entry.after, entry.breakpoint);
+      if (entry.breakpoint === vdBreakpoint) vdApplyStyleDirect(el, entry.prop, entry.after);
+    }
+    return true;
+  }
+
+  // ── VD: Clipboard (copy / paste styles) ──────────────────────────────────
+
+  function vdClipboardCopy(el) {
+    if (!el) return;
+    vdClipboard = { styles: Object.assign({}, vdGetStoredStyles(el, vdBreakpoint)) };
+  }
+
+  function vdClipboardPaste(el) {
+    if (!el || !vdClipboard) return;
+    Object.entries(vdClipboard.styles).forEach(([prop, val]) => vdWriteStyle(el, prop, val, vdBreakpoint));
+  }
+
+  // ── VD: Selection ─────────────────────────────────────────────────────────
+
+  function vdSelect(el) {
+    vdSelectedEl = el || null;
+    vdScheduleOverlayUpdate();
+  }
+
+  function vdDeselect() {
+    vdSelectedEl = null;
+    vdHideOverlay();
+  }
+
+  function vdSelectParent() {
+    if (!vdSelectedEl) return;
+    const parent = vdSelectedEl.parentElement;
+    if (!parent || parent === document.body || parent.closest('[data-admin-ui]')) return;
+    const target = parent.dataset.editKey ? parent : parent.closest('[data-edit-key]');
+    if (target) selectElement(target);
+  }
+
+  function vdSelectChild(index) {
+    if (!vdSelectedEl) return;
+    const children = Array.from(vdSelectedEl.children).filter(c => !c.closest('[data-admin-ui]') && c.dataset.editKey);
+    const child = children[index || 0];
+    if (child) selectElement(child);
+  }
+
+  // ── VD: Box model overlay ─────────────────────────────────────────────────
+
+  function vdBuildOverlay() {
+    if (vdOverlay) return;
+    vdOverlay = document.createElement('div');
+    vdOverlay.className = 'gv-vd-overlay';
+    vdOverlay.setAttribute('aria-hidden', 'true');
+    vdOverlay.innerHTML =
+      '<div class="gv-vd-layer gv-vd-margin" data-vd-layer="margin"></div>' +
+      '<div class="gv-vd-layer gv-vd-border" data-vd-layer="border"></div>' +
+      '<div class="gv-vd-layer gv-vd-padding" data-vd-layer="padding"></div>' +
+      '<div class="gv-vd-layer gv-vd-content" data-vd-layer="content"></div>' +
+      '<div class="gv-vd-label" data-vd-label></div>' +
+      '<div class="gv-vd-boxmodel" data-vd-boxmodel></div>';
+    document.body.appendChild(vdOverlay);
+  }
+
+  function vdDestroyOverlay() {
+    if (vdOverlay && vdOverlay.parentNode) vdOverlay.parentNode.removeChild(vdOverlay);
+    vdOverlay = null;
+  }
+
+  function vdHideOverlay() {
+    if (vdOverlay) vdOverlay.classList.remove('is-active');
+  }
+
+  function vdSetLayerRect(selector, r) {
+    if (!vdOverlay) return;
+    const el = vdOverlay.querySelector(selector);
+    if (!el) return;
+    el.style.cssText = 'left:' + r.left + 'px;top:' + r.top + 'px;width:' + Math.max(0, r.width) + 'px;height:' + Math.max(0, r.height) + 'px';
+  }
+
+  function vdUpdateOverlay(el) {
+    if (!vdOverlay || !el) { vdHideOverlay(); return; }
+    if (el === document.body || el.closest('[data-admin-ui]') || el === vdOverlay) { vdHideOverlay(); return; }
+
+    let rect;
+    try { rect = el.getBoundingClientRect(); } catch (e) { vdHideOverlay(); return; }
+    if (!rect.width && !rect.height) { vdHideOverlay(); return; }
+
+    let cs;
+    try { cs = window.getComputedStyle(el); } catch (e) { vdHideOverlay(); return; }
+
+    const mt = parseFloat(cs.marginTop) || 0;
+    const mb = parseFloat(cs.marginBottom) || 0;
+    const ml = parseFloat(cs.marginLeft) || 0;
+    const mr = parseFloat(cs.marginRight) || 0;
+    const bt = parseFloat(cs.borderTopWidth) || 0;
+    const bb = parseFloat(cs.borderBottomWidth) || 0;
+    const bl = parseFloat(cs.borderLeftWidth) || 0;
+    const br = parseFloat(cs.borderRightWidth) || 0;
+    const pt = parseFloat(cs.paddingTop) || 0;
+    const pb = parseFloat(cs.paddingBottom) || 0;
+    const pl = parseFloat(cs.paddingLeft) || 0;
+    const pr = parseFloat(cs.paddingRight) || 0;
+
+    vdSetLayerRect('[data-vd-layer="margin"]', {
+      left: rect.left - ml, top: rect.top - mt,
+      width: rect.width + ml + mr, height: rect.height + mt + mb
+    });
+    vdSetLayerRect('[data-vd-layer="border"]', rect);
+    vdSetLayerRect('[data-vd-layer="padding"]', {
+      left: rect.left + bl, top: rect.top + bt,
+      width: rect.width - bl - br, height: rect.height - bt - bb
+    });
+    vdSetLayerRect('[data-vd-layer="content"]', {
+      left: rect.left + bl + pl, top: rect.top + bt + pt,
+      width: rect.width - bl - br - pl - pr, height: rect.height - bt - bb - pt - pb
+    });
+
+    const labelEl = vdOverlay.querySelector('[data-vd-label]');
+    if (labelEl) {
+      const tag = el.tagName.toLowerCase();
+      const key = el.dataset.editKey || el.dataset.sectionId || '';
+      const suffix = key ? ' [' + key.split('.').pop().slice(0, 20) + ']' : '';
+      const dims = Math.round(rect.width) + '×' + Math.round(rect.height);
+      labelEl.textContent = tag + suffix + ' ' + dims;
+      labelEl.style.cssText = 'left:' + rect.left + 'px;top:' + Math.max(4, rect.top - 22) + 'px';
+    }
+
+    const boxEl = vdOverlay.querySelector('[data-vd-boxmodel]');
+    if (boxEl) {
+      const cw = Math.round(rect.width - bl - br - pl - pr);
+      const ch = Math.round(rect.height - bt - bb - pt - pb);
+      const parts = [];
+      if (mt || mr || mb || ml) parts.push('M ' + [mt,mr,mb,ml].map(Math.round).join(' '));
+      if (bt || br || bb || bl) parts.push('B ' + [bt,br,bb,bl].map(Math.round).join(' '));
+      if (pt || pr || pb || pl) parts.push('P ' + [pt,pr,pb,pl].map(Math.round).join(' '));
+      parts.push(cw + '×' + ch);
+      boxEl.textContent = parts.join('  ');
+      const bx = Math.min(rect.left - ml, window.innerWidth - 180);
+      const by = Math.min(rect.bottom + mb + 4, window.innerHeight - 36);
+      boxEl.style.cssText = 'left:' + Math.max(4, bx) + 'px;top:' + Math.max(4, by) + 'px';
+    }
+
+    vdOverlay.classList.add('is-active');
+  }
+
+  function vdScheduleOverlayUpdate() {
+    if (vdOverlayRaf) cancelAnimationFrame(vdOverlayRaf);
+    vdOverlayRaf = requestAnimationFrame(() => {
+      vdOverlayRaf = null;
+      if (vdSelectedEl && document.body.classList.contains('admin-edit-mode')) {
+        vdUpdateOverlay(vdSelectedEl);
+      } else {
+        vdHideOverlay();
+      }
+    });
+  }
+
+  // ── VD: Scroll + resize tracking ─────────────────────────────────────────
+
+  function _vdOnScroll() { vdScheduleOverlayUpdate(); }
+  function _vdOnResize() { vdScheduleOverlayUpdate(); }
+
+  function vdBindScrollResize() {
+    if (vdScrollBound) return;
+    vdScrollBound = true;
+    window.addEventListener('scroll', _vdOnScroll, { passive: true, capture: true });
+    window.addEventListener('resize', _vdOnResize, { passive: true });
+  }
+
+  function vdUnbindScrollResize() {
+    vdScrollBound = false;
+    window.removeEventListener('scroll', _vdOnScroll, { capture: true });
+    window.removeEventListener('resize', _vdOnResize);
+  }
+
+  // ── VD: Activate / Deactivate ─────────────────────────────────────────────
+
+  function vdActivate() {
+    if (vdActive) return;
+    vdActive = true;
+    vdBuildOverlay();
+    vdBindScrollResize();
+    if (cmsDebug) console.log('[GV Visual Designer Engine] activated');
+  }
+
+  function vdDeactivate() {
+    if (!vdActive) return;
+    vdActive = false;
+    vdDeselect();
+    vdDestroyOverlay();
+    vdUnbindScrollResize();
+    if (vdBatchRaf) { cancelAnimationFrame(vdBatchRaf); vdBatchRaf = null; }
+    vdBatchQueue = null;
+    if (vdOverlayRaf) { cancelAnimationFrame(vdOverlayRaf); vdOverlayRaf = null; }
+    if (cmsDebug) console.log('[GV Visual Designer Engine] deactivated');
+  }
+
+  // ── VD: Developer hook (window.GV_ADMIN_VISUAL) ───────────────────────────
+  //
+  // Future panel phases import this object to drive the engine.
+  // All writes go through sanitizers; no raw CSS injection possible.
+
+  window.GV_ADMIN_VISUAL = Object.freeze({
+    version: '14.0',
+    breakpoints: VD_BREAKPOINTS.slice(),
+    allowedProps: Array.from(VD_ALLOWED_STYLE_PROPS),
+    get active() { return vdActive; },
+    get selectedEl() { return vdSelectedEl; },
+    get breakpoint() { return vdBreakpoint; },
+    get historyLength() { return vdHistory.length; },
+    get historyIndex() { return vdHistoryIndex; },
+    get hasUndo() { return vdHistoryIndex >= 0; },
+    get hasRedo() { return vdHistoryIndex < vdHistory.length - 1; },
+    get hasClipboard() { return Boolean(vdClipboard); },
+    // Selection
+    select: function (el) { if (el instanceof Element && !el.closest('[data-admin-ui]')) selectElement(el); },
+    deselect: vdDeselect,
+    selectParent: vdSelectParent,
+    selectChild: vdSelectChild,
+    // Style abstraction
+    readStyles: vdReadElementStyles,
+    writeStyle: vdWriteStyle,
+    batchWriteStyles: vdBatchWriteStyles,
+    applyBreakpointStyles: vdApplyBreakpointStyles,
+    setBreakpoint: vdSetBreakpoint,
+    snapshot: vdGetComputedStyleSnapshot,
+    sanitize: vdSanitizeStyleValue,
+    // History
+    undo: vdHistoryUndo,
+    redo: vdHistoryRedo,
+    // Clipboard
+    copyStyles: vdClipboardCopy,
+    pasteStyles: vdClipboardPaste,
+    // Introspection
+    getStyleStore: function () { return JSON.parse(JSON.stringify(vdStyleStore)); },
+    // Overlay
+    updateOverlay: vdScheduleOverlayUpdate
+  });
 
   async function boot() {
     ensureEntryButtonsAreSafe();
