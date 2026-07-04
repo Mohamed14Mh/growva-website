@@ -1886,3 +1886,156 @@ body.admin-visitor-preview .gv-admin-edit-outline {
   letter-spacing: 0;
   backdrop-filter: blur(4px);
 }
+
+/* ── Phase 16: Visual Properties Panel ────────────────────────────────────── */
+
+.gv-vd-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Breakpoint switcher */
+.gv-vd-bp-bar {
+  display: flex;
+  gap: 4px;
+  padding: 8px 10px 0;
+}
+.gv-vd-bp-btn {
+  flex: 1;
+  padding: 4px 0;
+  font: 500 11px/1.4 inherit;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 4px;
+  background: transparent;
+  color: rgba(255,255,255,0.50);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.gv-vd-bp-btn:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.06); }
+.gv-vd-bp-btn.is-active {
+  background: rgba(97,191,255,0.15);
+  border-color: rgba(97,191,255,0.55);
+  color: rgb(97,191,255);
+}
+.gv-vd-bp-hint {
+  font: 400 10px/1.4 inherit;
+  color: rgba(255,255,255,0.38);
+  margin: 4px 10px 0;
+  padding: 0;
+}
+.gv-vd-bp-hint strong { color: rgba(255,255,255,0.65); font-weight: 600; }
+.gv-vd-bp-hint code { font-size: 10px; color: rgba(180,180,255,0.70); }
+
+/* Action buttons row */
+.gv-vd-actions-bar {
+  display: flex;
+  gap: 4px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.gv-vd-act {
+  flex: 1;
+  padding: 3px 0;
+  font: 500 10px/1.4 inherit;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 3px;
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.55);
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s, opacity 0.12s;
+  white-space: nowrap;
+}
+.gv-vd-act:hover:not(:disabled) { color: rgba(255,255,255,0.90); background: rgba(255,255,255,0.08); }
+.gv-vd-act:disabled { opacity: 0.32; cursor: not-allowed; }
+.gv-vd-act--warn { color: rgba(255,130,100,0.80); border-color: rgba(255,130,100,0.16); }
+.gv-vd-act--warn:hover:not(:disabled) { background: rgba(255,100,80,0.10); color: rgba(255,140,110,1); }
+
+/* Property groups */
+.gv-vd-group {
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.gv-vd-group-head {
+  list-style: none;
+  padding: 6px 10px;
+  font: 600 10px/1.4 inherit;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.38);
+  cursor: pointer;
+  user-select: none;
+}
+.gv-vd-group-head::-webkit-details-marker { display: none; }
+.gv-vd-group-head::before {
+  content: '\25B8';
+  margin-right: 5px;
+  display: inline-block;
+  transition: transform 0.12s;
+}
+details.gv-vd-group[open] .gv-vd-group-head::before { transform: rotate(90deg); }
+.gv-vd-group-head:hover { color: rgba(255,255,255,0.65); }
+
+/* 2-column property grid */
+.gv-vd-group-body {
+  padding: 0 8px 6px;
+  display: grid;
+  grid-template-columns: 46% 54%;
+  gap: 3px 0;
+}
+.gv-vd-row { display: contents; }
+
+.gv-vd-lbl {
+  font: 400 10px/1.4 inherit;
+  color: rgba(255,255,255,0.42);
+  padding: 4px 4px 4px 2px;
+  align-self: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gv-vd-ctrl {
+  font: 400 11px/1.4 inherit;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 3px;
+  color: rgba(255,255,255,0.85);
+  padding: 3px 5px;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.12s;
+  align-self: center;
+}
+.gv-vd-ctrl:focus { border-color: rgba(97,191,255,0.55); }
+.gv-vd-ctrl:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* Color row (swatch + hex text) */
+.gv-vd-color-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  align-self: center;
+}
+.gv-vd-swatch {
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 3px;
+  padding: 1px;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: transparent;
+}
+.gv-vd-swatch:disabled { opacity: 0.35; cursor: not-allowed; }
+.gv-vd-color-row .gv-vd-ctrl { flex: 1; min-width: 0; }
+
+/* Save bar */
+.gv-vd-save-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 10px;
+}
+.gv-vd-save-note {
+  font: 400 10px/1.4 inherit;
+  color: rgba(255,200,100,0.80);
+}

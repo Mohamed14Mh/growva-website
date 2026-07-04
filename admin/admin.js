@@ -1464,6 +1464,39 @@
       auditFilter = actionElement.dataset.filter || 'all';
       renderDashboard();
     }
+
+    // Phase 16 Visual Properties Panel actions
+    if (action === 'vd-bp-switch') {
+      const bp = actionElement.dataset.vdBp;
+      if (VD_BREAKPOINTS.includes(bp)) {
+        window.GV_ADMIN_VISUAL.setBreakpoint(bp);
+        if (selectedElement && inspectorTab === 'visual') renderInspector(selectedElement);
+      }
+    }
+    if (action === 'vd-undo') {
+      vdHistoryUndo();
+      if (selectedElement && inspectorTab === 'visual') renderInspector(selectedElement);
+    }
+    if (action === 'vd-redo') {
+      vdHistoryRedo();
+      if (selectedElement && inspectorTab === 'visual') renderInspector(selectedElement);
+    }
+    if (action === 'vd-copy') {
+      if (selectedElement) window.GV_ADMIN_VISUAL.copyStyles(selectedElement);
+    }
+    if (action === 'vd-paste') {
+      if (selectedElement && canAdminEdit()) {
+        window.GV_ADMIN_VISUAL.pasteStyles(selectedElement);
+        vdVisualDirty = true;
+        if (inspectorTab === 'visual') renderInspector(selectedElement);
+      }
+    }
+    if (action === 'vd-reset') {
+      if (selectedElement && canAdminEdit()) resetVisualStyleDraft(selectedElement);
+    }
+    if (action === 'vd-save') {
+      if (selectedElement && canAdminEdit()) saveVisualStyleDraft(selectedElement);
+    }
   }
 
   function openModal() {
@@ -1664,6 +1697,7 @@
     vdDeselect();
     selectedElement = null;
     inspectorDirty = false;
+    vdVisualDirty = false;
     inspectorBaselineValue = '';
     unsavedCount = 0;
     hideHoverBadge();
@@ -1693,11 +1727,17 @@
       <div class="gv-inspector-tabs" role="tablist">
         <button type="button" role="tab" aria-selected="${inspectorTab === 'content' ? 'true' : 'false'}" class="${inspectorTab === 'content' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="content">Content</button>
         <button type="button" role="tab" aria-selected="${inspectorTab === 'style' ? 'true' : 'false'}" class="${inspectorTab === 'style' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="style">Style</button>
+        <button type="button" role="tab" aria-selected="${inspectorTab === 'visual' ? 'true' : 'false'}" class="${inspectorTab === 'visual' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="visual">Visual</button>
       </div>
     `;
     if (inspectorTab === 'style') {
       $('[data-admin-panel-body]', panel).innerHTML = tabsHtml + getRoleAccessBanner('inspector') + renderInspectorStyleTabHTML(element);
       setTimeout(bindInspectorStyleEvents, 0);
+      return;
+    }
+    if (inspectorTab === 'visual') {
+      $('[data-admin-panel-body]', panel).innerHTML = tabsHtml + getRoleAccessBanner('inspector') + renderVisualTabHTML(element);
+      setTimeout(bindVisualTabEvents, 0);
       return;
     }
     $('[data-admin-panel-body]', panel).innerHTML = tabsHtml + getRoleAccessBanner('inspector') + `
@@ -3383,11 +3423,22 @@
   }
 
   function applyElementStyleJson(el, styleJson) {
-    if (!el || typeof styleJson !== 'object' || !styleJson.styles) return;
-    Object.entries(styleJson.styles).forEach(([prop, val]) => {
-      const safe = sanitizeStyleValue(prop, String(val));
-      if (safe !== null) el.style[prop] = safe;
-    });
+    if (!el || typeof styleJson !== 'object') return;
+    // Legacy format: { styles: { prop: val } }
+    if (styleJson.styles && typeof styleJson.styles === 'object') {
+      Object.entries(styleJson.styles).forEach(([prop, val]) => {
+        const safe = sanitizeStyleValue(prop, String(val));
+        if (safe !== null && safe !== '') el.style[prop] = safe;
+      });
+    }
+    // Phase 16 VD format: { desktop: {}, tablet: {}, mobile: {} }
+    // Apply desktop styles as the base (tablet/mobile require admin breakpoint switching)
+    if (styleJson.desktop && typeof styleJson.desktop === 'object') {
+      Object.entries(styleJson.desktop).forEach(([prop, val]) => {
+        const safe = vdSanitizeStyleValue(prop, String(val));
+        if (safe !== null && safe !== '') el.style[prop] = safe;
+      });
+    }
   }
 
   // Phase 8: safe custom section rendering
@@ -3951,6 +4002,8 @@
       data.forEach(r => {
         if (r.status === 'draft') elementStyleDrafts[r.edit_key] = r.style_json;
         else if (r.status === 'published') elementStylesPublished[r.edit_key] = r.style_json;
+        // Phase 16: hydrate VD style store from breakpoint-format drafts
+        if (r.status === 'draft') vd16HydrateStoreEntry(r.edit_key, r.style_json);
       });
     } catch (e) { logCmsVisualDebug('load-element-styles-error', { error: String(e) }); }
   }
@@ -5528,7 +5581,7 @@
          <div class="gv-admin-row-list">${elementKeys.map(key => {
            const row = elementStyleDrafts[key];
            const stale = isDraftStale(row) ? '<span class="gv-admin-stale-badge">stale</span>' : '';
-           const stylePreview = escapeHtml(JSON.stringify(row?.style_json || '').slice(0, 120));
+           const stylePreview = escapeHtml(JSON.stringify(row || '').slice(0, 180));
            return `<article class="gv-admin-content-row gv-admin-compare-row">
              <div>
                <strong>${escapeHtml(key)}${stale}</strong>
@@ -5663,6 +5716,9 @@
   let vdBatchRaf = null;
   let vdBatchQueue = null;
   let vdScrollBound = false;
+
+  // Phase 16 Visual Panel state
+  let vdVisualDirty = false;
 
   // ── VD: Extended sanitizer ────────────────────────────────────────────────
 
@@ -6079,6 +6135,277 @@
     // Overlay
     updateOverlay: vdScheduleOverlayUpdate
   });
+
+  // ── Phase 16: Visual Properties Panel ────────────────────────────────────
+
+  function vd16HydrateStoreEntry(editKey, styleJson) {
+    if (!editKey || !styleJson || typeof styleJson !== 'object') return;
+    const hasBpFormat = VD_BREAKPOINTS.some(bp => styleJson[bp] && typeof styleJson[bp] === 'object');
+    if (!hasBpFormat) return;
+    if (!vdStyleStore[editKey]) vdStyleStore[editKey] = { desktop: {}, tablet: {}, mobile: {} };
+    VD_BREAKPOINTS.forEach(bp => {
+      if (styleJson[bp] && typeof styleJson[bp] === 'object') {
+        vdStyleStore[editKey][bp] = Object.assign({}, styleJson[bp]);
+      }
+    });
+  }
+
+  function renderVisualTabHTML(el) {
+    if (!el || !window.GV_ADMIN_VISUAL) {
+      return '<p class="gv-admin-empty">Visual Designer Engine not available.</p>';
+    }
+    const vd = window.GV_ADMIN_VISUAL;
+    const editKey = el.dataset.editKey || '';
+    const bp = vdBreakpoint;
+    const storedAll = vdStyleStore[editKey] || {};
+    const bpStyles = storedAll[bp] || {};
+    const canEdit = canAdminEdit();
+    const canSave = !!editKey && canEdit;
+
+    function esc(v) { return escapeHtml(String(v || '')); }
+    function storedVal(prop) { return bpStyles[prop] || ''; }
+
+    function renderControl(prop, cfg) {
+      const v = esc(storedVal(prop));
+      const dis = canEdit ? '' : ' disabled';
+      if (cfg.type === 'select') {
+        const opts = cfg.opts.map(o => `<option value="${escapeHtml(o)}"${storedVal(prop) === o && o !== '' ? ' selected' : ''}>${escapeHtml(o) || '—'}</option>`).join('');
+        return `<select class="gv-vd-ctrl" data-vd-prop="${prop}"${dis}>${opts}</select>`;
+      }
+      if (cfg.type === 'color') {
+        const stored = storedVal(prop);
+        const hex = /^#[0-9a-fA-F]{3,8}$/.test(stored) ? stored : '#000000';
+        return `<div class="gv-vd-color-row"><input type="color" class="gv-vd-swatch" data-vd-swatch="${prop}" value="${esc(hex)}"${dis}><input type="text" class="gv-vd-ctrl" data-vd-prop="${prop}" value="${v}" placeholder="${esc(cfg.placeholder || '#000000')}"${dis}></div>`;
+      }
+      return `<input type="text" class="gv-vd-ctrl" data-vd-prop="${prop}" value="${v}" placeholder="${esc(cfg.placeholder || '')}"${dis}>`;
+    }
+
+    const GROUPS = [
+      { id: 'typography', label: 'Typography', props: [
+        { prop: 'color',           label: 'Color',          type: 'color' },
+        { prop: 'fontSize',        label: 'Font Size',      type: 'text',   placeholder: '16px' },
+        { prop: 'fontWeight',      label: 'Weight',         type: 'select', opts: ['','100','200','300','400','500','600','700','800','900','normal','bold'] },
+        { prop: 'lineHeight',      label: 'Line Height',    type: 'text',   placeholder: '1.5' },
+        { prop: 'letterSpacing',   label: 'Letter Spacing', type: 'text',   placeholder: '0' },
+        { prop: 'textAlign',       label: 'Align',          type: 'select', opts: ['','left','center','right','justify'] },
+        { prop: 'textTransform',   label: 'Transform',      type: 'select', opts: ['','none','uppercase','lowercase','capitalize'] },
+        { prop: 'textDecoration',  label: 'Decoration',     type: 'select', opts: ['','none','underline','overline','line-through'] },
+      ]},
+      { id: 'spacing', label: 'Spacing', props: [
+        { prop: 'marginTop',       label: 'Margin Top',     type: 'text', placeholder: '0' },
+        { prop: 'marginRight',     label: 'Margin Right',   type: 'text', placeholder: '0' },
+        { prop: 'marginBottom',    label: 'Margin Bottom',  type: 'text', placeholder: '0' },
+        { prop: 'marginLeft',      label: 'Margin Left',    type: 'text', placeholder: '0' },
+        { prop: 'paddingTop',      label: 'Padding Top',    type: 'text', placeholder: '0' },
+        { prop: 'paddingRight',    label: 'Padding Right',  type: 'text', placeholder: '0' },
+        { prop: 'paddingBottom',   label: 'Padding Bottom', type: 'text', placeholder: '0' },
+        { prop: 'paddingLeft',     label: 'Padding Left',   type: 'text', placeholder: '0' },
+        { prop: 'gap',             label: 'Gap',            type: 'text', placeholder: '0' },
+      ]},
+      { id: 'layout', label: 'Layout', props: [
+        { prop: 'display',         label: 'Display',        type: 'select', opts: ['','block','inline','inline-block','flex','inline-flex','grid','inline-grid','none'] },
+        { prop: 'flexDirection',   label: 'Flex Dir',       type: 'select', opts: ['','row','row-reverse','column','column-reverse'] },
+        { prop: 'flexWrap',        label: 'Flex Wrap',      type: 'select', opts: ['','nowrap','wrap','wrap-reverse'] },
+        { prop: 'justifyContent',  label: 'Justify',        type: 'select', opts: ['','flex-start','flex-end','center','space-between','space-around','space-evenly'] },
+        { prop: 'alignItems',      label: 'Align Items',    type: 'select', opts: ['','flex-start','flex-end','center','baseline','stretch'] },
+        { prop: 'alignSelf',       label: 'Align Self',     type: 'select', opts: ['','auto','flex-start','flex-end','center','baseline','stretch'] },
+        { prop: 'overflow',        label: 'Overflow',       type: 'select', opts: ['','visible','hidden','scroll','auto','clip'] },
+      ]},
+      { id: 'size', label: 'Size', props: [
+        { prop: 'width',           label: 'Width',          type: 'text', placeholder: 'auto' },
+        { prop: 'height',          label: 'Height',         type: 'text', placeholder: 'auto' },
+        { prop: 'minWidth',        label: 'Min Width',      type: 'text', placeholder: '0' },
+        { prop: 'maxWidth',        label: 'Max Width',      type: 'text', placeholder: 'none' },
+        { prop: 'minHeight',       label: 'Min Height',     type: 'text', placeholder: '0' },
+        { prop: 'maxHeight',       label: 'Max Height',     type: 'text', placeholder: 'none' },
+      ]},
+      { id: 'border', label: 'Border', props: [
+        { prop: 'borderWidth',     label: 'Width',          type: 'text', placeholder: '0' },
+        { prop: 'borderStyle',     label: 'Style',          type: 'select', opts: ['','none','solid','dashed','dotted','double'] },
+        { prop: 'borderColor',     label: 'Color',          type: 'color' },
+        { prop: 'borderRadius',    label: 'Radius',         type: 'text', placeholder: '0' },
+      ]},
+      { id: 'effects', label: 'Effects', props: [
+        { prop: 'backgroundColor', label: 'Background',     type: 'color' },
+        { prop: 'opacity',         label: 'Opacity',        type: 'text', placeholder: '1' },
+        { prop: 'boxShadow',       label: 'Box Shadow',     type: 'text', placeholder: 'none' },
+        { prop: 'transform',       label: 'Transform',      type: 'text', placeholder: 'none' },
+        { prop: 'transition',      label: 'Transition',     type: 'text', placeholder: 'none' },
+        { prop: 'zIndex',          label: 'Z-Index',        type: 'text', placeholder: '0' },
+      ]},
+    ];
+
+    const bpBtns = VD_BREAKPOINTS.map(b =>
+      `<button type="button" class="gv-vd-bp-btn${bp === b ? ' is-active' : ''}" data-admin-action="vd-bp-switch" data-vd-bp="${b}" aria-pressed="${bp === b ? 'true' : 'false'}">${b.charAt(0).toUpperCase() + b.slice(1)}</button>`
+    ).join('');
+
+    const hasAnyStyles = VD_BREAKPOINTS.some(b => Object.keys((storedAll[b] || {})).length > 0);
+    const saveBtnLabel = vdVisualDirty ? 'Save Visual Draft*' : 'Save Visual Draft';
+
+    const groups = GROUPS.map(g => {
+      const rows = g.props.map(cfg => `
+        <div class="gv-vd-row">
+          <span class="gv-vd-lbl">${esc(cfg.label)}</span>
+          ${renderControl(cfg.prop, cfg)}
+        </div>
+      `).join('');
+      return `
+        <details class="gv-vd-group" open>
+          <summary class="gv-vd-group-head">${esc(g.label)}</summary>
+          <div class="gv-vd-group-body">${rows}</div>
+        </details>
+      `;
+    }).join('');
+
+    return `
+      <div class="gv-vd-panel">
+        <div class="gv-vd-bp-bar" role="group" aria-label="Breakpoint switcher">${bpBtns}</div>
+        <p class="gv-vd-bp-hint">Editing <strong>${esc(bp)}</strong> styles${editKey ? ` for <code>${esc(editKey)}</code>` : ''}</p>
+        <div class="gv-vd-actions-bar">
+          <button type="button" class="gv-vd-act" data-admin-action="vd-undo" title="Undo (Ctrl+Z)"${!canEdit || !vd.hasUndo ? ' disabled' : ''}>Undo</button>
+          <button type="button" class="gv-vd-act" data-admin-action="vd-redo" title="Redo (Ctrl+Y)"${!canEdit || !vd.hasRedo ? ' disabled' : ''}>Redo</button>
+          <button type="button" class="gv-vd-act" data-admin-action="vd-copy" title="Copy breakpoint styles">Copy</button>
+          <button type="button" class="gv-vd-act" data-admin-action="vd-paste" title="Paste styles"${!canEdit || !vd.hasClipboard ? ' disabled' : ''}>Paste</button>
+          <button type="button" class="gv-vd-act gv-vd-act--warn" data-admin-action="vd-reset" title="Reset all VD styles for this element"${!canEdit || !hasAnyStyles ? ' disabled' : ''}>Reset</button>
+        </div>
+        ${groups}
+        <div class="gv-vd-save-bar">
+          <button type="button" class="gv-admin-action gv-admin-action--mint" data-admin-action="vd-save"${!canSave ? ' disabled' : ''}>${escapeHtml(saveBtnLabel)}</button>
+          ${!editKey ? '<span class="gv-vd-save-note">No edit key — live preview only, cannot persist.</span>' : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  function bindVisualTabEvents() {
+    const panelBody = $('[data-admin-panel-body]', panel);
+    if (!panelBody || !window.GV_ADMIN_VISUAL) return;
+
+    function markDirty() {
+      vdVisualDirty = true;
+      const saveBtn = panelBody.querySelector('[data-admin-action="vd-save"]');
+      if (saveBtn && !saveBtn.textContent.includes('*')) saveBtn.textContent = 'Save Visual Draft*';
+    }
+
+    // Text / select controls
+    panelBody.querySelectorAll('.gv-vd-ctrl[data-vd-prop]').forEach(input => {
+      input.addEventListener('input', function () {
+        if (!selectedElement || !canAdminEdit()) return;
+        const prop = this.dataset.vdProp;
+        if (!prop) return;
+        if (window.GV_ADMIN_VISUAL.writeStyle(selectedElement, prop, this.value, vdBreakpoint) !== false) {
+          markDirty();
+          // Sync color swatch if this is a color text input
+          const swatch = panelBody.querySelector(`.gv-vd-swatch[data-vd-swatch="${prop}"]`);
+          if (swatch && /^#[0-9a-fA-F]{3,8}$/.test(this.value)) swatch.value = this.value;
+        }
+      });
+    });
+
+    // Color swatches
+    panelBody.querySelectorAll('.gv-vd-swatch[data-vd-swatch]').forEach(swatch => {
+      swatch.addEventListener('input', function () {
+        if (!selectedElement || !canAdminEdit()) return;
+        const prop = this.dataset.vdSwatch;
+        if (!prop) return;
+        // Sync hex text input
+        const hexInput = panelBody.querySelector(`.gv-vd-ctrl[data-vd-prop="${prop}"]`);
+        if (hexInput) hexInput.value = this.value;
+        if (window.GV_ADMIN_VISUAL.writeStyle(selectedElement, prop, this.value, vdBreakpoint) !== false) {
+          markDirty();
+        }
+      });
+    });
+  }
+
+  async function saveVisualStyleDraft(el) {
+    if (!el || !canAdminEdit()) return;
+    const editKey = el.dataset.editKey || '';
+    if (!editKey) {
+      statusMessage = 'Cannot save: element has no edit key.';
+      updateTopbar();
+      return;
+    }
+
+    // Compose breakpoint-aware style_json; preserve legacy styles key if present
+    const store = vdStyleStore[editKey] || {};
+    const existing = elementStyleDrafts[editKey] || elementStylesPublished[editKey];
+    const merged = Object.assign(
+      existing && existing.styles ? { styles: existing.styles } : {},
+      {
+        desktop: Object.assign({}, store.desktop || {}),
+        tablet:  Object.assign({}, store.tablet  || {}),
+        mobile:  Object.assign({}, store.mobile  || {}),
+      }
+    );
+
+    const saveBtn = $('[data-admin-action="vd-save"]', $('[data-admin-panel-body]', panel));
+    if (saveBtn) saveBtn.textContent = 'Saving...';
+
+    if (isMockAdminSession()) {
+      elementStyleDrafts[editKey] = merged;
+      vdVisualDirty = false;
+      statusMessage = 'Visual styles saved (mock session).';
+      updateTopbar();
+      if (selectedElement === el && inspectorTab === 'visual') renderInspector(el);
+      return;
+    }
+
+    const error = await saveElementStyleDraftData(editKey, merged);
+    vdVisualDirty = false;
+    statusMessage = error ? 'Failed to save visual styles.' : 'Visual styles saved.';
+    updateTopbar();
+    if (selectedElement === el && inspectorTab === 'visual') renderInspector(el);
+  }
+
+  async function resetVisualStyleDraft(el) {
+    if (!el || !canAdminEdit()) return;
+    if (!window.confirm('Reset all Visual Designer styles for this element? Legacy Style tab overrides are preserved.')) return;
+    const editKey = el.dataset.editKey || '';
+
+    // Collect all VD-managed props so we can remove them from inline style
+    const store = vdStyleStore[editKey] || {};
+    const allVdProps = new Set();
+    VD_BREAKPOINTS.forEach(b => Object.keys(store[b] || {}).forEach(p => allVdProps.add(p)));
+
+    // Remove VD styles from DOM
+    allVdProps.forEach(p => el.style.removeProperty(p.replace(/([A-Z])/g, '-$1').toLowerCase()));
+
+    // Re-apply legacy styles if any (preserves old Style-tab overrides)
+    const draft = elementStyleDrafts[editKey];
+    const pub = elementStylesPublished[editKey];
+    const legacyStyles = (draft && draft.styles) || (pub && pub.styles);
+    if (legacyStyles) {
+      Object.entries(legacyStyles).forEach(([p, v]) => {
+        const safe = sanitizeStyleValue(p, String(v));
+        if (safe !== null) el.style[p] = safe;
+      });
+    }
+
+    // Clear in-memory VD store
+    vdStyleStore[editKey] = { desktop: {}, tablet: {}, mobile: {} };
+    vdVisualDirty = false;
+
+    if (isMockAdminSession()) {
+      if (legacyStyles) elementStyleDrafts[editKey] = { styles: legacyStyles };
+      else delete elementStyleDrafts[editKey];
+    } else if (supabaseClient && currentUser && editKey) {
+      if (legacyStyles) {
+        const merged = { styles: legacyStyles, desktop: {}, tablet: {}, mobile: {} };
+        await saveElementStyleDraftData(editKey, merged);
+      } else if (draft) {
+        await supabaseClient.from('cms_element_styles').delete()
+          .eq('page_path', pagePath)
+          .eq('edit_key', editKey)
+          .eq('status', 'draft');
+        delete elementStyleDrafts[editKey];
+      }
+    }
+
+    statusMessage = 'Visual styles reset.';
+    updateTopbar();
+    if (selectedElement === el && inspectorTab === 'visual') renderInspector(el);
+  }
 
   async function boot() {
     ensureEntryButtonsAreSafe();
