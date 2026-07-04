@@ -1,0 +1,68 @@
+-- Phase 17: Responsive Style Runtime + Public CSS Publisher — Schema Documentation
+-- ─────────────────────────────────────────────────────────────────────────────
+-- THIS FILE IS DOCUMENTATION-ONLY. No schema changes are required.
+-- Do NOT run this file in the Supabase SQL Editor.
+--
+-- Phase 17 adds responsive CSS injection at runtime using the existing
+-- cms_element_styles table from Phase 7. No new table, column, or RLS change
+-- was needed.
+
+-- ── What Phase 17 does at the database layer ────────────────────────────────
+--
+-- 1. Reads published rows from cms_element_styles (same SELECT as before).
+-- 2. For each row whose style_json contains breakpoint keys
+--    ("desktop" / "tablet" / "mobile"), generates CSS rules and injects them
+--    into a managed <style id="gv-cms-published-element-styles"> tag in <head>.
+-- 3. For legacy rows that only contain the "styles" key, the existing inline-
+--    style application path is preserved (backward compatible).
+-- 4. Admin mode additionally injects a <style id="gv-cms-draft-element-styles">
+--    tag whose content is regenerated whenever element style drafts change.
+--
+-- This is entirely a client-side runtime concern. The server stores plain JSONB
+-- and the browser generates the CSS at page load time.
+
+-- ── Breakpoint strategy ──────────────────────────────────────────────────────
+--
+-- Desktop  — base styles, no @media wrapper
+-- Tablet   — @media (max-width:991px)
+-- Mobile   — @media (max-width:767px)
+--
+-- These match the GROWVA site's existing responsive breakpoints.
+
+-- ── CSS selector strategy ────────────────────────────────────────────────────
+--
+-- Selector: [data-edit-key="<escaped-key>"]
+--
+-- Example for edit_key = "hero.cta.button":
+--   [data-edit-key="hero.cta.button"] { font-size:18px; color:#fff }
+--   @media (max-width:991px) {
+--     [data-edit-key="hero.cta.button"] { font-size:16px }
+--   }
+--   @media (max-width:767px) {
+--     [data-edit-key="hero.cta.button"] { font-size:14px }
+--   }
+--
+-- CSS attribute selectors have specificity [0,1,0,0] — lower than inline styles
+-- (which the admin VD panel writes), so admin live-preview always wins.
+
+-- ── Security ─────────────────────────────────────────────────────────────────
+--
+-- All CSS property values are routed through vdSanitizeStyleValue() before
+-- being written to the generated <style> tag. This function:
+--   - Checks VD_ALLOWED_STYLE_PROPS allowlist (rejects unknown properties)
+--   - Uses per-property validators (allowlist sets, strict regex patterns)
+--   - Returns null on failure (property is omitted from CSS output)
+--   - Cannot emit url(), expression(), javascript:, @import, or other vectors
+-- CSS selector values (edit_key) are escaped: " → \" and \ → \\ before use.
+-- No raw user CSS is accepted at any point.
+
+-- ── RLS unchanged ───────────────────────────────────────────────────────────
+--
+-- Public reads only published rows. Admin reads all statuses.
+-- Draft CSS is only injected in admin mode (checked via document.body.classList).
+-- exitAdminMode() calls vd17RemoveDraftCSS() — draft CSS is removed from the
+-- DOM before admin session ends, so public visitors never see draft styles.
+
+-- ── No SQL action required ───────────────────────────────────────────────────
+-- Run supabase/phase-7-visual-controls.sql in a fresh environment first.
+-- Phase 16 and Phase 17 work without any additional SQL.

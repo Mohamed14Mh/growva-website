@@ -1567,6 +1567,8 @@
     setAdminInteractionIsolation(false);
     editorSafeMode = true;
     mode = 'preview';
+    // Phase 17: remove draft CSS so logged-out visitors never see draft styles
+    vd17RemoveDraftCSS();
     refreshScrollLayout();
   }
 
@@ -3407,9 +3409,16 @@
       elementStylesPublished = {};
       data.forEach(r => {
         elementStylesPublished[r.edit_key] = r.style_json;
-        const el = $(`[data-edit-key="${r.edit_key}"]`);
-        if (el && r.style_json) applyElementStyleJson(el, r.style_json);
+        // Phase 17: VD breakpoint rows are handled via CSS injection (see below).
+        // Legacy-only rows (no breakpoint keys) still use inline application for
+        // backward compatibility and single-breakpoint correctness.
+        if (r.style_json && !vd17HasBreakpointFormat(r.style_json)) {
+          const el = $(`[data-edit-key="${r.edit_key}"]`);
+          if (el) applyElementStyleJson(el, r.style_json);
+        }
       });
+      // Phase 17: inject responsive CSS rules for VD-format published rows
+      vd17InjectPublishedCSS();
       logCmsVisualDebug('element-styles-hydrated', { count: data.length });
     } catch (e) { logCmsVisualDebug('element-styles-hydrate-error', { error: String(e) }); }
   }
@@ -4005,6 +4014,8 @@
         // Phase 16: hydrate VD style store from breakpoint-format drafts
         if (r.status === 'draft') vd16HydrateStoreEntry(r.edit_key, r.style_json);
       });
+      // Phase 17: inject draft CSS for admin (admin-mode check is inside vd17InjectDraftCSS)
+      vd17InjectDraftCSS();
     } catch (e) { logCmsVisualDebug('load-element-styles-error', { error: String(e) }); }
   }
 
@@ -4122,6 +4133,8 @@
     await loadDesignTokens();
     await loadSectionSettings();
     await loadElementStyles();
+    // Phase 17: refresh published CSS now that element styles are published
+    vd17InjectPublishedCSS();
     renderDashboard();
     setTimeout(bindVisualControlEvents, 0);
   }
@@ -5497,8 +5510,11 @@
     document.body.appendChild(bar);
     if (visitorPreviewType === 'draft') {
       applyDraftRows();
+      // Phase 17: draft preview — draft CSS remains visible (published + draft)
     } else {
       applyPublishedTextToDom();
+      // Phase 17: published preview — clear draft CSS so admin sees only published state
+      vd17ClearDraftCSSContent();
     }
     logCmsDebug('enter-visitor-preview', { type: visitorPreviewType });
   }
@@ -5525,6 +5541,8 @@
     const bar = document.getElementById('gv-preview-bar');
     if (bar) bar.remove();
     applyDraftRows();
+    // Phase 17: restore draft CSS after exiting visitor preview
+    vd17InjectDraftCSS();
     refreshScrollLayout();
     logCmsDebug('exit-visitor-preview');
   }
@@ -5580,12 +5598,19 @@
       ? `<h3 class="gv-admin-section-title">Element Styles (${elementKeys.length})</h3>
          <div class="gv-admin-row-list">${elementKeys.map(key => {
            const row = elementStyleDrafts[key];
-           const stale = isDraftStale(row) ? '<span class="gv-admin-stale-badge">stale</span>' : '';
-           const stylePreview = escapeHtml(JSON.stringify(row || '').slice(0, 180));
+           const pub = elementStylesPublished[key];
+           const hasBp = vd17HasBreakpointFormat(row);
+           const deskCount = hasBp ? Object.keys(row.desktop || {}).length : (row && row.styles ? Object.keys(row.styles).length : 0);
+           const tabCount  = hasBp ? Object.keys(row.tablet  || {}).length : 0;
+           const mobCount  = hasBp ? Object.keys(row.mobile  || {}).length : 0;
+           const pubLabel  = pub ? '<span class="gv-admin-stale-badge" style="background:rgba(97,191,255,.25);color:rgba(97,191,255,1)">published</span>' : '<span class="gv-admin-stale-badge">no published</span>';
+           const bpSummary = hasBp
+             ? `Desktop: ${deskCount} prop${deskCount !== 1 ? 's' : ''} &nbsp;|&nbsp; Tablet: ${tabCount} prop${tabCount !== 1 ? 's' : ''} &nbsp;|&nbsp; Mobile: ${mobCount} prop${mobCount !== 1 ? 's' : ''}`
+             : `Legacy flat: ${deskCount} prop${deskCount !== 1 ? 's' : ''}`;
            return `<article class="gv-admin-content-row gv-admin-compare-row">
              <div>
-               <strong>${escapeHtml(key)}${stale}</strong>
-               <div class="gv-admin-diff-value">${stylePreview}</div>
+               <strong>${escapeHtml(key)}</strong> ${pubLabel}
+               <div class="gv-admin-diff-value">${bpSummary}</div>
              </div>
            </article>`;
          }).join('')}</div>`
@@ -6345,6 +6370,7 @@
     if (isMockAdminSession()) {
       elementStyleDrafts[editKey] = merged;
       vdVisualDirty = false;
+      vd17InjectDraftCSS();
       statusMessage = 'Visual styles saved (mock session).';
       updateTopbar();
       if (selectedElement === el && inspectorTab === 'visual') renderInspector(el);
@@ -6353,6 +6379,7 @@
 
     const error = await saveElementStyleDraftData(editKey, merged);
     vdVisualDirty = false;
+    vd17InjectDraftCSS();
     statusMessage = error ? 'Failed to save visual styles.' : 'Visual styles saved.';
     updateTopbar();
     if (selectedElement === el && inspectorTab === 'visual') renderInspector(el);
@@ -6402,9 +6429,104 @@
       }
     }
 
+    vd17InjectDraftCSS();
     statusMessage = 'Visual styles reset.';
     updateTopbar();
     if (selectedElement === el && inspectorTab === 'visual') renderInspector(el);
+  }
+
+  // ── Phase 17: Responsive Style Runtime + Public CSS Publisher ───────────────
+
+  // Breakpoints: desktop = no query, tablet = ≤991px, mobile = ≤767px
+  const VD17_BREAKPOINTS = {
+    desktop: null,
+    tablet:  '(max-width:991px)',
+    mobile:  '(max-width:767px)'
+  };
+
+  function vd17HasBreakpointFormat(styleJson) {
+    if (!styleJson || typeof styleJson !== 'object') return false;
+    return ['desktop', 'tablet', 'mobile'].some(bp => styleJson[bp] && typeof styleJson[bp] === 'object');
+  }
+
+  function vd17EscapeSelector(str) {
+    // Safe for CSS attribute selector value — escape backslash and double-quote only
+    return String(str).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  }
+
+  function vd17BuildDeclarations(styles) {
+    if (!styles || typeof styles !== 'object') return '';
+    const decls = [];
+    Object.entries(styles).forEach(([prop, val]) => {
+      const safe = vdSanitizeStyleValue(prop, String(val));
+      if (safe !== null && safe !== '') {
+        const cssProp = prop.replace(/([A-Z])/g, '-$1').toLowerCase();
+        decls.push(`${cssProp}:${safe}`);
+      }
+    });
+    return decls.join(';');
+  }
+
+  function vd17BuildElementCSS(stylesMap) {
+    if (!stylesMap || typeof stylesMap !== 'object') return '';
+    const byBreakpoint = { desktop: [], tablet: [], mobile: [] };
+
+    Object.entries(stylesMap).forEach(([editKey, styleJson]) => {
+      if (!styleJson || typeof styleJson !== 'object') return;
+      if (!vd17HasBreakpointFormat(styleJson)) return; // legacy rows handled inline
+      const sel = vd17EscapeSelector(editKey);
+
+      // Desktop base: merge legacy "styles" key (foundation) with VD desktop (override)
+      const baseStyles = Object.assign({}, styleJson.styles || {}, styleJson.desktop || {});
+      const deskDecls = vd17BuildDeclarations(baseStyles);
+      if (deskDecls) byBreakpoint.desktop.push(`[data-edit-key="${sel}"]{${deskDecls}}`);
+
+      // Tablet override
+      const tabDecls = vd17BuildDeclarations(styleJson.tablet || {});
+      if (tabDecls) byBreakpoint.tablet.push(`[data-edit-key="${sel}"]{${tabDecls}}`);
+
+      // Mobile override
+      const mobDecls = vd17BuildDeclarations(styleJson.mobile || {});
+      if (mobDecls) byBreakpoint.mobile.push(`[data-edit-key="${sel}"]{${mobDecls}}`);
+    });
+
+    let css = '';
+    if (byBreakpoint.desktop.length) css += byBreakpoint.desktop.join('\n') + '\n';
+    if (byBreakpoint.tablet.length)  css += `@media ${VD17_BREAKPOINTS.tablet}{\n${byBreakpoint.tablet.join('\n')}\n}\n`;
+    if (byBreakpoint.mobile.length)  css += `@media ${VD17_BREAKPOINTS.mobile}{\n${byBreakpoint.mobile.join('\n')}\n}\n`;
+    return css;
+  }
+
+  function vd17GetOrCreateStyleTag(id) {
+    let tag = document.getElementById(id);
+    if (!tag) {
+      tag = document.createElement('style');
+      tag.id = id;
+      tag.dataset.gvPhase = '17';
+      document.head.appendChild(tag);
+    }
+    return tag;
+  }
+
+  function vd17InjectPublishedCSS() {
+    const tag = vd17GetOrCreateStyleTag('gv-cms-published-element-styles');
+    tag.textContent = vd17BuildElementCSS(elementStylesPublished);
+  }
+
+  function vd17InjectDraftCSS() {
+    if (!document.body.classList.contains('admin-mode')) return;
+    const tag = vd17GetOrCreateStyleTag('gv-cms-draft-element-styles');
+    tag.textContent = vd17BuildElementCSS(elementStyleDrafts);
+  }
+
+  function vd17RemoveDraftCSS() {
+    const tag = document.getElementById('gv-cms-draft-element-styles');
+    if (tag) tag.remove();
+  }
+
+  function vd17ClearDraftCSSContent() {
+    const tag = document.getElementById('gv-cms-draft-element-styles');
+    if (tag) tag.textContent = '';
   }
 
   async function boot() {
