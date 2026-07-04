@@ -1810,3 +1810,79 @@ body.admin-visitor-preview .gv-admin-edit-outline {
   background: #7a1414;
   color: #fff;
 }
+
+/* ── Phase 14: Visual Designer Engine overlay ──────────────────────────────── */
+
+.gv-vd-overlay {
+  display: none;
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10090;
+}
+.gv-vd-overlay.is-active {
+  display: block;
+}
+
+/* Box model layers — DevTools-style colour palette */
+.gv-vd-layer {
+  position: fixed;
+  box-sizing: border-box;
+}
+
+/* Margin — amber tint */
+.gv-vd-margin {
+  background: rgba(246, 178, 60, 0.12);
+  outline: 1px dashed rgba(246, 178, 60, 0.50);
+}
+
+/* Border box — the element's own border-box */
+.gv-vd-border {
+  background: transparent;
+  outline: 1.5px solid rgba(97, 191, 255, 0.80);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.40);
+}
+
+/* Padding — green tint */
+.gv-vd-padding {
+  background: rgba(110, 212, 140, 0.14);
+  outline: 1px dashed rgba(110, 212, 140, 0.45);
+}
+
+/* Content — blue tint */
+.gv-vd-content {
+  background: rgba(97, 151, 255, 0.10);
+}
+
+/* Element label */
+.gv-vd-label {
+  position: fixed;
+  font: 500 10px/1 'JetBrains Mono', 'Courier New', monospace;
+  color: #fff;
+  background: rgba(97, 191, 255, 0.90);
+  border-radius: 3px;
+  padding: 2px 5px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10091;
+  letter-spacing: 0;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Box model readout */
+.gv-vd-boxmodel {
+  position: fixed;
+  font: 400 10px/1.4 'JetBrains Mono', 'Courier New', monospace;
+  color: rgba(246,246,246,0.88);
+  background: rgba(8,8,8,0.82);
+  border: 1px solid rgba(246,246,246,0.12);
+  border-radius: 4px;
+  padding: 4px 7px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10091;
+  letter-spacing: 0;
+  backdrop-filter: blur(4px);
+}
