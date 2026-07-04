@@ -327,6 +327,14 @@
               <input type="text" id="timeline" name="timeline" placeholder="e.g. As soon as possible, Q3 2025, etc.">
             </div>
 
+            <!-- Honeypot anti-spam: hidden from real users, visible to bots -->
+            <div class="gv-form-hp" aria-hidden="true">
+              <label for="hp_website">Website URL</label>
+              <input type="text" id="hp_website" name="hp_website" tabindex="-1" autocomplete="off" value="">
+            </div>
+
+            <div id="formStatus" role="status" aria-live="polite" class="contact-form-status" style="display:none;"></div>
+
             <button type="submit" class="btn btn-primary" data-hover style="align-self:flex-start;padding:20px 44px;" data-edit-key="contact.section_3.button.send_inquiry" data-edit-type="button" data-page-id="contact" data-section-id="contact.section_3">
               <span>Send Inquiry →</span>
             </button>

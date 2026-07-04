@@ -498,16 +498,114 @@ document.addEventListener('DOMContentLoaded', () => {
     sections.forEach(s => sectionIO.observe(s));
   }
 
-  /* ---------- Contact form ---------- */
-  const contactForm = document.getElementById('contactForm');
-  if (contactForm) {
-    contactForm.addEventListener('submit', e => {
-      e.preventDefault();
+  /* ---------- Contact form — Phase 19 lead capture ---------- */
+  (function initContactForm() {
+    const contactForm = document.getElementById('contactForm');
+    if (!contactForm) return;
+
+    const gvFormPageLoadTime = Date.now();
+    const statusEl = document.getElementById('formStatus');
+    const submitBtn = contactForm.querySelector('[type="submit"]');
+    let gvSubmitLocked = false;
+
+    function showFormStatus(msg, type) {
+      if (!statusEl) return;
+      statusEl.textContent = msg;
+      statusEl.className = 'contact-form-status contact-form-status--' + type;
+      statusEl.style.display = '';
+    }
+    function hideFormStatus() {
+      if (!statusEl) return;
+      statusEl.style.display = 'none';
+    }
+    function setSubmitLoading(loading) {
+      if (!submitBtn) return;
+      const span = submitBtn.querySelector('span');
+      submitBtn.disabled = loading;
+      if (span) span.textContent = loading ? 'Sending…' : 'Send Inquiry →';
+    }
+
+    function validateLeadData(d) {
+      if (!d.name || d.name.length < 2) return 'Please enter your full name.';
+      if (!d.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) return 'Please enter a valid email address.';
+      if (!d.project_type) return 'Please select a project type.';
+      if (!d.message || d.message.length < 10) return 'Please tell us about your project (at least 10 characters).';
+      if (d.message.length > 4000) return 'Message is too long — please keep it under 4000 characters.';
+      return null;
+    }
+
+    function showFormSuccess() {
       contactForm.style.display = 'none';
       const success = document.getElementById('formSuccess');
       if (success) success.classList.add('show');
+    }
+
+    contactForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (gvSubmitLocked) return;
+      hideFormStatus();
+
+      // Honeypot: if filled, silently appear to succeed (bot protection)
+      const hpField = contactForm.querySelector('[name="hp_website"]');
+      if (hpField && hpField.value.trim() !== '') { showFormSuccess(); return; }
+      // Timing: submitted in under 2s = likely bot
+      if (Date.now() - gvFormPageLoadTime < 2000) { showFormSuccess(); return; }
+
+      const fd = new FormData(contactForm);
+      const firstName = (fd.get('first_name') || '').trim();
+      const lastName  = (fd.get('last_name')  || '').trim();
+      const name      = [firstName, lastName].filter(Boolean).join(' ');
+      const email     = (fd.get('email')    || '').trim();
+      const company   = (fd.get('company')  || '').trim();
+      const projectType = (fd.get('service') || '').trim();
+      const budget    = (fd.get('budget')   || '').trim();
+      let   message   = (fd.get('message')  || '').trim();
+      const timeline  = (fd.get('timeline') || '').trim();
+      if (timeline) message += '\n\nIdeal start date: ' + timeline;
+
+      const leadData = { name, email, company, project_type: projectType, budget, message };
+      const validationError = validateLeadData(leadData);
+      if (validationError) { showFormStatus(validationError, 'error'); return; }
+
+      gvSubmitLocked = true;
+      setSubmitLoading(true);
+      showFormStatus('Sending your message…', 'loading');
+
+      try {
+        const cfg = window.GROWVA_SUPABASE_CONFIG;
+        if (cfg && cfg.url && cfg.anonKey && window.supabase) {
+          const client = window.supabase.createClient(cfg.url, cfg.anonKey);
+          const { error } = await client.from('cms_contact_submissions').insert([{
+            name,
+            email,
+            company:      company      || null,
+            project_type: projectType  || null,
+            budget:       budget       || null,
+            message,
+            page_path:    window.location.pathname || '/contact.html',
+            source:       'contact_form',
+            user_agent:   navigator.userAgent ? navigator.userAgent.slice(0, 400) : null,
+          }]);
+          if (error) throw new Error(error.message || 'Submission failed');
+        } else {
+          // Supabase not configured — form submission cannot be stored
+          // Surface a friendly error instead of silently succeeding
+          throw new Error('Form service not available');
+        }
+        showFormSuccess();
+      } catch (err) {
+        gvSubmitLocked = false;
+        setSubmitLoading(false);
+        const isServiceErr = (err.message || '').includes('not available');
+        showFormStatus(
+          isServiceErr
+            ? 'Form service is currently unavailable. Please email us directly at hello@growva.com.'
+            : 'Something went wrong — please try again or email us at hello@growva.com.',
+          'error'
+        );
+      }
     });
-  }
+  })();
 
   /* ---------- Work filter ---------- */
   (function initWorkFilter() {

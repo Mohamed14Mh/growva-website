@@ -920,6 +920,10 @@
     if (dashboardTab === 'visual') setTimeout(bindVisualControlEvents, 0);
     if (dashboardTab === 'sections') setTimeout(bindSectionManagerEvents, 0);
     if (dashboardTab === 'builder') setTimeout(bindSectionBuilderEvents, 0);
+    // Phase 19: load leads on first open of Leads tab
+    if (dashboardTab === 'leads' && leadsData.length === 0 && !leadsLoading) {
+      loadLeads().then(() => renderDashboard());
+    }
   }
 
   async function refreshDashboardData() {
@@ -982,7 +986,8 @@
       ['media', 'Media Library'],
       ['visual', 'Visual Control'],
       ['sections', 'Section Manager'],
-      ['builder', 'Section Builder']
+      ['builder', 'Section Builder'],
+      ['leads', 'Leads'],
     ];
     $('[data-dashboard-tabs]', dashboard).innerHTML = tabs.map(([id, label]) => `
       <button type="button" role="tab" aria-selected="${dashboardTab === id ? 'true' : 'false'}" class="${dashboardTab === id ? 'is-active' : ''}" data-admin-action="dashboard-tab" data-dashboard-tab="${id}">${escapeHtml(label)}</button>
@@ -1004,6 +1009,7 @@
     if (dashboardTab === 'visual') return renderVisualControlTab();
     if (dashboardTab === 'sections') return renderSectionManagerTab();
     if (dashboardTab === 'builder') return renderSectionBuilderTab();
+    if (dashboardTab === 'leads') return renderLeadsTab();
     return renderOverviewTab();
   }
 
@@ -1022,6 +1028,7 @@
         ${renderMetricCard('Last publish', formatDate(lastPublish))}
         ${renderMetricCard('Supabase', getConnectionLabel())}
         ${renderMetricCard('Unsafe key', supabaseState.unsafeKey ? 'Yes' : 'No')}
+        ${renderMetricCard('Leads (new)', leadsData.filter(l => l.status === 'new' && !l.is_archived).length)}
       </div>
       ${staleCount > 0 ? `<div class="gv-admin-stale-warning">⚠ ${staleCount} draft(s) are older than 7 days. Review carefully before publishing. <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="dashboard-tab" data-dashboard-tab="compare">View Draft Compare</button></div>` : ''}
       ${isLocalFileMode() ? '<div class="gv-admin-warning">For best CMS behavior, use Live Server or a deployed URL.</div>' : ''}
@@ -1497,6 +1504,22 @@
     if (action === 'vd-save') {
       if (selectedElement && canAdminEdit()) saveVisualStyleDraft(selectedElement);
     }
+    // Phase 19: Leads tab actions
+    if (action === 'leads-refresh') { loadLeads().then(() => renderDashboard()); }
+    if (action === 'leads-filter') {
+      leadsFilter = actionElement.dataset.leadsFilter || 'all';
+      renderDashboard();
+    }
+    if (action === 'lead-expand') {
+      const lid = actionElement.dataset.leadId;
+      leadsExpanded = leadsExpanded === lid ? null : lid;
+      renderDashboard();
+    }
+    if (action === 'lead-mark-read')   updateLeadStatus(actionElement.dataset.leadId, 'read');
+    if (action === 'lead-mark-new')    updateLeadStatus(actionElement.dataset.leadId, 'new');
+    if (action === 'lead-archive')     updateLeadArchived(actionElement.dataset.leadId, true);
+    if (action === 'lead-unarchive')   updateLeadArchived(actionElement.dataset.leadId, false);
+
     // Phase 18: Responsive preview frame
     if (action === 'vd18-resp-preview') {
       const vd18Bp = actionElement.dataset.vd18Bp;
@@ -5797,6 +5820,11 @@
   // Phase 16 Visual Panel state
   let vdVisualDirty = false;
   let vd18ResponsivePreview = 'none'; // Phase 18: 'none' | 'tablet' | 'mobile'
+  // Phase 19: Contact Leads
+  let leadsData = [];
+  let leadsLoading = false;
+  let leadsExpanded = null;
+  let leadsFilter = 'all'; // 'all' | 'new' | 'read' | 'archived'
 
   // ── VD: Extended sanitizer ────────────────────────────────────────────────
 
@@ -6623,6 +6651,156 @@
   function vd17ClearDraftCSSContent() {
     const tag = document.getElementById('gv-cms-draft-element-styles');
     if (tag) tag.textContent = '';
+  }
+
+  // ── Phase 19: Contact Form Lead Capture ──────────────────────────────────────
+
+  async function loadLeads() {
+    if (!supabaseClient || !currentUser || !adminProfile) return;
+    leadsLoading = true;
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_contact_submissions')
+        .select('id,name,email,company,project_type,budget,message,page_path,source,status,is_archived,user_agent,created_at')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      leadsData = (!error && Array.isArray(data)) ? data : [];
+    } catch (e) {
+      leadsData = [];
+    }
+    leadsLoading = false;
+  }
+
+  async function updateLeadStatus(id, status) {
+    if (!id || !canAdminEdit()) return;
+    if (!supabaseClient || !currentUser) return;
+    const row = leadsData.find(l => l.id === id);
+    if (row) row.status = status; // optimistic update
+    renderDashboard();
+    try {
+      await supabaseClient
+        .from('cms_contact_submissions')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', id);
+    } catch (e) {
+      // revert on error
+      if (row) row.status = status === 'read' ? 'new' : 'read';
+      renderDashboard();
+    }
+  }
+
+  async function updateLeadArchived(id, isArchived) {
+    if (!id || !canAdminEdit()) return;
+    if (!supabaseClient || !currentUser) return;
+    const row = leadsData.find(l => l.id === id);
+    if (row) row.is_archived = isArchived; // optimistic update
+    renderDashboard();
+    try {
+      await supabaseClient
+        .from('cms_contact_submissions')
+        .update({ is_archived: isArchived, updated_at: new Date().toISOString() })
+        .eq('id', id);
+    } catch (e) {
+      if (row) row.is_archived = !isArchived;
+      renderDashboard();
+    }
+  }
+
+  function renderLeadsTab() {
+    const canEdit = canAdminEdit();
+
+    if (leadsLoading) {
+      return '<p class="gv-admin-empty">Loading leads…</p>';
+    }
+
+    // Filter options
+    const allCount      = leadsData.filter(l => !l.is_archived).length;
+    const newCount      = leadsData.filter(l => l.status === 'new' && !l.is_archived).length;
+    const readCount     = leadsData.filter(l => l.status === 'read' && !l.is_archived).length;
+    const archivedCount = leadsData.filter(l => l.is_archived).length;
+
+    const filters = [
+      ['all',      `All Active (${allCount})`],
+      ['new',      `New (${newCount})`],
+      ['read',     `Read (${readCount})`],
+      ['archived', `Archived (${archivedCount})`],
+    ];
+    const filterBar = `
+      <div class="gv-leads-filterbar">
+        ${filters.map(([f, label]) =>
+          `<button type="button" class="gv-admin-action gv-admin-action--sm${leadsFilter === f ? ' is-active' : ''}" data-admin-action="leads-filter" data-leads-filter="${f}">${escapeHtml(label)}</button>`
+        ).join('')}
+        <button type="button" class="gv-admin-action gv-admin-action--sm" style="margin-left:auto;" data-admin-action="leads-refresh">↻ Refresh</button>
+      </div>`;
+
+    // Apply filter
+    let visible = leadsData;
+    if (leadsFilter === 'archived') {
+      visible = leadsData.filter(l => l.is_archived);
+    } else if (leadsFilter === 'new') {
+      visible = leadsData.filter(l => l.status === 'new' && !l.is_archived);
+    } else if (leadsFilter === 'read') {
+      visible = leadsData.filter(l => l.status === 'read' && !l.is_archived);
+    } else {
+      visible = leadsData.filter(l => !l.is_archived);
+    }
+
+    if (!visible.length) {
+      const emptyMsg = leadsData.length === 0
+        ? 'No leads yet. Form submissions will appear here.'
+        : 'No leads match the current filter.';
+      return filterBar + `<p class="gv-admin-empty">${escapeHtml(emptyMsg)}</p>`;
+    }
+
+    const rows = visible.map(lead => {
+      const isExpanded = leadsExpanded === lead.id;
+      const statusBadge = lead.status === 'new'
+        ? '<span class="gv-lead-badge gv-lead-badge--new">new</span>'
+        : '<span class="gv-lead-badge gv-lead-badge--read">read</span>';
+      const msgPreview = escapeHtml((lead.message || '').slice(0, 120));
+      const createdDate = lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '';
+
+      const actions = canEdit ? `
+        <div class="gv-lead-actions">
+          ${lead.status !== 'read' ? `<button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="lead-mark-read" data-lead-id="${escapeHtml(lead.id)}">Mark Read</button>` : ''}
+          ${lead.status !== 'new'  ? `<button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="lead-mark-new"  data-lead-id="${escapeHtml(lead.id)}">Mark New</button>` : ''}
+          ${!lead.is_archived ? `<button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--warn" data-admin-action="lead-archive"   data-lead-id="${escapeHtml(lead.id)}">Archive</button>` : ''}
+          ${lead.is_archived  ? `<button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="lead-unarchive" data-lead-id="${escapeHtml(lead.id)}">Unarchive</button>` : ''}
+        </div>` : '';
+
+      const detail = isExpanded ? `
+        <div class="gv-lead-detail">
+          <div class="gv-lead-detail-grid">
+            ${lead.company     ? `<div><span class="gv-admin-diff-label">Company</span> ${escapeHtml(lead.company)}</div>` : ''}
+            ${lead.project_type? `<div><span class="gv-admin-diff-label">Project</span> ${escapeHtml(lead.project_type)}</div>` : ''}
+            ${lead.budget      ? `<div><span class="gv-admin-diff-label">Budget</span>  ${escapeHtml(lead.budget)}</div>` : ''}
+            ${lead.page_path   ? `<div><span class="gv-admin-diff-label">Page</span>    ${escapeHtml(lead.page_path)}</div>` : ''}
+            ${lead.source      ? `<div><span class="gv-admin-diff-label">Source</span>  ${escapeHtml(lead.source)}</div>` : ''}
+            ${lead.created_at  ? `<div><span class="gv-admin-diff-label">Received</span> ${escapeHtml(new Date(lead.created_at).toLocaleString())}</div>` : ''}
+          </div>
+          <div class="gv-lead-message">${escapeHtml(lead.message || '')}</div>
+          ${lead.user_agent ? `<div class="gv-lead-ua">${escapeHtml((lead.user_agent || '').slice(0, 120))}</div>` : ''}
+          ${actions}
+        </div>` : actions;
+
+      return `
+        <article class="gv-admin-content-row gv-lead-row${lead.status === 'new' && !lead.is_archived ? ' gv-lead-row--new' : ''}">
+          <div>
+            <div class="gv-lead-header">
+              <strong>${escapeHtml(lead.name || '—')}</strong>
+              ${statusBadge}
+              <span class="gv-lead-date">${escapeHtml(createdDate)}</span>
+            </div>
+            <span class="gv-lead-email">${escapeHtml(lead.email || '—')}</span>
+            ${lead.company ? `<span class="gv-lead-company">${escapeHtml(lead.company)}</span>` : ''}
+            <div class="gv-admin-diff-value">${msgPreview}${(lead.message || '').length > 120 ? '…' : ''}</div>
+            <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="lead-expand" data-lead-id="${escapeHtml(lead.id)}">${isExpanded ? 'Collapse' : 'Expand'}</button>
+            ${detail}
+          </div>
+        </article>`;
+    }).join('');
+
+    return filterBar + `<div class="gv-admin-row-list">${rows}</div>`;
   }
 
   // ── Phase 18: Visual Designer Production Hardening ───────────────────────────
