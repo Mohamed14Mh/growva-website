@@ -1519,6 +1519,7 @@
     if (action === 'lead-mark-new')    updateLeadStatus(actionElement.dataset.leadId, 'new');
     if (action === 'lead-archive')     updateLeadArchived(actionElement.dataset.leadId, true);
     if (action === 'lead-unarchive')   updateLeadArchived(actionElement.dataset.leadId, false);
+    if (action === 'lead-test-notify') sendTestNotification();
 
     // Phase 18: Responsive preview frame
     if (action === 'vd18-resp-preview') {
@@ -5825,6 +5826,9 @@
   let leadsLoading = false;
   let leadsExpanded = null;
   let leadsFilter = 'all'; // 'all' | 'new' | 'read' | 'archived'
+  // Phase 20: test notification state
+  let leadsNotifyState = 'idle'; // 'idle' | 'sending' | 'ok' | 'error'
+  let leadsNotifyMsg = '';
 
   // ── VD: Extended sanitizer ────────────────────────────────────────────────
 
@@ -6706,6 +6710,39 @@
     }
   }
 
+  async function sendTestNotification() {
+    if (!supabaseClient || !currentUser || adminProfile?.role !== 'owner') return;
+    leadsNotifyState = 'sending';
+    leadsNotifyMsg = '';
+    renderDashboard();
+    // Use the most recent real lead as payload, or a synthetic sample
+    const sampleLead = leadsData.find(l => !l.is_archived) || {
+      name: 'Test Lead',
+      email: 'test@example.com',
+      company: 'Test Company',
+      project_type: 'Web Design',
+      budget: '£5k–£15k',
+      message: 'This is a test notification from the GROWVA admin dashboard.',
+      page_path: '/contact',
+      created_at: new Date().toISOString(),
+    };
+    try {
+      if (typeof supabaseClient.functions?.invoke !== 'function') {
+        throw new Error('Supabase Functions not available in this client version.');
+      }
+      const { error } = await supabaseClient.functions.invoke('contact-notify', {
+        body: { record: sampleLead, test: true },
+      });
+      if (error) throw error;
+      leadsNotifyState = 'ok';
+      leadsNotifyMsg = 'Test email sent. Check your inbox.';
+    } catch (e) {
+      leadsNotifyState = 'error';
+      leadsNotifyMsg = (e && typeof e.message === 'string') ? e.message : 'Failed to send. Check Edge Function logs.';
+    }
+    renderDashboard();
+  }
+
   function renderLeadsTab() {
     const canEdit = canAdminEdit();
 
@@ -6718,6 +6755,23 @@
     const newCount      = leadsData.filter(l => l.status === 'new' && !l.is_archived).length;
     const readCount     = leadsData.filter(l => l.status === 'read' && !l.is_archived).length;
     const archivedCount = leadsData.filter(l => l.is_archived).length;
+
+    // Phase 20: owner-only test notification panel
+    let notifyPanel = '';
+    if (adminProfile?.role === 'owner') {
+      const isSending = leadsNotifyState === 'sending';
+      let statusHtml = '';
+      if (leadsNotifyState === 'ok') {
+        statusHtml = `<span class="gv-leads-notify-status gv-leads-notify-status--ok">${escapeHtml(leadsNotifyMsg)}</span>`;
+      } else if (leadsNotifyState === 'error') {
+        statusHtml = `<span class="gv-leads-notify-status gv-leads-notify-status--err">${escapeHtml(leadsNotifyMsg)}</span>`;
+      }
+      notifyPanel = `<div class="gv-leads-notify-bar">
+        <span class="gv-leads-notify-label">Email notification:</span>
+        <button type="button" class="gv-admin-action gv-admin-action--sm"${isSending ? ' disabled' : ''} data-admin-action="lead-test-notify">${isSending ? 'Sending…' : 'Send Test'}</button>
+        ${statusHtml}
+      </div>`;
+    }
 
     const filters = [
       ['all',      `All Active (${allCount})`],
@@ -6749,7 +6803,7 @@
       const emptyMsg = leadsData.length === 0
         ? 'No leads yet. Form submissions will appear here.'
         : 'No leads match the current filter.';
-      return filterBar + `<p class="gv-admin-empty">${escapeHtml(emptyMsg)}</p>`;
+      return notifyPanel + filterBar + `<p class="gv-admin-empty">${escapeHtml(emptyMsg)}</p>`;
     }
 
     const rows = visible.map(lead => {
@@ -6800,7 +6854,7 @@
         </article>`;
     }).join('');
 
-    return filterBar + `<div class="gv-admin-row-list">${rows}</div>`;
+    return notifyPanel + filterBar + `<div class="gv-admin-row-list">${rows}</div>`;
   }
 
   // ── Phase 18: Visual Designer Production Hardening ───────────────────────────

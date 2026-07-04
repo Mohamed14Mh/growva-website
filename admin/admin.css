@@ -2289,3 +2289,27 @@ body.gv-cms-loading [data-edit-key] {
   gap: 6px;
   margin-top: 6px;
 }
+
+/* Phase 20: test notification bar (owner-only) */
+.gv-leads-notify-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.gv-leads-notify-label {
+  font-size: 11px;
+  color: rgba(255,255,255,0.40);
+  white-space: nowrap;
+}
+.gv-leads-notify-status {
+  font-size: 11px;
+  font-weight: 500;
+}
+.gv-leads-notify-status--ok  { color: #86efac; }
+.gv-leads-notify-status--err { color: #fca5a5; }
