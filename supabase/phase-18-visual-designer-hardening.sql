@@ -1,0 +1,81 @@
+-- Phase 18: Visual Designer Production Hardening — Schema Documentation
+-- ─────────────────────────────────────────────────────────────────────
+-- THIS FILE IS DOCUMENTATION-ONLY. No schema changes are required.
+-- Do NOT run this file in the Supabase SQL Editor.
+--
+-- Phase 18 is entirely a client-side hardening pass on top of the Phase 17
+-- CSS runtime. The existing cms_element_styles table is unchanged.
+
+-- ── What Phase 18 does ───────────────────────────────────────────────────────
+--
+-- 1. CSS Specificity Strategy (upgraded selector patterns)
+--    Published CSS:  html body [data-edit-key="..."]   → specificity (0,1,2)
+--    Draft CSS:      body.admin-mode [data-edit-key="..."] → specificity (0,2,1)
+--    Previously both used [data-edit-key="..."] → (0,1,0) which could lose to
+--    site selectors like .section h1 (0,1,1). No !important needed.
+--
+-- 2. FOUC Mitigation
+--    boot() adds body.gv-cms-loading before applyPublishedElementStyles().
+--    applyPublishedElementStyles() is now called FIRST in boot() so VD styles
+--    are on-screen as fast as possible. After injection, body.gv-cms-loading is
+--    removed and body.gv-cms-ready is added. A 1000ms safety timer also removes
+--    the loading class in case Supabase is slow.
+--    CSS: body.gv-cms-loading [data-edit-key] { transition: none !important }
+--    This prevents janky transitions as VD styles are applied at load time.
+--
+-- 3. Responsive Preview Frame
+--    Admin-only overlay (#gv-resp-preview-frame) shows a visual frame boundary
+--    for Tablet (991px) and Mobile (767px) breakpoints. Frame is a position:fixed
+--    div with colored border lines and a box-shadow dimming outside the frame.
+--    Does NOT change the real viewport — safe with GSAP/Lenis/Three.js.
+--    Frame is removed on: exitAdminMode(), enterVisitorPreview().
+--    Controls appear in the Visual tab beneath the breakpoint switcher bar.
+--
+-- 4. Draft Compare detailed diff
+--    renderDraftCompareTab() element section now shows per-breakpoint property-level
+--    diffs: propName | published value → draft value | added/changed/removed badge.
+--    All values escaped via escapeHtml(). Long values truncated to 40 chars.
+--    Legacy flat rows still show "Legacy flat: N props" (no breakpoint diff).
+--
+-- 5. Visual Style Safety Controls
+--    saveVisualStyleDraft() — blocks empty saves (no VD props + no legacy styles).
+--    resetVisualStyleDraft() — blocks reset if nothing to reset; confirm message
+--    shows per-breakpoint prop counts: Desktop N / Tablet N / Mobile N.
+--    renderVisualTabHTML() save bar — shows prop count summary (e.g. Desktop: 3 /
+--    Tablet: 1 / Mobile: 0) when the element has any stored VD styles.
+--
+-- 6. Publish Modal Enhancement
+--    openPublishDialog() now shows for element style overrides:
+--    - Total property count across all VD drafts
+--    - Affected breakpoints (desktop, tablet, mobile)
+--    - Specificity advisory note (html body [data-edit-key] selectors)
+--
+-- 7. Preview as Visitor Consistency
+--    enterVisitorPreview() clears the responsive preview frame before activating
+--    visitor preview mode. exitVisitorPreview() is unchanged (frame stays cleared).
+
+-- ── CSS selector specificity ─────────────────────────────────────────────────
+--
+-- Specificity notation: (IDs, Classes+Attrs+PseudoClasses, Types+PseudoElements)
+--
+-- Phase 17 (old):   [data-edit-key="..."]                   = (0, 1, 0)
+-- Phase 18 published: html body [data-edit-key="..."]        = (0, 1, 2)
+-- Phase 18 draft:   body.admin-mode [data-edit-key="..."]    = (0, 2, 1)
+--
+-- Draft CSS (admin mode) wins over published CSS via higher specificity AND
+-- later cascade order. Both win over typical single/double-class site selectors.
+-- No !important is used in generated CSS at any point.
+--
+-- Inline styles written by the VD panel live preview still have specificity (1,0,0)
+-- so they always win over both CSS tags during active admin editing — correct.
+
+-- ── Security ─────────────────────────────────────────────────────────────────
+--
+-- Phase 18 introduces no new CSS generation paths. All property values still
+-- route through vdSanitizeStyleValue(). Edit keys are still escaped via
+-- vd17EscapeSelector(). All innerHTML uses escapeHtml() for user-controlled values.
+-- The responsive preview frame is built via createElement() with no user input.
+
+-- ── No SQL action required ────────────────────────────────────────────────────
+-- Run supabase/phase-7-visual-controls.sql in a fresh environment.
+-- Phases 14–18 all work without additional SQL.

@@ -1497,6 +1497,14 @@
     if (action === 'vd-save') {
       if (selectedElement && canAdminEdit()) saveVisualStyleDraft(selectedElement);
     }
+    // Phase 18: Responsive preview frame
+    if (action === 'vd18-resp-preview') {
+      const vd18Bp = actionElement.dataset.vd18Bp;
+      if (vd18Bp) {
+        vd18ShowResponsiveFrame(vd18Bp === 'reset' ? '' : vd18Bp);
+        if (selectedElement && inspectorTab === 'visual') renderInspector(selectedElement);
+      }
+    }
   }
 
   function openModal() {
@@ -1569,6 +1577,8 @@
     mode = 'preview';
     // Phase 17: remove draft CSS so logged-out visitors never see draft styles
     vd17RemoveDraftCSS();
+    // Phase 18: remove responsive preview frame on exit
+    vd18RemoveResponsiveFrame();
     refreshScrollLayout();
   }
 
@@ -2196,6 +2206,20 @@
     const tokenCount = Object.keys(designTokenDrafts).length;
     const sectionOrderCount = Object.keys(sectionSettingsDrafts).length;
     const elementStyleCount = Object.keys(elementStyleDrafts).length;
+    // Phase 18: compute total VD prop count and affected breakpoints for publish summary
+    let vd18TotalProps = 0;
+    const vd18AffectedBps = new Set();
+    Object.values(elementStyleDrafts).forEach(sj => {
+      if (vd17HasBreakpointFormat(sj)) {
+        ['desktop','tablet','mobile'].forEach(bp => {
+          const cnt = Object.keys(sj[bp] || {}).length;
+          if (cnt > 0) { vd18TotalProps += cnt; vd18AffectedBps.add(bp); }
+        });
+      } else if (sj && sj.styles) {
+        vd18TotalProps += Object.keys(sj.styles).length;
+      }
+    });
+    const vd18BpList = vd18AffectedBps.size ? [...vd18AffectedBps].join(', ') : 'none';
     body.innerHTML = `
       <div class="gv-admin-publish-summary">
         <div class="gv-admin-meta">
@@ -2226,9 +2250,11 @@
           <div class="gv-admin-publish-group${elementStyleCount ? '' : ' is-empty'}">
             <span class="gv-admin-publish-group-label">Element style overrides</span>
             <span class="gv-admin-publish-group-count">${elementStyleCount}</span>
+            ${elementStyleCount ? `<span class="gv-admin-publish-detail">${vd18TotalProps} prop${vd18TotalProps !== 1 ? 's' : ''} &middot; Breakpoints: ${escapeHtml(vd18BpList)}</span>` : ''}
           </div>
         </div>
         <div class="gv-admin-warning">Publishing affects only this page. Global token publish is separate.</div>
+        ${elementStyleCount ? '<div class="gv-admin-warning gv-admin-warning--vd">Specificity note: published element styles use <code>html body [data-edit-key]</code> selectors. Verify overrides in browser if site selectors are more specific.</div>' : ''}
         ${getStaleDraftCount() > 0 ? `<div class="gv-admin-stale-warning">⚠ ${getStaleDraftCount()} draft(s) are older than 7 days. <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="dashboard-tab" data-dashboard-tab="compare">View Draft Compare</button></div>` : ''}
       </div>
       <div class="gv-admin-row-list gv-admin-row-list--compact">
@@ -5491,6 +5517,8 @@
   }
 
   function enterVisitorPreview(type) {
+    // Phase 18: clear responsive preview frame before entering visitor preview
+    vd18RemoveResponsiveFrame();
     visitorPreviewType = type || 'published';
     visitorPreviewMode = true;
     document.body.classList.add('admin-visitor-preview');
@@ -5600,17 +5628,41 @@
            const row = elementStyleDrafts[key];
            const pub = elementStylesPublished[key];
            const hasBp = vd17HasBreakpointFormat(row);
-           const deskCount = hasBp ? Object.keys(row.desktop || {}).length : (row && row.styles ? Object.keys(row.styles).length : 0);
-           const tabCount  = hasBp ? Object.keys(row.tablet  || {}).length : 0;
-           const mobCount  = hasBp ? Object.keys(row.mobile  || {}).length : 0;
-           const pubLabel  = pub ? '<span class="gv-admin-stale-badge" style="background:rgba(97,191,255,.25);color:rgba(97,191,255,1)">published</span>' : '<span class="gv-admin-stale-badge">no published</span>';
-           const bpSummary = hasBp
-             ? `Desktop: ${deskCount} prop${deskCount !== 1 ? 's' : ''} &nbsp;|&nbsp; Tablet: ${tabCount} prop${tabCount !== 1 ? 's' : ''} &nbsp;|&nbsp; Mobile: ${mobCount} prop${mobCount !== 1 ? 's' : ''}`
-             : `Legacy flat: ${deskCount} prop${deskCount !== 1 ? 's' : ''}`;
+           const pubLabel = pub
+             ? '<span class="gv-admin-stale-badge" style="background:rgba(97,191,255,.25);color:rgba(97,191,255,1)">published</span>'
+             : '<span class="gv-admin-stale-badge">no published</span>';
+           if (!hasBp) {
+             const flatCount = row && row.styles ? Object.keys(row.styles).length : 0;
+             return `<article class="gv-admin-content-row gv-admin-compare-row">
+               <div>
+                 <strong>${escapeHtml(key)}</strong> ${pubLabel}
+                 <div class="gv-admin-diff-value">Legacy flat: ${flatCount} prop${flatCount !== 1 ? 's' : ''}</div>
+               </div>
+             </article>`;
+           }
+           // Phase 18: per-breakpoint property-level diff
+           const bpDiffHtml = ['desktop','tablet','mobile'].map(bp => {
+             const diffs = vd18BuildStyleDiff(row, pub, bp);
+             if (!diffs.length) return '';
+             const diffRows = diffs.map(d => {
+               const pvStr = d.status !== 'added' ? `<span class="gv-vd18-diff-from">${escapeHtml(String(d.pv).slice(0,40))}</span><span class="gv-vd18-diff-arrow"> &rarr; </span>` : '';
+               const dvStr = d.status !== 'removed' ? `<span class="gv-vd18-diff-to">${escapeHtml(String(d.dv).slice(0,40))}</span>` : `<span class="gv-vd18-diff-to gv-vd18-diff-removed">removed</span>`;
+               return `<div class="gv-vd18-diff-row gv-vd18-diff-${escapeHtml(d.status)}">
+                 <code class="gv-vd18-diff-prop">${escapeHtml(d.prop)}</code>
+                 ${pvStr}${dvStr}
+                 <span class="gv-vd18-diff-badge gv-vd18-diff-badge--${escapeHtml(d.status)}">${escapeHtml(d.status)}</span>
+               </div>`;
+             }).join('');
+             return `<div class="gv-vd18-bp-section">
+               <span class="gv-vd18-bp-label">${escapeHtml(bp.charAt(0).toUpperCase() + bp.slice(1))}</span>
+               ${diffRows}
+             </div>`;
+           }).join('');
+           const totalDiffs = ['desktop','tablet','mobile'].reduce((s, bp) => s + vd18BuildStyleDiff(row, pub, bp).length, 0);
            return `<article class="gv-admin-content-row gv-admin-compare-row">
              <div>
                <strong>${escapeHtml(key)}</strong> ${pubLabel}
-               <div class="gv-admin-diff-value">${bpSummary}</div>
+               ${totalDiffs === 0 ? '<div class="gv-admin-diff-value">No changes vs published</div>' : bpDiffHtml}
              </div>
            </article>`;
          }).join('')}</div>`
@@ -5744,6 +5796,7 @@
 
   // Phase 16 Visual Panel state
   let vdVisualDirty = false;
+  let vd18ResponsivePreview = 'none'; // Phase 18: 'none' | 'tablet' | 'mobile'
 
   // ── VD: Extended sanitizer ────────────────────────────────────────────────
 
@@ -6266,6 +6319,11 @@
 
     const hasAnyStyles = VD_BREAKPOINTS.some(b => Object.keys((storedAll[b] || {})).length > 0);
     const saveBtnLabel = vdVisualDirty ? 'Save Visual Draft*' : 'Save Visual Draft';
+    // Phase 18: prop count summary per breakpoint for save bar
+    const vd18PropSummary = VD_BREAKPOINTS.map(b => {
+      const cnt = Object.keys(storedAll[b] || {}).length;
+      return `${b.charAt(0).toUpperCase() + b.slice(1)}: ${cnt}`;
+    }).join(' / ');
 
     const groups = GROUPS.map(g => {
       const rows = g.props.map(cfg => `
@@ -6282,10 +6340,19 @@
       `;
     }).join('');
 
+    // Phase 18: responsive preview frame controls
+    const vd18RpBtns = ['tablet', 'mobile', 'reset'].map(b => {
+      const label = b === 'reset' ? 'Clear Frame' : esc(b.charAt(0).toUpperCase() + b.slice(1)) + ' Frame';
+      const isActive = vd18ResponsivePreview === b;
+      return `<button type="button" class="gv-vd-bp-btn${isActive ? ' is-active' : ''}" data-admin-action="vd18-resp-preview" data-vd18-bp="${b}">${label}</button>`;
+    }).join('');
+
     return `
       <div class="gv-vd-panel">
         <div class="gv-vd-bp-bar" role="group" aria-label="Breakpoint switcher">${bpBtns}</div>
         <p class="gv-vd-bp-hint">Editing <strong>${esc(bp)}</strong> styles${editKey ? ` for <code>${esc(editKey)}</code>` : ''}</p>
+        <div class="gv-vd-rp-bar" role="group" aria-label="Responsive preview frame">${vd18RpBtns}</div>
+        ${vd18ResponsivePreview !== 'none' ? `<p class="gv-vd-bp-hint gv-vd-rp-hint">Showing <strong>${esc(vd18ResponsivePreview)}</strong> frame. Resize browser to see true responsive layout.</p>` : ''}
         <div class="gv-vd-actions-bar">
           <button type="button" class="gv-vd-act" data-admin-action="vd-undo" title="Undo (Ctrl+Z)"${!canEdit || !vd.hasUndo ? ' disabled' : ''}>Undo</button>
           <button type="button" class="gv-vd-act" data-admin-action="vd-redo" title="Redo (Ctrl+Y)"${!canEdit || !vd.hasRedo ? ' disabled' : ''}>Redo</button>
@@ -6297,6 +6364,7 @@
         <div class="gv-vd-save-bar">
           <button type="button" class="gv-admin-action gv-admin-action--mint" data-admin-action="vd-save"${!canSave ? ' disabled' : ''}>${escapeHtml(saveBtnLabel)}</button>
           ${!editKey ? '<span class="gv-vd-save-note">No edit key — live preview only, cannot persist.</span>' : ''}
+          ${canSave && hasAnyStyles ? `<span class="gv-vd-save-note">${esc(vd18PropSummary)}</span>` : ''}
         </div>
       </div>
     `;
@@ -6352,8 +6420,18 @@
       return;
     }
 
-    // Compose breakpoint-aware style_json; preserve legacy styles key if present
+    // Phase 18: prevent saving when nothing has been set in the VD panel
     const store = vdStyleStore[editKey] || {};
+    const vd18TotalVdProps = VD_BREAKPOINTS.reduce((sum, b) => sum + Object.keys(store[b] || {}).length, 0);
+    const vd18HasLegacy = !!(elementStyleDrafts[editKey] && elementStyleDrafts[editKey].styles) ||
+                          !!(elementStylesPublished[editKey] && elementStylesPublished[editKey].styles);
+    if (vd18TotalVdProps === 0 && !vd18HasLegacy) {
+      statusMessage = 'Nothing to save — no visual styles set for this element.';
+      updateTopbar();
+      return;
+    }
+
+    // Compose breakpoint-aware style_json; preserve legacy styles key if present
     const existing = elementStyleDrafts[editKey] || elementStylesPublished[editKey];
     const merged = Object.assign(
       existing && existing.styles ? { styles: existing.styles } : {},
@@ -6387,8 +6465,19 @@
 
   async function resetVisualStyleDraft(el) {
     if (!el || !canAdminEdit()) return;
-    if (!window.confirm('Reset all Visual Designer styles for this element? Legacy Style tab overrides are preserved.')) return;
     const editKey = el.dataset.editKey || '';
+    // Phase 18: show per-breakpoint counts in confirm message, block if nothing to reset
+    const vd18Store = vdStyleStore[editKey] || {};
+    const vd18DeskCount = Object.keys(vd18Store.desktop || {}).length;
+    const vd18TabCount  = Object.keys(vd18Store.tablet  || {}).length;
+    const vd18MobCount  = Object.keys(vd18Store.mobile  || {}).length;
+    if (vd18DeskCount + vd18TabCount + vd18MobCount === 0) {
+      statusMessage = 'No Visual Designer styles to reset for this element.';
+      updateTopbar();
+      return;
+    }
+    const vd18ConfirmMsg = `Reset Visual Designer styles for "${editKey}"?\n\nThis will clear:\n- Desktop: ${vd18DeskCount} prop${vd18DeskCount !== 1 ? 's' : ''}\n- Tablet: ${vd18TabCount} prop${vd18TabCount !== 1 ? 's' : ''}\n- Mobile: ${vd18MobCount} prop${vd18MobCount !== 1 ? 's' : ''}\n\nLegacy Style tab overrides are preserved. Published styles are not deleted until you publish.`;
+    if (!window.confirm(vd18ConfirmMsg)) return;
 
     // Collect all VD-managed props so we can remove them from inline style
     const store = vdStyleStore[editKey] || {};
@@ -6467,7 +6556,9 @@
     return decls.join(';');
   }
 
-  function vd17BuildElementCSS(stylesMap) {
+  // Phase 18: mode='published' → html body [data-edit-key="..."] specificity (0,1,2)
+  //           mode='draft'     → body.admin-mode [data-edit-key="..."] specificity (0,2,1)
+  function vd17BuildElementCSS(stylesMap, mode) {
     if (!stylesMap || typeof stylesMap !== 'object') return '';
     const byBreakpoint = { desktop: [], tablet: [], mobile: [] };
 
@@ -6475,19 +6566,22 @@
       if (!styleJson || typeof styleJson !== 'object') return;
       if (!vd17HasBreakpointFormat(styleJson)) return; // legacy rows handled inline
       const sel = vd17EscapeSelector(editKey);
+      const selectorFn = mode === 'draft'
+        ? `body.admin-mode [data-edit-key="${sel}"]`
+        : `html body [data-edit-key="${sel}"]`;
 
       // Desktop base: merge legacy "styles" key (foundation) with VD desktop (override)
       const baseStyles = Object.assign({}, styleJson.styles || {}, styleJson.desktop || {});
       const deskDecls = vd17BuildDeclarations(baseStyles);
-      if (deskDecls) byBreakpoint.desktop.push(`[data-edit-key="${sel}"]{${deskDecls}}`);
+      if (deskDecls) byBreakpoint.desktop.push(`${selectorFn}{${deskDecls}}`);
 
       // Tablet override
       const tabDecls = vd17BuildDeclarations(styleJson.tablet || {});
-      if (tabDecls) byBreakpoint.tablet.push(`[data-edit-key="${sel}"]{${tabDecls}}`);
+      if (tabDecls) byBreakpoint.tablet.push(`${selectorFn}{${tabDecls}}`);
 
       // Mobile override
       const mobDecls = vd17BuildDeclarations(styleJson.mobile || {});
-      if (mobDecls) byBreakpoint.mobile.push(`[data-edit-key="${sel}"]{${mobDecls}}`);
+      if (mobDecls) byBreakpoint.mobile.push(`${selectorFn}{${mobDecls}}`);
     });
 
     let css = '';
@@ -6510,13 +6604,15 @@
 
   function vd17InjectPublishedCSS() {
     const tag = vd17GetOrCreateStyleTag('gv-cms-published-element-styles');
-    tag.textContent = vd17BuildElementCSS(elementStylesPublished);
+    // Phase 18: 'published' mode → html body [data-edit-key="..."] selector (specificity 0,1,2)
+    tag.textContent = vd17BuildElementCSS(elementStylesPublished, 'published');
   }
 
   function vd17InjectDraftCSS() {
     if (!document.body.classList.contains('admin-mode')) return;
     const tag = vd17GetOrCreateStyleTag('gv-cms-draft-element-styles');
-    tag.textContent = vd17BuildElementCSS(elementStyleDrafts);
+    // Phase 18: 'draft' mode → body.admin-mode [data-edit-key="..."] selector (specificity 0,2,1)
+    tag.textContent = vd17BuildElementCSS(elementStyleDrafts, 'draft');
   }
 
   function vd17RemoveDraftCSS() {
@@ -6529,18 +6625,73 @@
     if (tag) tag.textContent = '';
   }
 
+  // ── Phase 18: Visual Designer Production Hardening ───────────────────────────
+
+  function vd18ShowResponsiveFrame(bp) {
+    vd18RemoveResponsiveFrame();
+    if (!bp) return;
+    const frame = document.createElement('div');
+    frame.id = 'gv-resp-preview-frame';
+    frame.setAttribute('aria-hidden', 'true');
+    frame.dataset.vdBp = bp;
+    document.body.appendChild(frame);
+    document.body.classList.add('gv-resp-preview-' + bp);
+    vd18ResponsivePreview = bp;
+    refreshScrollLayout();
+  }
+
+  function vd18RemoveResponsiveFrame() {
+    const frame = document.getElementById('gv-resp-preview-frame');
+    if (frame) frame.remove();
+    document.body.classList.remove('gv-resp-preview-tablet', 'gv-resp-preview-mobile');
+    if (vd18ResponsivePreview !== 'none') {
+      vd18ResponsivePreview = 'none';
+      refreshScrollLayout();
+    }
+  }
+
+  // Returns array of { prop, pv, dv, status } for one breakpoint
+  function vd18BuildStyleDiff(draftSj, pubSj, bp) {
+    const draft = draftSj && typeof draftSj[bp] === 'object' ? draftSj[bp] : {};
+    const pub   = pubSj   && typeof pubSj[bp]   === 'object' ? pubSj[bp]   : {};
+    const allProps = new Set([...Object.keys(draft), ...Object.keys(pub)]);
+    const diffs = [];
+    allProps.forEach(prop => {
+      const dv = draft[prop];
+      const pv = pub[prop];
+      if (dv === pv) return;
+      const status = !pv ? 'added' : !dv ? 'removed' : 'changed';
+      diffs.push({ prop, pv: pv || '—', dv: dv || '—', status });
+    });
+    return diffs;
+  }
+
   async function boot() {
+    // Phase 18: FOUC mitigation — mark body as loading before VD styles are injected
+    document.body.classList.add('gv-cms-loading');
+    // Safety: remove loading class after 1s even if Supabase is slow or errors
+    const vd18LoadSafetyTimer = setTimeout(() => {
+      document.body.classList.remove('gv-cms-loading');
+      document.body.classList.add('gv-cms-ready');
+    }, 1000);
+
     ensureEntryButtonsAreSafe();
     bindEntryEvents();
     captureOriginalValues();
     initSupabase();
     setupAuthStateListener();
+
+    // Phase 18: inject published VD styles FIRST (minimises flash of unstyled content)
+    await applyPublishedElementStyles();
+    clearTimeout(vd18LoadSafetyTimer);
+    document.body.classList.remove('gv-cms-loading');
+    document.body.classList.add('gv-cms-ready');
+
     await loadPublishedEdits();
     await applyPublishedImageEdits();
     await applyPublishedDesignTokens();
     await loadPublishedCustomSections();
     await applyPublishedSectionSettings();
-    await applyPublishedElementStyles();
     logCmsDebug('boot');
     if (await hasActiveAdminSession()) {
       await loadPublishedEdits();

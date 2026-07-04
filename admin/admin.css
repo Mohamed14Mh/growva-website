@@ -2034,8 +2034,124 @@ details.gv-vd-group[open] .gv-vd-group-head::before { transform: rotate(90deg); 
   align-items: center;
   gap: 8px;
   padding: 8px 10px 10px;
+  flex-wrap: wrap;
 }
 .gv-vd-save-note {
   font: 400 10px/1.4 inherit;
   color: rgba(255,200,100,0.80);
 }
+
+/* ── Phase 18: Visual Designer Production Hardening ───────────────────────── */
+
+/* Responsive preview frame bar */
+.gv-vd-rp-bar {
+  display: flex;
+  gap: 4px;
+  padding: 4px 10px 0;
+}
+.gv-vd-rp-hint {
+  font-size: 10px;
+  color: rgba(246,178,60,0.9);
+  margin: 2px 10px 0;
+}
+
+/* Responsive preview frame overlay (admin-only injected element) */
+#gv-resp-preview-frame {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  pointer-events: none;
+  z-index: 10080;
+  transform: translateX(-50%);
+}
+#gv-resp-preview-frame[data-vd-bp="tablet"] {
+  width: 991px;
+  border-left: 2px solid rgba(97,191,255,0.55);
+  border-right: 2px solid rgba(97,191,255,0.55);
+  box-shadow: 0 0 0 9999px rgba(0,8,24,0.22);
+}
+#gv-resp-preview-frame[data-vd-bp="mobile"] {
+  width: 767px;
+  border-left: 2px solid rgba(246,178,60,0.65);
+  border-right: 2px solid rgba(246,178,60,0.65);
+  box-shadow: 0 0 0 9999px rgba(0,8,24,0.32);
+}
+
+/* FOUC mitigation — suppress transitions on editable elements while VD styles load */
+body.gv-cms-loading [data-edit-key] {
+  transition: none !important;
+}
+
+/* Publish modal detail line */
+.gv-admin-publish-detail {
+  display: block;
+  font: 400 11px/1.4 inherit;
+  color: rgba(255,255,255,0.55);
+  margin-top: 2px;
+}
+.gv-admin-warning--vd {
+  margin-top: 6px;
+  font-size: 11px;
+  color: rgba(246,178,60,0.85);
+}
+.gv-admin-warning--vd code {
+  font-size: 10px;
+  background: rgba(246,178,60,0.12);
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+
+/* Draft Compare — Phase 18 per-property diff */
+.gv-vd18-bp-section {
+  margin: 6px 0 0;
+  padding: 4px 6px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 4px;
+}
+.gv-vd18-bp-label {
+  display: block;
+  font: 600 10px/1.6 inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(97,191,255,0.75);
+  margin-bottom: 2px;
+}
+.gv-vd18-diff-row {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font: 400 11px/1.5 inherit;
+  padding: 1px 0;
+  flex-wrap: wrap;
+}
+.gv-vd18-diff-prop {
+  font-size: 10px;
+  color: rgba(255,255,255,0.70);
+  min-width: 90px;
+}
+.gv-vd18-diff-from {
+  color: rgba(255,100,100,0.75);
+  text-decoration: line-through;
+}
+.gv-vd18-diff-arrow {
+  color: rgba(255,255,255,0.35);
+}
+.gv-vd18-diff-to {
+  color: rgba(100,220,130,0.85);
+}
+.gv-vd18-diff-removed .gv-vd18-diff-to {
+  color: rgba(255,100,100,0.65);
+  font-style: italic;
+}
+.gv-vd18-diff-badge {
+  font: 500 9px/1.4 inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0 4px;
+  border-radius: 3px;
+  margin-left: auto;
+}
+.gv-vd18-diff-badge--added   { background: rgba(100,220,130,0.18); color: rgba(100,220,130,0.9); }
+.gv-vd18-diff-badge--changed { background: rgba(97,191,255,0.18);  color: rgba(97,191,255,0.9); }
+.gv-vd18-diff-badge--removed { background: rgba(255,100,100,0.18); color: rgba(255,100,100,0.9); }
