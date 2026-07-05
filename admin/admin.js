@@ -1063,6 +1063,9 @@
     if (dashboardTab === 'notifications' && !notificationLogsLoading) {
       loadNotificationLogs().then(() => renderDashboard());
     }
+    if (dashboardTab === 'control-center' && !controlCenterDataLoaded && !controlCenterLoading) {
+      loadControlCenterData();
+    }
   }
 
   async function refreshDashboardData() {
@@ -1131,6 +1134,7 @@
       ['tasks', 'Tasks'],
       ['lead-insights', 'Lead Insights'],
       ['notifications', 'Notifications'],
+      ['control-center', 'Control Center'],
     ];
     $('[data-dashboard-tabs]', dashboard).innerHTML = tabs.map(([id, label]) => `
       <button type="button" role="tab" aria-selected="${dashboardTab === id ? 'true' : 'false'}" class="${dashboardTab === id ? 'is-active' : ''}" data-admin-action="dashboard-tab" data-dashboard-tab="${id}">${escapeHtml(label)}</button>
@@ -1157,6 +1161,7 @@
     if (dashboardTab === 'tasks') return renderTasksTab();
     if (dashboardTab === 'lead-insights') return renderLeadInsightsTab();
     if (dashboardTab === 'notifications') return renderNotificationsTab();
+    if (dashboardTab === 'control-center') return renderControlCenterTab();
     return renderOverviewTab();
   }
 
@@ -1784,6 +1789,354 @@
     `;
   }
 
+  // ── Phase 30: Production CRM Control Center ──────────────────────────────────
+
+  async function loadControlCenterData() {
+    if (!supabaseClient || !currentUser || !adminProfile) return;
+    controlCenterLoading = true;
+    controlCenterDataLoaded = false;
+    renderDashboard();
+    await Promise.all([
+      (!leadsData.length && !leadsLoading)                             ? loadLeads()             : Promise.resolve(),
+      (!notificationLogs.length && !notificationLogsLoading)           ? loadNotificationLogs()  : Promise.resolve(),
+      (!leadTasks.length && !leadTasksLoading && !leadTasksUnavailable)? loadLeadTasks()         : Promise.resolve(),
+      (!leadActivities.length && !leadActivitiesLoading && !leadActivitiesUnavailable) ? loadLeadActivities() : Promise.resolve(),
+      (!reminderRuns.length && !reminderRunsLoading && !reminderRunsUnavailable)       ? loadReminderRuns()   : Promise.resolve(),
+    ]);
+    controlCenterLoading = false;
+    controlCenterDataLoaded = true;
+    renderDashboard();
+  }
+
+  function getControlCenterMetrics() {
+    const now = Date.now();
+    const ms24h = 86400000;
+    const ms7d  = 7 * ms24h;
+
+    // Leads
+    const activeLeads = leadsData.filter(l => !l.is_archived);
+    const leads24h    = leadsData.filter(l => l.created_at && (now - new Date(l.created_at).getTime()) < ms24h).length;
+    const newLeads    = activeLeads.filter(l => l.status === 'new').length;
+
+    // Notifications
+    const na           = notificationLogs.length ? getNotificationAnalytics() : null;
+    const failedNotifs = na ? na.problemTotal : 0;
+    const notifTotal   = na ? na.total : 0;
+    const emailHealth  = !notifTotal ? 'no-data'
+      : failedNotifs === 0 ? 'healthy'
+      : (failedNotifs / notifTotal) <= 0.05 ? 'attention' : 'critical';
+
+    // Reminder sweeps
+    const lastRun      = reminderRuns[0] || null;
+    const runsFailed   = reminderRuns.filter(r => r.status === 'failed').length;
+    const runsWithErrs = reminderRuns.filter(r => r.status === 'completed_with_errors').length;
+    const reminderHealth = reminderRunsUnavailable ? 'unavailable'
+      : !lastRun ? 'no-data'
+      : (runsFailed > 0 || (lastRun.total_failed > 0)) ? 'critical'
+      : runsWithErrs > 0 ? 'attention' : 'healthy';
+
+    // Tasks
+    const ts             = leadTasks.length ? getTaskSummary(leadTasks) : null;
+    const overdueTasks   = ts?.overdue || 0;
+    const todayTasks     = ts?.today   || 0;
+    const reminderFailures = ts?.reminderFailures || 0;
+    const urgentHighOpen = ts?.urgentHigh || 0;
+    const taskHealth     = !leadTasks.length || leadTasksUnavailable ? 'no-data'
+      : (reminderFailures > 0 || overdueTasks > 3) ? 'attention'
+      : overdueTasks > 0 ? 'attention' : 'healthy';
+
+    // Pipeline
+    const openLeads             = activeLeads.filter(l => !['won','lost'].includes(l.pipeline_stage));
+    const unassignedHighPriority = openLeads.filter(l => ['urgent','high'].includes(normalizeLeadPriority(l.priority)) && !String(l.assigned_to || '').trim()).length;
+    const stuckNew              = openLeads.filter(l => l.pipeline_stage === 'new' && l.created_at && (now - new Date(l.created_at).getTime()) > ms7d).length;
+    const pipelineHealth        = !activeLeads.length ? 'no-data'
+      : (unassignedHighPriority > 0 || stuckNew > 2) ? 'attention' : 'healthy';
+
+    const leadIntakeHealth = 'healthy';
+
+    return {
+      leads24h, newLeads, activeLeads: activeLeads.length,
+      failedNotifs, notifTotal, emailHealth,
+      lastRun, lastRunStatus: lastRun?.status || null, lastRunTime: lastRun?.created_at || null,
+      runsFailed, runsWithErrs, reminderHealth,
+      overdueTasks, todayTasks, reminderFailures, urgentHighOpen, taskHealth,
+      unassignedHighPriority, stuckNew, pipelineHealth,
+      leadIntakeHealth,
+    };
+  }
+
+  function getControlCenterIssues() {
+    const issues = [];
+    const now  = Date.now();
+    const ms24h = 86400000;
+    const ms7d  = 7 * ms24h;
+    const problemStatuses = new Set(['failed', 'bounced', 'complained', 'unknown']);
+
+    // Failed/bounced/complained notifications
+    const problemNotifs = notificationLogs.filter(log => log && problemStatuses.has(normalizeNotificationStatus(log.status)));
+    if (problemNotifs.length > 0) {
+      issues.push({
+        severity: problemNotifs.length >= 3 ? 'critical' : 'warning',
+        type: 'email',
+        title: `${problemNotifs.length} notification${problemNotifs.length !== 1 ? 's' : ''} with delivery problems`,
+        desc: 'Failed, bounced, or complained emails in notification log.',
+        time: problemNotifs[0]?.created_at || null,
+        action: 'cc-goto-notifications',
+      });
+    }
+
+    // Reminder sweep failures
+    const failedRuns = reminderRuns.filter(r => r.status === 'failed');
+    if (failedRuns.length > 0) {
+      issues.push({
+        severity: 'critical',
+        type: 'sweep',
+        title: `${failedRuns.length} reminder sweep${failedRuns.length !== 1 ? 's' : ''} failed`,
+        desc: failedRuns[0]?.error_message ? String(failedRuns[0].error_message).slice(0, 120) : 'Check Edge Function logs.',
+        time: failedRuns[0]?.created_at || null,
+        action: 'cc-goto-tasks',
+      });
+    }
+
+    // Sweeps completed with errors
+    const errorRuns = reminderRuns.filter(r => r.status === 'completed_with_errors' && (r.total_failed || 0) > 0);
+    if (errorRuns.length > 0) {
+      const totalFailed = errorRuns.reduce((s, r) => s + (r.total_failed || 0), 0);
+      issues.push({
+        severity: 'warning',
+        type: 'sweep',
+        title: `${totalFailed} reminder${totalFailed !== 1 ? 's' : ''} failed across ${errorRuns.length} sweep${errorRuns.length !== 1 ? 's' : ''}`,
+        desc: 'Some scheduled reminders could not be delivered.',
+        time: errorRuns[0]?.created_at || null,
+        action: 'cc-goto-tasks',
+      });
+    }
+
+    // Overdue urgent/high tasks
+    const openTasks    = leadTasks.filter(t => normalizeLeadTaskStatus(t.status) === 'open');
+    const overdueUrgent = openTasks.filter(t => taskDueState(t) === 'overdue' && ['urgent','high'].includes(normalizeLeadPriority(t.priority)));
+    if (overdueUrgent.length > 0) {
+      issues.push({
+        severity: 'critical',
+        type: 'task',
+        title: `${overdueUrgent.length} overdue high-priority task${overdueUrgent.length !== 1 ? 's' : ''}`,
+        desc: overdueUrgent.slice(0, 3).map(t => String(t.title || '').slice(0, 60)).join('; '),
+        time: overdueUrgent[0]?.due_at || null,
+        action: 'cc-goto-tasks',
+      });
+    }
+
+    // Tasks with reminder delivery errors
+    const tasksWithReminderErrors = openTasks.filter(taskReminderFailed);
+    if (tasksWithReminderErrors.length > 0) {
+      issues.push({
+        severity: 'warning',
+        type: 'task',
+        title: `${tasksWithReminderErrors.length} task${tasksWithReminderErrors.length !== 1 ? 's' : ''} with reminder delivery errors`,
+        desc: 'Last reminder failed. Check Edge Function logs or use Retry.',
+        time: null,
+        action: 'cc-goto-tasks',
+      });
+    }
+
+    // Unassigned urgent/high leads
+    const activeLeads = leadsData.filter(l => !l.is_archived);
+    const unassignedHigh = activeLeads.filter(l =>
+      ['urgent','high'].includes(normalizeLeadPriority(l.priority)) &&
+      !String(l.assigned_to || '').trim()
+    );
+    if (unassignedHigh.length > 0) {
+      issues.push({
+        severity: unassignedHigh.some(l => normalizeLeadPriority(l.priority) === 'urgent') ? 'critical' : 'warning',
+        type: 'lead',
+        title: `${unassignedHigh.length} high-priority lead${unassignedHigh.length !== 1 ? 's' : ''} unassigned`,
+        desc: 'Urgent or high priority leads with no assigned team member.',
+        time: unassignedHigh[0]?.created_at || null,
+        action: 'cc-goto-pipeline',
+      });
+    }
+
+    // Leads stuck in new >7 days
+    const stuckNew = activeLeads.filter(l =>
+      l.pipeline_stage === 'new' &&
+      l.created_at &&
+      (now - new Date(l.created_at).getTime()) > ms7d
+    );
+    if (stuckNew.length > 0) {
+      issues.push({
+        severity: 'warning',
+        type: 'lead',
+        title: `${stuckNew.length} lead${stuckNew.length !== 1 ? 's' : ''} in New stage for >7 days`,
+        desc: 'Move these leads to the next pipeline stage or archive them.',
+        time: stuckNew[0]?.created_at || null,
+        action: 'cc-goto-pipeline',
+      });
+    }
+
+    // No sweep in 24h (only if sweeps are available)
+    if (!reminderRunsUnavailable && reminderRuns.length > 0) {
+      const lastRun   = reminderRuns[0];
+      const lastRunAge = lastRun?.created_at ? (now - new Date(lastRun.created_at).getTime()) : Infinity;
+      if (lastRunAge > ms24h) {
+        issues.push({
+          severity: 'info',
+          type: 'sweep',
+          title: 'No reminder sweep in the last 24 hours',
+          desc: 'Run a manual sweep or check the scheduled Edge Function.',
+          time: lastRun?.created_at || null,
+          action: 'cc-goto-tasks',
+        });
+      }
+    }
+
+    // Sort: critical → warning → info
+    const order = { critical: 0, warning: 1, info: 2 };
+    issues.sort((a, b) => (order[a.severity] ?? 2) - (order[b.severity] ?? 2));
+    return issues;
+  }
+
+  function renderControlCenterTab() {
+    const canEdit  = canAdminEdit();
+    const isOwner  = adminProfile?.role === 'owner';
+    const isSweepRunning = reminderSweepState.status === 'saving';
+
+    // Quick actions — always visible
+    const sweepBtn = canEdit
+      ? `<button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--mint"${isSweepRunning ? ' disabled' : ''} data-admin-action="cc-run-sweep">${isSweepRunning ? 'Running sweep…' : 'Run Reminder Sweep'}</button>`
+      : '';
+    const sweepStatusMsg = reminderSweepState.message
+      ? `<span class="gv-cc-sweep-msg gv-cc-sweep-msg--${escapeHtml(reminderSweepState.status)}">${escapeHtml(reminderSweepState.message)}</span>`
+      : '';
+    const quickActions = `
+      <div class="gv-cc-actions">
+        <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="cc-refresh">↻ Refresh</button>
+        ${sweepBtn}
+        <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="cc-goto-leads">→ Leads</button>
+        <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="cc-goto-pipeline">→ Pipeline</button>
+        <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="cc-goto-tasks">→ Tasks</button>
+        <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="cc-goto-notifications">→ Notifications</button>
+        ${sweepStatusMsg}
+      </div>`;
+
+    if (controlCenterLoading) {
+      return quickActions + '<p class="gv-admin-empty">Loading Control Center data…</p>';
+    }
+
+    const hasAnyData = leadsData.length > 0 || notificationLogs.length > 0 || leadTasks.length > 0 || reminderRuns.length > 0;
+    if (!controlCenterDataLoaded && !hasAnyData) {
+      return quickActions + '<p class="gv-admin-empty">Click Refresh to load Control Center data.</p>';
+    }
+
+    const m      = getControlCenterMetrics();
+    const issues = getControlCenterIssues();
+
+    // ── Health cards ──────────────────────────────────────────────────────────
+    const healthCardHtml = (label, value, status, note) => {
+      const statusLabel = { healthy:'Healthy', attention:'Attention', critical:'Critical', 'no-data':'No data', unavailable:'Unavailable' }[status] || status;
+      return `<div class="gv-cc-card gv-cc-card--${escapeHtml(status)}">
+        <div class="gv-cc-card-label">${escapeHtml(label)}</div>
+        <div class="gv-cc-card-value">${escapeHtml(String(value))}</div>
+        <div class="gv-cc-card-status gv-cc-card-status--${escapeHtml(status)}">${escapeHtml(statusLabel)}</div>
+        ${note ? `<div class="gv-cc-card-note">${escapeHtml(String(note))}</div>` : ''}
+      </div>`;
+    };
+
+    const lastRunLabel   = m.lastRun ? (m.lastRunStatus === 'completed' ? 'OK' : m.lastRunStatus === 'completed_with_errors' ? 'With errors' : m.lastRunStatus || '—') : '—';
+    const lastRunNote    = m.lastRunTime ? formatDate(m.lastRunTime) : 'Never run';
+
+    const healthSection = `
+      <div class="gv-cc-section">
+        <div class="gv-cc-section-title">System Health</div>
+        <div class="gv-cc-grid">
+          ${healthCardHtml('Lead Intake', m.leads24h + ' leads / 24h', m.leadIntakeHealth, m.newLeads + ' unread active')}
+          ${healthCardHtml('Email Delivery', m.failedNotifs ? m.failedNotifs + ' problem' + (m.failedNotifs !== 1 ? 's' : '') : 'No issues', m.emailHealth, m.notifTotal + ' total logged')}
+          ${healthCardHtml('Reminder Sweeps', lastRunLabel, m.reminderHealth, lastRunNote)}
+          ${healthCardHtml('Task Queue', m.overdueTasks + ' overdue', m.taskHealth, m.todayTasks + ' due today')}
+          ${healthCardHtml('Pipeline', m.unassignedHighPriority + ' unassigned', m.pipelineHealth, m.stuckNew + ' stuck in New')}
+        </div>
+      </div>`;
+
+    // ── Issues ────────────────────────────────────────────────────────────────
+    const sevBadge = (sev) => {
+      const label = { critical:'Critical', warning:'Warning', info:'Info' }[sev] || sev;
+      return `<span class="gv-cc-sev gv-cc-sev--${escapeHtml(sev)}">${escapeHtml(label)}</span>`;
+    };
+
+    const issuesSection = `
+      <div class="gv-cc-section">
+        <div class="gv-cc-section-title">Issues${issues.length ? ` (${issues.length})` : ''}</div>
+        ${issues.length === 0
+          ? '<p class="gv-admin-empty gv-cc-no-issues">No active issues detected. System looks healthy.</p>'
+          : `<div class="gv-cc-issue-list">
+              ${issues.map(issue => `
+                <div class="gv-cc-issue gv-cc-issue--${escapeHtml(issue.severity)}">
+                  ${sevBadge(issue.severity)}
+                  <div class="gv-cc-issue-body">
+                    <div class="gv-cc-issue-title">${escapeHtml(issue.title)}</div>
+                    <div class="gv-cc-issue-desc">${escapeHtml(issue.desc)}</div>
+                    ${issue.time ? `<div class="gv-cc-issue-time">${escapeHtml(formatDate(issue.time))}</div>` : ''}
+                  </div>
+                  ${issue.action ? `<button type="button" class="gv-admin-action gv-admin-action--sm gv-cc-view-btn" data-admin-action="${escapeHtml(issue.action)}">View →</button>` : ''}
+                </div>`).join('')}
+            </div>`}
+      </div>`;
+
+    // ── Recent operations ─────────────────────────────────────────────────────
+    const recentOps = [];
+
+    reminderRuns.slice(0, 5).forEach(run => {
+      recentOps.push({
+        time:   run.created_at || '',
+        type:   'Sweep',
+        label:  `Reminder sweep — ${run.status || '?'} (${run.total_sent || 0} sent, ${run.total_failed || 0} failed)`,
+        health: (run.status === 'failed' || run.total_failed > 0) ? 'bad' : run.status === 'completed_with_errors' ? 'warn' : 'ok',
+      });
+    });
+
+    notificationLogs.filter(log => normalizeNotificationStatus(log.status) !== 'test').slice(0, 5).forEach(log => {
+      const st   = normalizeNotificationStatus(log.status);
+      const isBad = ['failed','bounced','complained','unknown'].includes(st);
+      recentOps.push({
+        time:   log.created_at || '',
+        type:   'Email',
+        label:  `${log.event_type || 'notification'} — ${st}`,
+        health: isBad ? 'bad' : 'ok',
+      });
+    });
+
+    leadActivities.filter(a => a.activity_type && (a.activity_type.includes('reminder') || a.activity_type.includes('task') || a.activity_type.includes('sweep'))).slice(0, 5).forEach(act => {
+      recentOps.push({
+        time:   act.created_at || '',
+        type:   'Task',
+        label:  (act.activity_type || '').replace(/_/g, ' ') + (act.new_value ? ' — ' + String(act.new_value).slice(0, 60) : ''),
+        health: act.activity_type?.includes('failed') ? 'bad' : 'ok',
+      });
+    });
+
+    recentOps.sort((a, b) => {
+      const ta = a.time ? new Date(a.time).getTime() : 0;
+      const tb = b.time ? new Date(b.time).getTime() : 0;
+      return tb - ta;
+    });
+
+    const opsSection = `
+      <div class="gv-cc-section">
+        <div class="gv-cc-section-title">Recent Operations</div>
+        ${recentOps.length === 0
+          ? '<p class="gv-admin-empty">No recent operations to display.</p>'
+          : `<div class="gv-cc-ops-list">
+              ${recentOps.slice(0, 15).map(op => `
+                <div class="gv-cc-op gv-cc-op--${escapeHtml(op.health)}">
+                  <span class="gv-cc-op-type">${escapeHtml(op.type)}</span>
+                  <span class="gv-cc-op-label">${escapeHtml(op.label)}</span>
+                  ${op.time ? `<span class="gv-cc-op-time">${escapeHtml(formatDate(op.time))}</span>` : ''}
+                </div>`).join('')}
+            </div>`}
+      </div>`;
+
+    return quickActions + healthSection + issuesSection + opsSection;
+  }
+
   function formatDate(value) {
     if (!value) return 'None';
     const date = new Date(value);
@@ -2144,6 +2497,13 @@
     if (action === 'lead-retry-notify') retryNotification(actionElement.dataset.leadId);
     if (action === 'notifications-refresh') { loadNotificationLogs().then(() => renderDashboard()); }
     if (action === 'lead-insights-refresh') { loadLeads().then(() => renderDashboard()); }
+    // Phase 30: Control Center actions
+    if (action === 'cc-refresh') { loadControlCenterData(); }
+    if (action === 'cc-run-sweep') { runReminderSweep(); }
+    if (action === 'cc-goto-leads')         { switchDashboardTab('leads'); }
+    if (action === 'cc-goto-pipeline')      { switchDashboardTab('pipeline'); }
+    if (action === 'cc-goto-tasks')         { switchDashboardTab('tasks'); }
+    if (action === 'cc-goto-notifications') { switchDashboardTab('notifications'); }
 
     // Phase 18: Responsive preview frame
     if (action === 'vd18-resp-preview') {
@@ -6544,6 +6904,9 @@
   let notificationLogsLoading = false;
   let notificationLogsError = '';
   let leadRetrying = null; // lead ID currently being retried
+  // Phase 30: Control Center
+  let controlCenterLoading = false;
+  let controlCenterDataLoaded = false;
 
   // ── VD: Extended sanitizer ────────────────────────────────────────────────
 
