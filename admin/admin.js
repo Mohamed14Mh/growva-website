@@ -1029,7 +1029,7 @@
     if (dashboardTab === 'visual') setTimeout(bindVisualControlEvents, 0);
     if (dashboardTab === 'sections') setTimeout(bindSectionManagerEvents, 0);
     if (dashboardTab === 'builder') setTimeout(bindSectionBuilderEvents, 0);
-    // Phase 19/21/26/27: load leads, notifications, activity, and tasks on CRM tabs
+    // Phase 19/21/26/27/29: load CRM data on CRM tabs
     if (dashboardTab === 'leads' && leadsData.length === 0 && !leadsLoading) {
       Promise.all([loadLeads(), loadNotificationLogs(), loadLeadActivities(), loadLeadTasks()]).then(() => renderDashboard());
     }
@@ -1049,10 +1049,13 @@
       loadLeadTasks().then(() => renderDashboard());
     }
     if (dashboardTab === 'tasks' && leadsData.length === 0 && !leadsLoading) {
-      Promise.all([loadLeads(), loadLeadTasks(), loadLeadActivities()]).then(() => renderDashboard());
+      Promise.all([loadLeads(), loadLeadTasks(), loadLeadActivities(), loadReminderRuns()]).then(() => renderDashboard());
     }
     if (dashboardTab === 'tasks' && leadsData.length && !leadTasksLoading && !leadTasks.length && !leadTasksUnavailable) {
       loadLeadTasks().then(() => renderDashboard());
+    }
+    if (dashboardTab === 'tasks' && !reminderRunsLoading && !reminderRuns.length && !reminderRunsUnavailable) {
+      loadReminderRuns().then(() => renderDashboard());
     }
     if (dashboardTab === 'lead-insights' && leadsData.length === 0 && !leadsLoading) {
       loadLeads().then(() => renderDashboard());
@@ -2070,7 +2073,7 @@
       if (selectedElement && canAdminEdit()) saveVisualStyleDraft(selectedElement);
     }
     // Phase 19: Leads tab actions
-    if (action === 'leads-refresh') { Promise.all([loadLeads(), loadNotificationLogs(), loadLeadActivities(), loadLeadTasks()]).then(() => renderDashboard()); }
+    if (action === 'leads-refresh') { Promise.all([loadLeads(), loadNotificationLogs(), loadLeadActivities(), loadLeadTasks(), loadReminderRuns()]).then(() => renderDashboard()); }
     if (action === 'leads-filter') {
       leadsFilter = actionElement.dataset.leadsFilter || 'all';
       renderDashboard();
@@ -2115,6 +2118,7 @@
     if (action === 'lead-task-cancel') cancelLeadTask(actionElement.dataset.taskId);
     if (action === 'lead-task-reopen') reopenLeadTask(actionElement.dataset.taskId);
     if (action === 'lead-task-reminder') sendLeadTaskReminder(actionElement.dataset.taskId);
+    if (action === 'reminder-sweep-run') runReminderSweep();
     if (action === 'tasks-filter-apply') {
       applyLeadTaskFiltersFromDom();
       renderDashboard();
@@ -6469,6 +6473,7 @@
   };
   const LEAD_TASK_BASE_SELECT = 'id,lead_id,title,description,status,priority,assigned_to,due_at,completed_at,completed_by,created_by,created_by_email,updated_by,updated_by_email,metadata,created_at,updated_at';
   const LEAD_TASK_PHASE28_SELECT = `${LEAD_TASK_BASE_SELECT},reminder_enabled,reminder_sent_at,reminder_count,last_reminder_error,automation_source`;
+  const REMINDER_RUN_SELECT = 'id,run_type,status,started_at,finished_at,actor_id,actor_email,total_candidates,total_sent,total_skipped,total_failed,error_message,metadata,created_at';
   const TASK_AUTOMATION_STAGE_RULES = {
     contacted: { title: 'Follow up with lead', dueDays: 2, source: 'stage:contacted' },
     qualified: { title: 'Prepare proposal', dueDays: 3, source: 'stage:qualified' },
@@ -6513,6 +6518,14 @@
   };
   let leadTaskReminderState = {
     id: null,
+    status: 'idle',
+    message: ''
+  };
+  let reminderRuns = [];
+  let reminderRunsLoading = false;
+  let reminderRunsUnavailable = false;
+  let reminderRunsError = '';
+  let reminderSweepState = {
     status: 'idle',
     message: ''
   };
@@ -7646,7 +7659,11 @@
       task_reminder_failed: 'Task reminder failed',
       automation_task_created: 'Automation task created',
       automation_task_skipped_duplicate: 'Automation skipped duplicate',
-      suggested_task_created: 'Suggested task created'
+      suggested_task_created: 'Suggested task created',
+      task_scheduled_reminder_sent: 'Scheduled reminder sent',
+      task_scheduled_reminder_failed: 'Scheduled reminder failed',
+      reminder_sweep_run: 'Reminder sweep run',
+      reminder_sweep_failed: 'Reminder sweep failed'
     };
     return labels[type] || 'Activity';
   }
@@ -7945,6 +7962,13 @@
     return Boolean(task?.reminder_sent_at || Number(task?.reminder_count || 0) > 0 || metadata.last_manual_reminder?.ok === true);
   }
 
+  function taskReminderSentLast24(task) {
+    if (!task?.reminder_sent_at) return false;
+    const sent = leadDateValue(task.reminder_sent_at);
+    if (!sent) return false;
+    return Date.now() - sent.getTime() < 24 * 60 * 60 * 1000;
+  }
+
   function taskReminderFailed(task) {
     const metadata = leadTaskMetadata(task);
     return Boolean(task?.last_reminder_error || metadata.last_manual_reminder?.ok === false);
@@ -7974,6 +7998,15 @@
     if (code === '42703' && (raw.includes('reminder') || raw.includes('automation_source'))) return true;
     if (raw.includes('cms_lead_tasks') && raw.includes('schema cache') && (raw.includes('reminder') || raw.includes('automation_source'))) return true;
     if (raw.includes('column') && raw.includes('does not exist') && (raw.includes('reminder') || raw.includes('automation_source'))) return true;
+    return false;
+  }
+
+  function isMissingReminderRunsTableError(error) {
+    const raw = getAuthErrorText(error);
+    const code = String(error?.code || '');
+    if (code === '42P01') return true;
+    if (raw.includes('cms_crm_reminder_runs') && (raw.includes('schema cache') || raw.includes('not found'))) return true;
+    if (raw.includes('relation') && raw.includes('cms_crm_reminder_runs') && raw.includes('does not exist')) return true;
     return false;
   }
 
@@ -8057,6 +8090,30 @@
       }
     }
     leadTasksLoading = false;
+  }
+
+  async function loadReminderRuns() {
+    if (!supabaseClient || !currentUser || !adminProfile || reminderRunsUnavailable) return;
+    reminderRunsLoading = true;
+    reminderRunsError = '';
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_crm_reminder_runs')
+        .select(REMINDER_RUN_SELECT)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      reminderRuns = Array.isArray(data) ? data : [];
+    } catch (error) {
+      reminderRuns = [];
+      if (isMissingReminderRunsTableError(error)) {
+        reminderRunsUnavailable = true;
+        reminderRunsError = 'Run Phase 29 SQL patch to enable reminder runs.';
+      } else {
+        reminderRunsError = classifySupabaseError(error);
+      }
+    }
+    reminderRunsLoading = false;
   }
 
   async function logLeadTaskActivity(task, activityType, extra = {}) {
@@ -8192,6 +8249,35 @@
       await Promise.all([loadLeadTasks(), loadLeadActivities(), loadNotificationLogs()]);
     } catch (error) {
       leadTaskReminderState = { id: taskId, status: 'error', message: classifySupabaseError(error) };
+    }
+    renderDashboard();
+  }
+
+  async function runReminderSweep() {
+    if (!canAdminEdit() || !supabaseClient || !currentUser) return;
+    if (reminderRunsUnavailable) {
+      reminderSweepState = { status: 'error', message: 'Run the Phase 29 SQL patch before running sweeps.' };
+      renderDashboard();
+      return;
+    }
+    reminderSweepState = { status: 'saving', message: 'Running reminder sweep...' };
+    renderDashboard();
+    try {
+      if (!supabaseClient.functions || typeof supabaseClient.functions.invoke !== 'function') {
+        throw new Error('Supabase Functions are not available in this client.');
+      }
+      const { data, error } = await supabaseClient.functions.invoke('crm-reminder-sweep', {
+        body: { manual: true }
+      });
+      if (error) throw error;
+      if (data && data.ok === false) throw new Error(data.error || 'Reminder sweep failed.');
+      const sent = Number(data?.total_sent || 0);
+      const skipped = Number(data?.total_skipped || 0);
+      const failed = Number(data?.total_failed || 0);
+      reminderSweepState = { status: 'saved', message: `Sweep complete. Sent ${sent}, skipped ${skipped}, failed ${failed}.` };
+      await Promise.all([loadLeadTasks(), loadLeadActivities(), loadNotificationLogs(), loadReminderRuns()]);
+    } catch (error) {
+      reminderSweepState = { status: 'error', message: classifySupabaseError(error) };
     }
     renderDashboard();
   }
@@ -8407,7 +8493,7 @@
       priority: priority === 'all' || LEAD_PIPELINE_PRIORITIES.includes(priority) ? priority : 'all',
       assigned: String(assigned || '').trim().slice(0, 120),
       due: ['all', 'overdue', 'today', 'upcoming', 'none'].includes(due) ? due : 'all',
-      automation: ['all', 'automation', 'manual', 'reminder-sent', 'reminder-failed'].includes(automation) ? automation : 'all'
+      automation: ['all', 'automation', 'manual', 'reminder-sent', 'reminder-sent-24h', 'reminder-failed', 'never-reminded'].includes(automation) ? automation : 'all'
     };
   }
 
@@ -8424,7 +8510,9 @@
     if (filters.automation === 'automation' && !taskIsAutomationCreated(task)) return false;
     if (filters.automation === 'manual' && taskIsAutomationCreated(task)) return false;
     if (filters.automation === 'reminder-sent' && !taskReminderSent(task)) return false;
+    if (filters.automation === 'reminder-sent-24h' && !taskReminderSentLast24(task)) return false;
     if (filters.automation === 'reminder-failed' && !taskReminderFailed(task)) return false;
+    if (filters.automation === 'never-reminded' && taskReminderSent(task)) return false;
     return true;
   }
 
@@ -8440,7 +8528,8 @@
       remindersSent: tasks.filter(taskReminderSent).length,
       reminderFailures: tasks.filter(taskReminderFailed).length,
       automated: tasks.filter(taskIsAutomationCreated).length,
-      noDueDate: open.filter(task => taskDueState(task) === 'none').length
+      noDueDate: open.filter(task => taskDueState(task) === 'none').length,
+      reminderSent24h: tasks.filter(taskReminderSentLast24).length
     };
   }
 
@@ -8455,7 +8544,8 @@
       ['Reminders sent', summary.remindersSent],
       ['Reminder failures', summary.reminderFailures],
       ['Automation-created', summary.automated],
-      ['No due date', summary.noDueDate]
+      ['No due date', summary.noDueDate],
+      ['Sent last 24h', summary.reminderSent24h]
     ];
     return `<div class="gv-task-summary">${cards.map(([label, value]) => `<div class="gv-task-summary-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join('')}</div>`;
   }
@@ -8477,7 +8567,9 @@
       ['automation', 'Automation-created'],
       ['manual', 'Manual tasks'],
       ['reminder-sent', 'Reminder sent'],
-      ['reminder-failed', 'Reminder failed']
+      ['reminder-sent-24h', 'Sent last 24h'],
+      ['reminder-failed', 'Reminder failed'],
+      ['never-reminded', 'Never reminded']
     ].map(([value, label]) => option(value, label, filters.automation === value)).join('');
     return `<div class="gv-task-filters" data-task-filters>
       <label><span>Status</span><select data-task-filter-status>${statusOptions}</select></label>
@@ -8488,6 +8580,79 @@
       <button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--mint" data-admin-action="tasks-filter-apply">Apply</button>
       <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="tasks-filter-reset">Reset</button>
     </div>`;
+  }
+
+  function reminderRunStatusLabel(status) {
+    const labels = {
+      started: 'Started',
+      completed: 'Completed',
+      completed_with_errors: 'Completed with errors',
+      failed: 'Failed'
+    };
+    return labels[status] || 'Unknown';
+  }
+
+  function nextRecommendedSweepText(lastRun) {
+    if (!lastRun?.finished_at && !lastRun?.started_at) return 'Recommended: run once each morning.';
+    const base = leadDateValue(lastRun.finished_at || lastRun.started_at);
+    if (!base) return 'Recommended: run once each morning.';
+    const next = new Date(base.getTime() + 24 * 60 * 60 * 1000);
+    return `Next recommended: ${next.toLocaleString()}`;
+  }
+
+  function renderReminderAutomationPanel(summary) {
+    const canRun = canAdminEdit();
+    const lastRun = reminderRuns[0] || null;
+    const sweepMsg = reminderSweepState.message
+      ? `<span class="gv-task-save-state gv-task-save-state--${escapeHtml(reminderSweepState.status)}">${escapeHtml(reminderSweepState.message)}</span>`
+      : '';
+    const runDisabled = reminderSweepState.status === 'saving';
+    const lastRunHtml = lastRun
+      ? `<div class="gv-reminder-run-current">
+          <span>${escapeHtml(lastRun.run_type || 'manual')}</span>
+          <strong>${escapeHtml(reminderRunStatusLabel(lastRun.status))}</strong>
+          <small>${escapeHtml(formatLeadDateTime(lastRun.started_at))}</small>
+          <small>Sent ${escapeHtml(lastRun.total_sent || 0)} / skipped ${escapeHtml(lastRun.total_skipped || 0)} / failed ${escapeHtml(lastRun.total_failed || 0)}</small>
+          ${lastRun.error_message ? `<small class="is-error">${escapeHtml(String(lastRun.error_message).slice(0, 180))}</small>` : ''}
+        </div>`
+      : '<div class="gv-task-empty">No reminder sweeps yet.</div>';
+    const runsWarning = reminderRunsUnavailable
+      ? '<div class="gv-task-empty">Run Phase 29 SQL patch to enable reminder runs.</div>'
+      : reminderRunsError
+        ? `<div class="gv-task-empty">${escapeHtml(reminderRunsError)}</div>`
+        : '';
+    const recentRuns = reminderRuns.length
+      ? reminderRuns.slice(0, 6).map(run => `<div class="gv-reminder-run-row">
+          <span>${escapeHtml(run.run_type || 'manual')}</span>
+          <strong>${escapeHtml(reminderRunStatusLabel(run.status))}</strong>
+          <span>${escapeHtml(formatLeadDateTime(run.started_at))}</span>
+          <span>${escapeHtml(run.total_sent || 0)} sent</span>
+          <span>${escapeHtml(run.total_skipped || 0)} skipped</span>
+          <span>${escapeHtml(run.total_failed || 0)} failed</span>
+        </div>`).join('')
+      : '';
+    return `<section class="gv-reminder-automation-panel">
+      <div class="gv-reminder-panel-head">
+        <div>
+          <span class="gv-admin-pill">Reminder automation</span>
+          <strong>${escapeHtml(nextRecommendedSweepText(lastRun))}</strong>
+        </div>
+        <div class="gv-task-actions">
+          ${canRun && !reminderRunsUnavailable ? `<button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--mint" data-admin-action="reminder-sweep-run"${runDisabled ? ' disabled' : ''}>${runDisabled ? 'Running...' : 'Run Reminder Sweep'}</button>` : ''}
+          ${canRun ? '' : '<span class="gv-lead-pipeline-readonly">Viewer mode</span>'}
+          ${sweepMsg}
+        </div>
+      </div>
+      <div class="gv-reminder-panel-metrics">
+        <span><strong>${escapeHtml(summary.overdue)}</strong> overdue</span>
+        <span><strong>${escapeHtml(summary.today)}</strong> due today</span>
+        <span><strong>${escapeHtml(summary.reminderSent24h)}</strong> sent last 24h</span>
+        <span><strong>${escapeHtml(summary.reminderFailures)}</strong> failures</span>
+      </div>
+      ${runsWarning}
+      ${lastRunHtml}
+      ${recentRuns ? `<div class="gv-reminder-run-list">${recentRuns}</div>` : ''}
+    </section>`;
   }
 
   function renderTasksTab() {
@@ -8511,6 +8676,7 @@
       </div>
       ${warning}
       ${renderTaskSummaryCards(summary)}
+      ${renderReminderAutomationPanel(summary)}
       ${renderTaskFilters()}
       <div class="gv-task-list gv-task-list--global">${rows}</div>
     </div>`;

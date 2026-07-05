@@ -2971,6 +2971,75 @@ body.gv-cms-loading [data-edit-key] {
 .gv-task-save-state--saving { color: rgba(97,191,255,0.95); }
 .gv-task-save-state--saved { color: #86efac; }
 .gv-task-save-state--error { color: #fca5a5; }
+.gv-reminder-automation-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 7px;
+  background: rgba(0,0,0,0.14);
+}
+.gv-reminder-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.gv-reminder-panel-head > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+.gv-reminder-panel-head strong {
+  color: rgba(255,255,255,0.70);
+  font-size: 12px;
+}
+.gv-reminder-panel-metrics,
+.gv-reminder-run-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.gv-reminder-panel-metrics span,
+.gv-reminder-run-row,
+.gv-reminder-run-current {
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.035);
+}
+.gv-reminder-panel-metrics span {
+  padding: 6px 8px;
+  color: rgba(255,255,255,0.46);
+  font-size: 11px;
+}
+.gv-reminder-panel-metrics strong {
+  color: var(--gv-admin-ink);
+}
+.gv-reminder-run-current {
+  display: grid;
+  gap: 3px;
+  padding: 9px;
+}
+.gv-reminder-run-current span,
+.gv-reminder-run-current small,
+.gv-reminder-run-row span {
+  color: rgba(255,255,255,0.45);
+  font-size: 11px;
+}
+.gv-reminder-run-current strong,
+.gv-reminder-run-row strong {
+  color: var(--gv-admin-ink);
+  font-size: 12px;
+}
+.gv-reminder-run-current .is-error {
+  color: #fca5a5;
+}
+.gv-reminder-run-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 7px 8px;
+}
 .gv-lead-tasks--readonly input,
 .gv-lead-tasks--readonly select,
 .gv-lead-tasks--readonly textarea {
