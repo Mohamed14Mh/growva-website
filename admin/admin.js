@@ -202,6 +202,70 @@
     return 'Operation failed. Add ?cmsDebug=true to the URL for technical details.';
   }
 
+  function getAuthErrorText(error) {
+    if (!error) return '';
+    return [
+      error.name,
+      error.message,
+      error.error,
+      error.error_description,
+      error.details,
+      error.hint,
+      error.code,
+      error.status
+    ].filter(Boolean).join(' ').toLowerCase();
+  }
+
+  function isRevokedOrInvalidAuthSessionError(error) {
+    const raw = getAuthErrorText(error);
+    if (!raw) return false;
+    if (raw.includes('authapierror')) return true;
+    if (raw.includes('refresh token') && (raw.includes('revoked') || raw.includes('invalid') || raw.includes('not found') || raw.includes('already used'))) return true;
+    if (raw.includes('invalid refresh token') || raw.includes('refresh token revoked')) return true;
+    if (raw.includes('invalid_grant') || raw.includes('auth session missing') || raw.includes('session missing')) return true;
+    if ((raw.includes('jwt') || raw.includes('session')) && (raw.includes('expired') || raw.includes('invalid') || raw.includes('refresh'))) return true;
+    return false;
+  }
+
+  function clearSupabaseAuthStorage() {
+    [window.localStorage, window.sessionStorage].forEach(storage => {
+      if (!storage) return;
+      try {
+        Object.keys(storage)
+          .filter(key => key.includes('supabase') || key.startsWith('sb-'))
+          .forEach(key => storage.removeItem(key));
+      } catch (error) {
+        logCmsDebug('supabase-auth-storage-clear-failed');
+      }
+    });
+  }
+
+  function resetAdminAuthState(label = 'Logged out') {
+    currentUser = null;
+    adminProfile = null;
+    if (supabaseClient && supabaseState.configured && !supabaseState.unsafeKey) {
+      supabaseState.failed = false;
+      supabaseState.ready = true;
+    }
+    supabaseState.label = label;
+    if (adminRoot) updateTopbar();
+  }
+
+  function handleAdminAuthSessionFailure(error, context = 'auth-session-check') {
+    if (isRevokedOrInvalidAuthSessionError(error)) clearSupabaseAuthStorage();
+    resetAdminAuthState('Logged out');
+    if (cmsDebug) {
+      console.info('[GROWVA CMS Auth]', {
+        context,
+        treated_as_logged_out: true,
+        stale_auth_storage_cleared: isRevokedOrInvalidAuthSessionError(error),
+        error_name: error?.name || null,
+        error_message: error?.message || String(error || '')
+      });
+    }
+    return false;
+  }
+
   function getRoleAccessBanner(context) {
     const role = getAdminRole();
     if (!role) return '';
@@ -348,15 +412,13 @@
     if (!supabaseClient || !supabaseClient.auth || typeof supabaseClient.auth.onAuthStateChange !== 'function') return;
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT' || !session) {
-        currentUser = null;
-        adminProfile = null;
-        supabaseState.label = 'Logged out';
+        resetAdminAuthState('Logged out');
         if (document.body.classList.contains('admin-mode')) exitAdminMode();
         updateTopbar();
         return;
       }
       if (session.user) {
-        await loadAdminProfile(session.user);
+        await loadAdminProfile(session.user).catch(error => handleAdminAuthSessionFailure(error, 'auth-state-profile-check'));
         updateTopbar();
       }
     });
@@ -464,10 +526,11 @@
   }
 
   function ensureRoot() {
-    if (adminRoot) return adminRoot;
+    if (adminRoot && document.body.contains(adminRoot)) return adminRoot;
     adminRoot = document.createElement('div');
-    adminRoot.className = 'gv-admin-root';
+    adminRoot.className = 'gv-admin-root gv-admin-shell';
     adminRoot.dataset.adminUi = 'true';
+    adminRoot.dataset.adminShell = 'true';
     adminRoot.setAttribute('data-lenis-prevent', '');
     document.body.appendChild(adminRoot);
     buildModal();
@@ -552,6 +615,7 @@
   function buildPanel() {
     panel = document.createElement('aside');
     panel.className = 'gv-admin-panel';
+    panel.dataset.adminPanel = 'true';
     panel.setAttribute('aria-label', 'GROWVA admin inspector');
     panel.innerHTML = `
       <div class="gv-admin-panel-head">
@@ -720,7 +784,10 @@
     ensureRoot();
     logAdminEntryDebug('admin-entry-click', trigger, 'checking-session', sourceEvent);
     try {
-      if (await hasActiveAdminSession()) {
+      const hasSession = currentUser && adminProfile
+        ? true
+        : await withTimeout(hasActiveAdminSession(), 2500, false);
+      if (hasSession) {
         await enterAdminMode();
         logAdminEntryDebug('admin-entry-action', trigger, 'enter-admin', sourceEvent);
       } else {
@@ -729,9 +796,10 @@
       }
     } catch (error) {
       openModal();
-      logAdminEntryDebug('admin-entry-action', trigger, 'fallback-login-modal', sourceEvent, { error: error.message });
+      logAdminEntryDebug('admin-entry-action', trigger, 'fallback-login-modal', sourceEvent, { error: error?.message || String(error || '') });
     } finally {
       setAdminEntryLoading(trigger, false);
+      clearAdminEntryLoadingState();
       adminEntryInFlight = false;
     }
   }
@@ -739,7 +807,25 @@
   function setAdminEntryLoading(trigger, active) {
     if (!trigger) return;
     trigger.classList.toggle('is-admin-loading', Boolean(active));
-    trigger.setAttribute('aria-busy', active ? 'true' : 'false');
+    if (active) trigger.setAttribute('aria-busy', 'true');
+    else trigger.removeAttribute('aria-busy');
+  }
+
+  function clearAdminEntryLoadingState() {
+    $all('[data-admin-entry], [data-admin-action="open-admin"]').forEach(trigger => {
+      trigger.classList.remove('is-admin-loading');
+      trigger.removeAttribute('aria-busy');
+    });
+  }
+
+  function withTimeout(promise, timeoutMs, fallbackValue) {
+    let timer = null;
+    const timeout = new Promise(resolve => {
+      timer = setTimeout(() => resolve(fallbackValue), timeoutMs);
+    });
+    return Promise.race([promise, timeout]).finally(() => {
+      if (timer) clearTimeout(timer);
+    });
   }
 
   function closePublicMobileNav() {
@@ -785,10 +871,12 @@
     try {
       sessionResult = await supabaseClient.auth.getSession();
     } catch (error) {
+      if (isRevokedOrInvalidAuthSessionError(error)) return handleAdminAuthSessionFailure(error, 'get-session');
       markConnectionFailed();
       return false;
     }
     if (sessionResult && sessionResult.error) {
+      if (isRevokedOrInvalidAuthSessionError(sessionResult.error)) return handleAdminAuthSessionFailure(sessionResult.error, 'get-session-result');
       markConnectionFailed();
       return false;
     }
@@ -799,25 +887,46 @@
         sessionResult = await supabaseClient.auth.getSession();
         session = sessionResult && sessionResult.data ? sessionResult.data.session : null;
       } catch (error) {
+        if (isRevokedOrInvalidAuthSessionError(error)) return handleAdminAuthSessionFailure(error, 'get-session-retry');
+        markConnectionFailed();
+        return false;
+      }
+      if (sessionResult && sessionResult.error) {
+        if (isRevokedOrInvalidAuthSessionError(sessionResult.error)) return handleAdminAuthSessionFailure(sessionResult.error, 'get-session-retry-result');
         markConnectionFailed();
         return false;
       }
     }
-    if (!session || !session.user) return false;
-    return loadAdminProfile(session.user);
+    if (!session || !session.user) {
+      resetAdminAuthState('Logged out');
+      return false;
+    }
+    try {
+      return await loadAdminProfile(session.user);
+    } catch (error) {
+      if (isRevokedOrInvalidAuthSessionError(error)) return handleAdminAuthSessionFailure(error, 'profile-session-check');
+      markConnectionFailed();
+      return false;
+    }
   }
 
   async function loadAdminProfile(user) {
     if (!supabaseClient || !user) return false;
-    const { data, error } = await supabaseClient
-      .from('admin_profiles')
-      .select('id,email,role')
-      .eq('id', user.id)
-      .maybeSingle();
+    let data = null;
+    let error = null;
+    try {
+      ({ data, error } = await supabaseClient
+        .from('admin_profiles')
+        .select('id,email,role')
+        .eq('id', user.id)
+        .maybeSingle());
+    } catch (profileError) {
+      if (isRevokedOrInvalidAuthSessionError(profileError)) return handleAdminAuthSessionFailure(profileError, 'profile-query');
+      throw profileError;
+    }
+    if (error && isRevokedOrInvalidAuthSessionError(error)) return handleAdminAuthSessionFailure(error, 'profile-query-result');
     if (error || !data || !['owner', 'editor', 'viewer'].includes(data.role)) {
-      currentUser = null;
-      adminProfile = null;
-      supabaseState.label = 'Logged out';
+      resetAdminAuthState('Logged out');
       return false;
     }
     currentUser = user;
@@ -2932,6 +3041,8 @@
       trigger.dataset.adminUi = 'true';
       trigger.setAttribute('role', trigger.tagName === 'A' ? 'button' : trigger.getAttribute('role') || 'button');
       trigger.setAttribute('tabindex', trigger.getAttribute('tabindex') || '0');
+      trigger.classList.remove('is-admin-loading');
+      trigger.removeAttribute('aria-busy');
     });
   }
 
@@ -7454,6 +7565,7 @@
 
     ensureEntryButtonsAreSafe();
     bindEntryEvents();
+    ensureRoot();
     captureOriginalValues();
     initSupabase();
     setupAuthStateListener();
@@ -7470,7 +7582,13 @@
     await loadPublishedCustomSections();
     await applyPublishedSectionSettings();
     logCmsDebug('boot');
-    if (await hasActiveAdminSession()) {
+    let hasBootSession = false;
+    try {
+      hasBootSession = await withTimeout(hasActiveAdminSession(), 2500, false);
+    } catch (error) {
+      hasBootSession = false;
+    }
+    if (hasBootSession) {
       await loadPublishedEdits();
       await applyPublishedImageEdits();
       await applyPublishedDesignTokens();
