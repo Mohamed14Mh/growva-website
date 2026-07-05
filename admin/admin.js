@@ -232,12 +232,19 @@
       if (!storage) return;
       try {
         Object.keys(storage)
-          .filter(key => key.includes('supabase') || key.startsWith('sb-'))
+          .filter(key =>
+            key.startsWith('sb-') ||
+            key.includes('supabase.auth') ||
+            key.includes('supabase') ||
+            key.includes('growva_admin_session') ||
+            key.includes('growva_admin')
+          )
           .forEach(key => storage.removeItem(key));
-      } catch (error) {
-        logCmsDebug('supabase-auth-storage-clear-failed');
+      } catch (_) {
+        // ignore — storage may be unavailable in some contexts
       }
     });
+    if (cmsDebug) console.info('[GROWVA Admin] stale auth cleared');
   }
 
   function resetAdminAuthState(label = 'Logged out') {
@@ -248,6 +255,14 @@
       supabaseState.ready = true;
     }
     supabaseState.label = label;
+    // Reset login button if it is stuck in a "Signing in..." state
+    try {
+      const submit = modal && $('[data-admin-login-form] button[type="submit"]', modal);
+      if (submit && submit.disabled) {
+        submit.textContent = 'Enter Admin Mode';
+        submit.disabled = false;
+      }
+    } catch (_) {}
     if (adminRoot) updateTopbar();
   }
 
@@ -786,15 +801,19 @@
     try {
       const hasSession = currentUser && adminProfile
         ? true
-        : await withTimeout(hasActiveAdminSession(), 2500, false);
+        : await withTimeout(hasActiveAdminSession(), 5000, false);
       if (hasSession) {
         await enterAdminMode();
         logAdminEntryDebug('admin-entry-action', trigger, 'enter-admin', sourceEvent);
       } else {
+        // No valid session — clear any stale Supabase auth tokens so they cannot
+        // block the Supabase client's internal lock during the next signInWithPassword call.
+        clearSupabaseAuthStorage();
         openModal();
         logAdminEntryDebug('admin-entry-action', trigger, 'login-modal', sourceEvent);
       }
     } catch (error) {
+      clearSupabaseAuthStorage();
       openModal();
       logAdminEntryDebug('admin-entry-action', trigger, 'fallback-login-modal', sourceEvent, { error: error?.message || String(error || '') });
     } finally {
@@ -880,25 +899,21 @@
       markConnectionFailed();
       return false;
     }
-    let session = sessionResult && sessionResult.data ? sessionResult.data.session : null;
-    for (let attempt = 0; !session && attempt < 6; attempt += 1) {
-      await new Promise(resolve => setTimeout(resolve, 250));
-      try {
-        sessionResult = await supabaseClient.auth.getSession();
-        session = sessionResult && sessionResult.data ? sessionResult.data.session : null;
-      } catch (error) {
-        if (isRevokedOrInvalidAuthSessionError(error)) return handleAdminAuthSessionFailure(error, 'get-session-retry');
-        markConnectionFailed();
-        return false;
-      }
-      if (sessionResult && sessionResult.error) {
-        if (isRevokedOrInvalidAuthSessionError(sessionResult.error)) return handleAdminAuthSessionFailure(sessionResult.error, 'get-session-retry-result');
-        markConnectionFailed();
-        return false;
-      }
-    }
+    const session = sessionResult && sessionResult.data ? sessionResult.data.session : null;
     if (!session || !session.user) {
       resetAdminAuthState('Logged out');
+      return false;
+    }
+    // Verify the session token is still valid server-side (catches stale/expired JWTs)
+    try {
+      const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+      if (userError || !userData || !userData.user) {
+        if (cmsDebug) console.info('[GROWVA Admin] auth restore timeout or invalid user — clearing stale auth');
+        return handleAdminAuthSessionFailure(userError || new Error('No user returned'), 'get-user-verify');
+      }
+    } catch (error) {
+      if (isRevokedOrInvalidAuthSessionError(error)) return handleAdminAuthSessionFailure(error, 'get-user-verify');
+      markConnectionFailed();
       return false;
     }
     try {
@@ -964,28 +979,58 @@
     const submit = $('[data-admin-login-form] button[type="submit"]', modal);
     submit.textContent = 'Signing in...';
     submit.disabled = true;
-    let data = null;
-    let authError = null;
+    let loginOpened = false;
     try {
-      ({ data, error: authError } = await supabaseClient.auth.signInWithPassword({ email, password }));
-    } catch (error) {
-      authError = error;
-      markConnectionFailed();
+      let data = null;
+      let authError = null;
+      const SIGN_IN_TIMEOUT_MS = 8000;
+      const timeoutError = new Error('Authentication timed out. Please try again.');
+      let signInResult = null;
+      try {
+        signInResult = await withTimeout(
+          supabaseClient.auth.signInWithPassword({ email, password }),
+          SIGN_IN_TIMEOUT_MS,
+          { data: null, error: timeoutError }
+        );
+        ({ data, error: authError } = signInResult);
+      } catch (err) {
+        authError = err;
+        markConnectionFailed();
+      }
+      if (authError || !data || !data.user) {
+        const isTimeout = authError === timeoutError || (authError && authError.message && authError.message.includes('timed out'));
+        if (isTimeout) {
+          if (cmsDebug) console.info('[GROWVA Admin] auth restore timeout');
+          setLoginError('Authentication timed out. Please try again.');
+        } else if (isRevokedOrInvalidAuthSessionError(authError)) {
+          clearSupabaseAuthStorage();
+          setLoginError('Session is invalid. Please try again.');
+        } else {
+          setLoginError('Could not sign in with those Supabase credentials.');
+        }
+        return;
+      }
+      let allowed = false;
+      try {
+        allowed = await withTimeout(loadAdminProfile(data.user), 5000, false);
+      } catch (_) {
+        allowed = false;
+      }
+      if (!allowed) {
+        if (cmsDebug) console.info('[GROWVA Admin] profile missing');
+        try { await supabaseClient.auth.signOut(); } catch (_) {}
+        setLoginError('This account is not configured as a CMS admin.');
+        return;
+      }
+      loginOpened = true;
+      closeModal();
+      enterAdminMode();
+    } finally {
+      if (!loginOpened) {
+        submit.textContent = 'Enter Admin Mode';
+        submit.disabled = false;
+      }
     }
-    submit.textContent = 'Enter Admin Mode';
-    submit.disabled = false;
-    if (authError || !data || !data.user) {
-      setLoginError('Could not sign in with those Supabase credentials.');
-      return;
-    }
-    const allowed = await loadAdminProfile(data.user);
-    if (!allowed) {
-      await supabaseClient.auth.signOut();
-      setLoginError('This user is not listed in admin_profiles.');
-      return;
-    }
-    closeModal();
-    enterAdminMode();
   }
 
   function setLoginError(message) {
@@ -9501,7 +9546,7 @@
     logCmsDebug('boot');
     let hasBootSession = false;
     try {
-      hasBootSession = await withTimeout(hasActiveAdminSession(), 2500, false);
+      hasBootSession = await withTimeout(hasActiveAdminSession(), 10000, false);
     } catch (error) {
       hasBootSession = false;
     }
