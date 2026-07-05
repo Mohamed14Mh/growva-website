@@ -1029,18 +1029,30 @@
     if (dashboardTab === 'visual') setTimeout(bindVisualControlEvents, 0);
     if (dashboardTab === 'sections') setTimeout(bindSectionManagerEvents, 0);
     if (dashboardTab === 'builder') setTimeout(bindSectionBuilderEvents, 0);
-    // Phase 19/21/26: load leads, notifications, and activity on CRM tabs
+    // Phase 19/21/26/27: load leads, notifications, activity, and tasks on CRM tabs
     if (dashboardTab === 'leads' && leadsData.length === 0 && !leadsLoading) {
-      Promise.all([loadLeads(), loadNotificationLogs(), loadLeadActivities()]).then(() => renderDashboard());
+      Promise.all([loadLeads(), loadNotificationLogs(), loadLeadActivities(), loadLeadTasks()]).then(() => renderDashboard());
     }
     if (dashboardTab === 'leads' && leadsData.length && !leadActivitiesLoading && !leadActivities.length && !leadActivitiesUnavailable) {
       loadLeadActivities().then(() => renderDashboard());
     }
+    if (dashboardTab === 'leads' && leadsData.length && !leadTasksLoading && !leadTasks.length && !leadTasksUnavailable) {
+      loadLeadTasks().then(() => renderDashboard());
+    }
     if (dashboardTab === 'pipeline' && leadsData.length === 0 && !leadsLoading) {
-      Promise.all([loadLeads(), loadLeadActivities()]).then(() => renderDashboard());
+      Promise.all([loadLeads(), loadLeadActivities(), loadLeadTasks()]).then(() => renderDashboard());
     }
     if (dashboardTab === 'pipeline' && leadsData.length && !leadActivitiesLoading && !leadActivities.length && !leadActivitiesUnavailable) {
       loadLeadActivities().then(() => renderDashboard());
+    }
+    if (dashboardTab === 'pipeline' && leadsData.length && !leadTasksLoading && !leadTasks.length && !leadTasksUnavailable) {
+      loadLeadTasks().then(() => renderDashboard());
+    }
+    if (dashboardTab === 'tasks' && leadsData.length === 0 && !leadsLoading) {
+      Promise.all([loadLeads(), loadLeadTasks(), loadLeadActivities()]).then(() => renderDashboard());
+    }
+    if (dashboardTab === 'tasks' && leadsData.length && !leadTasksLoading && !leadTasks.length && !leadTasksUnavailable) {
+      loadLeadTasks().then(() => renderDashboard());
     }
     if (dashboardTab === 'lead-insights' && leadsData.length === 0 && !leadsLoading) {
       loadLeads().then(() => renderDashboard());
@@ -1113,6 +1125,7 @@
       ['builder', 'Section Builder'],
       ['leads', 'Leads'],
       ['pipeline', 'Pipeline'],
+      ['tasks', 'Tasks'],
       ['lead-insights', 'Lead Insights'],
       ['notifications', 'Notifications'],
     ];
@@ -1138,6 +1151,7 @@
     if (dashboardTab === 'builder') return renderSectionBuilderTab();
     if (dashboardTab === 'leads') return renderLeadsTab();
     if (dashboardTab === 'pipeline') return renderPipelineTab();
+    if (dashboardTab === 'tasks') return renderTasksTab();
     if (dashboardTab === 'lead-insights') return renderLeadInsightsTab();
     if (dashboardTab === 'notifications') return renderNotificationsTab();
     return renderOverviewTab();
@@ -1147,6 +1161,7 @@
     const registry = getRegistry();
     const lastPublish = dashboardPublishRows[0]?.created_at || 'No publish log yet';
     const staleCount = getStaleDraftCount();
+    const taskSummary = leadTasks.length ? getTaskSummary(leadTasks) : null;
     return `
       <div class="gv-admin-dashboard-grid">
         ${renderMetricCard('Page path', pagePath)}
@@ -1163,6 +1178,8 @@
         ${renderMetricCard('Top source', leadsData.length ? getLeadInsights().topSource : '-')}
         ${renderMetricCard('Notification health', notificationLogs.length ? getNotificationAnalytics().healthLabel : '—')}
         ${renderMetricCard('Failed notifications', notificationLogs.length ? getNotificationAnalytics().problemTotal : '—')}
+        ${renderMetricCard('Overdue tasks', taskSummary ? taskSummary.overdue : '-')}
+        ${renderMetricCard('Tasks due today', taskSummary ? taskSummary.today : '-')}
       </div>
       ${staleCount > 0 ? `<div class="gv-admin-stale-warning">⚠ ${staleCount} draft(s) are older than 7 days. Review carefully before publishing. <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="dashboard-tab" data-dashboard-tab="compare">View Draft Compare</button></div>` : ''}
       ${isLocalFileMode() ? '<div class="gv-admin-warning">For best CMS behavior, use Live Server or a deployed URL.</div>' : ''}
@@ -2053,7 +2070,7 @@
       if (selectedElement && canAdminEdit()) saveVisualStyleDraft(selectedElement);
     }
     // Phase 19: Leads tab actions
-    if (action === 'leads-refresh') { Promise.all([loadLeads(), loadNotificationLogs(), loadLeadActivities()]).then(() => renderDashboard()); }
+    if (action === 'leads-refresh') { Promise.all([loadLeads(), loadNotificationLogs(), loadLeadActivities(), loadLeadTasks()]).then(() => renderDashboard()); }
     if (action === 'leads-filter') {
       leadsFilter = actionElement.dataset.leadsFilter || 'all';
       renderDashboard();
@@ -2087,7 +2104,30 @@
       if (lid) {
         dashboardTab = 'leads';
         leadsExpanded = lid;
-        Promise.all([loadLeadActivities(), loadNotificationLogs()]).then(() => renderDashboard());
+        Promise.all([loadLeadActivities(), loadNotificationLogs(), loadLeadTasks()]).then(() => renderDashboard());
+        renderDashboard();
+      }
+    }
+    if (action === 'lead-task-create') {
+      createLeadTask(actionElement.dataset.leadId, actionElement.closest('[data-lead-task-form]'));
+    }
+    if (action === 'lead-task-complete') completeLeadTask(actionElement.dataset.taskId);
+    if (action === 'lead-task-cancel') cancelLeadTask(actionElement.dataset.taskId);
+    if (action === 'lead-task-reopen') reopenLeadTask(actionElement.dataset.taskId);
+    if (action === 'tasks-filter-apply') {
+      applyLeadTaskFiltersFromDom();
+      renderDashboard();
+    }
+    if (action === 'tasks-filter-reset') {
+      resetLeadTaskFilters();
+      renderDashboard();
+    }
+    if (action === 'task-open-lead') {
+      const lid = actionElement.dataset.leadId;
+      if (lid) {
+        dashboardTab = 'leads';
+        leadsExpanded = lid;
+        Promise.all([loadLeadActivities(), loadNotificationLogs(), loadLeadTasks()]).then(() => renderDashboard());
         renderDashboard();
       }
     }
@@ -6420,6 +6460,12 @@
     high: 'High',
     urgent: 'Urgent'
   };
+  const LEAD_TASK_STATUSES = ['open', 'completed', 'cancelled'];
+  const LEAD_TASK_STATUS_LABELS = {
+    open: 'Open',
+    completed: 'Completed',
+    cancelled: 'Cancelled'
+  };
   let leadsData = [];
   let leadsLoading = false;
   let leadsExpanded = null;
@@ -6444,6 +6490,21 @@
   let leadActivities = [];
   let leadActivitiesLoading = false;
   let leadActivitiesUnavailable = false;
+  let leadTasks = [];
+  let leadTasksLoading = false;
+  let leadTasksError = '';
+  let leadTasksUnavailable = false;
+  let leadTaskSaveState = {
+    id: null,
+    status: 'idle',
+    message: ''
+  };
+  let leadTaskFilters = {
+    status: 'open',
+    priority: 'all',
+    assigned: '',
+    due: 'all'
+  };
   // Phase 20: test notification state
   let leadsNotifyState = 'idle'; // 'idle' | 'sending' | 'ok' | 'error'
   let leadsNotifyMsg = '';
@@ -7557,7 +7618,12 @@
       archived: 'Archived',
       unarchived: 'Unarchived',
       marked_read: 'Marked read',
-      marked_new: 'Marked new'
+      marked_new: 'Marked new',
+      task_created: 'Task created',
+      task_completed: 'Task completed',
+      task_cancelled: 'Task cancelled',
+      task_reopened: 'Task reopened',
+      task_updated: 'Task updated'
     };
     return labels[type] || 'Activity';
   }
@@ -7773,6 +7839,9 @@
       const stageLeads = filtered.filter(lead => normalizeLeadPipelineStage(lead.pipeline_stage) === stage);
       const cards = stageLeads.length ? stageLeads.map(lead => {
         const createdDate = lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short' }) : '';
+        const openTaskCount = openLeadTasksFor(lead.id).length;
+        const nextTask = nextOpenTaskForLead(lead.id);
+        const hasOverdueTask = leadHasOverdueTask(lead.id);
         return `<article class="gv-pipeline-card${lead.is_archived ? ' is-archived' : ''}">
           <div class="gv-pipeline-card-head">
             <strong>${escapeHtml(lead.name || lead.email || 'Lead')}</strong>
@@ -7785,6 +7854,7 @@
             ${lead.source ? `<span>${escapeHtml(lead.source)}</span>` : ''}
             ${createdDate ? `<span>${escapeHtml(createdDate)}</span>` : ''}
           </div>
+          ${openTaskCount ? `<div class="gv-pipeline-task-strip"><span class="${hasOverdueTask ? 'is-overdue' : ''}">${escapeHtml(openTaskCount)} open task${openTaskCount === 1 ? '' : 's'}</span>${nextTask ? `<span>Next: ${escapeHtml(formatLeadDateTime(nextTask.due_at))}</span>` : ''}</div>` : ''}
           ${lead.next_action ? `<p>${escapeHtml(String(lead.next_action).slice(0, 140))}${String(lead.next_action).length > 140 ? '...' : ''}</p>` : ''}
           <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="pipeline-open-lead" data-lead-id="${escapeHtml(lead.id)}">Open in Leads</button>
         </article>`;
@@ -7809,6 +7879,395 @@
       ${renderPipelineBoardSummary(summary)}
       ${renderPipelineBoardFilters()}
       <div class="gv-pipeline-columns">${columns}</div>
+    </div>`;
+  }
+
+  function normalizeLeadTaskStatus(value) {
+    const status = String(value || '').trim().toLowerCase();
+    return LEAD_TASK_STATUSES.includes(status) ? status : 'open';
+  }
+
+  function leadTaskStatusLabel(value) {
+    return LEAD_TASK_STATUS_LABELS[normalizeLeadTaskStatus(value)] || 'Open';
+  }
+
+  function taskDueState(task) {
+    const due = leadDateValue(task && task.due_at);
+    if (!due) return 'none';
+    if (normalizeLeadTaskStatus(task.status) !== 'open') return 'done';
+    const today = startOfLocalDay(new Date());
+    const dueDay = startOfLocalDay(due);
+    if (dueDay.getTime() < today.getTime()) return 'overdue';
+    if (dueDay.getTime() === today.getTime()) return 'today';
+    return 'upcoming';
+  }
+
+  function taskDueLabel(task) {
+    const state = taskDueState(task);
+    if (state === 'overdue') return 'Overdue';
+    if (state === 'today') return 'Due today';
+    if (state === 'upcoming') return 'Upcoming';
+    if (state === 'done') return 'Done';
+    return 'No due date';
+  }
+
+  function isMissingLeadTaskTableError(error) {
+    const raw = getAuthErrorText(error);
+    const code = String(error?.code || '');
+    if (code === '42P01') return true;
+    if (raw.includes('cms_lead_tasks') && (raw.includes('schema cache') || raw.includes('not found'))) return true;
+    if (raw.includes('relation') && raw.includes('cms_lead_tasks') && raw.includes('does not exist')) return true;
+    return false;
+  }
+
+  function leadTasksFor(leadId) {
+    return (leadTasks || []).filter(task => task.lead_id === leadId);
+  }
+
+  function openLeadTasksFor(leadId) {
+    return leadTasksFor(leadId).filter(task => normalizeLeadTaskStatus(task.status) === 'open');
+  }
+
+  function nextOpenTaskForLead(leadId) {
+    return openLeadTasksFor(leadId)
+      .slice()
+      .sort((a, b) => {
+        const ad = leadDateValue(a.due_at)?.getTime() || Number.MAX_SAFE_INTEGER;
+        const bd = leadDateValue(b.due_at)?.getTime() || Number.MAX_SAFE_INTEGER;
+        return ad - bd;
+      })[0] || null;
+  }
+
+  function leadHasOverdueTask(leadId) {
+    return openLeadTasksFor(leadId).some(task => taskDueState(task) === 'overdue');
+  }
+
+  function readLeadTaskPayload(form) {
+    if (!form) return null;
+    const field = name => $(`[data-task-field="${name}"]`, form);
+    const title = truncateLeadPipelineValue(field('title')?.value, 240);
+    if (!title) return null;
+    const priority = normalizeLeadPriority(field('priority')?.value);
+    return {
+      title,
+      description: truncateLeadPipelineValue(field('description')?.value, 2000),
+      priority,
+      assigned_to: truncateLeadPipelineValue(field('assigned_to')?.value, 160),
+      due_at: datetimeLocalToIso(field('due_at')?.value),
+      status: 'open',
+      metadata: { source: 'admin_dashboard', phase: 27 }
+    };
+  }
+
+  async function loadLeadTasks() {
+    if (!supabaseClient || !currentUser || !adminProfile || leadTasksUnavailable) return;
+    leadTasksLoading = true;
+    leadTasksError = '';
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_lead_tasks')
+        .select('id,lead_id,title,description,status,priority,assigned_to,due_at,completed_at,completed_by,created_by,created_by_email,updated_by,updated_by_email,metadata,created_at,updated_at')
+        .order('due_at', { ascending: true, nullsFirst: false })
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      leadTasks = Array.isArray(data) ? data : [];
+    } catch (error) {
+      leadTasks = [];
+      if (isMissingLeadTaskTableError(error)) {
+        leadTasksError = 'Tasks table is not available yet. Run the Phase 27 SQL patch.';
+        leadTasksUnavailable = true;
+      } else {
+        leadTasksError = classifySupabaseError(error);
+      }
+    }
+    leadTasksLoading = false;
+  }
+
+  async function logLeadTaskActivity(task, activityType, extra = {}) {
+    if (!task || !task.lead_id || !canAdminEdit()) return;
+    await insertLeadActivities([{
+      lead_id: task.lead_id,
+      actor_id: currentUser?.id || null,
+      actor_email: currentUser?.email || adminProfile?.email || null,
+      activity_type: activityType,
+      field_name: extra.field_name || 'task',
+      old_value: activityValue(extra.old_value),
+      new_value: activityValue(extra.new_value || task.title),
+      note: extra.note ? activityValue(extra.note) : null,
+      metadata: { source: 'admin_dashboard', phase: 27, task_id: task.id || null }
+    }]);
+  }
+
+  async function createLeadTask(leadId, form) {
+    if (!leadId || !canAdminEdit() || !supabaseClient || !currentUser) return;
+    const payload = readLeadTaskPayload(form);
+    if (!payload) {
+      leadTaskSaveState = { id: leadId, status: 'error', message: 'Task title is required.' };
+      renderDashboard();
+      return;
+    }
+    const insertPayload = Object.assign({}, payload, {
+      lead_id: leadId,
+      created_by: currentUser.id || null,
+      created_by_email: currentUser.email || adminProfile?.email || null,
+      updated_by: currentUser.id || null,
+      updated_by_email: currentUser.email || adminProfile?.email || null
+    });
+    leadTaskSaveState = { id: leadId, status: 'saving', message: 'Creating task...' };
+    renderDashboard();
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_lead_tasks')
+        .insert(insertPayload)
+        .select('id,lead_id,title,description,status,priority,assigned_to,due_at,completed_at,completed_by,created_by,created_by_email,updated_by,updated_by_email,metadata,created_at,updated_at')
+        .maybeSingle();
+      if (error) throw error;
+      if (data) leadTasks = [data].concat(leadTasks).slice(0, 500);
+      await logLeadTaskActivity(data || insertPayload, 'task_created', { new_value: payload.title, note: payload.description });
+      leadTaskSaveState = { id: leadId, status: 'saved', message: 'Task created.' };
+    } catch (error) {
+      const missingTable = isMissingLeadTaskTableError(error);
+      leadTaskSaveState = { id: leadId, status: 'error', message: missingTable ? 'Tasks table is not available yet. Run the Phase 27 SQL patch.' : classifySupabaseError(error) };
+      if (missingTable) {
+        leadTasksUnavailable = true;
+        leadTasksError = 'Tasks table is not available yet. Run the Phase 27 SQL patch.';
+      }
+    }
+    renderDashboard();
+  }
+
+  async function updateLeadTask(taskId, fields, activityType = 'task_updated') {
+    if (!taskId || !canAdminEdit() || !supabaseClient || !currentUser) return;
+    const task = leadTasks.find(item => item.id === taskId);
+    if (!task) return;
+    const previous = Object.assign({}, task);
+    const payload = Object.assign({}, fields, {
+      updated_by: currentUser.id || null,
+      updated_by_email: currentUser.email || adminProfile?.email || null
+    });
+    Object.assign(task, payload);
+    leadTaskSaveState = { id: taskId, status: 'saving', message: 'Saving task...' };
+    renderDashboard();
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_lead_tasks')
+        .update(payload)
+        .eq('id', taskId)
+        .select('id,lead_id,title,description,status,priority,assigned_to,due_at,completed_at,completed_by,created_by,created_by_email,updated_by,updated_by_email,metadata,created_at,updated_at')
+        .maybeSingle();
+      if (error) throw error;
+      if (data) Object.assign(task, data);
+      await logLeadTaskActivity(task, activityType, {
+        old_value: previous.status,
+        new_value: task.status,
+        note: task.title
+      });
+      leadTaskSaveState = { id: taskId, status: 'saved', message: 'Task saved.' };
+    } catch (error) {
+      Object.assign(task, previous);
+      leadTaskSaveState = { id: taskId, status: 'error', message: classifySupabaseError(error) };
+    }
+    renderDashboard();
+  }
+
+  function completeLeadTask(taskId) {
+    return updateLeadTask(taskId, {
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+      completed_by: currentUser?.id || null
+    }, 'task_completed');
+  }
+
+  function cancelLeadTask(taskId) {
+    return updateLeadTask(taskId, {
+      status: 'cancelled',
+      completed_at: null,
+      completed_by: null
+    }, 'task_cancelled');
+  }
+
+  function reopenLeadTask(taskId) {
+    return updateLeadTask(taskId, {
+      status: 'open',
+      completed_at: null,
+      completed_by: null
+    }, 'task_reopened');
+  }
+
+  function renderTaskBadges(task) {
+    const status = normalizeLeadTaskStatus(task.status);
+    const priority = normalizeLeadPriority(task.priority);
+    const due = taskDueState(task);
+    return `<span class="gv-task-badges">
+      <span class="gv-task-status gv-task-status--${escapeHtml(status)}">${escapeHtml(LEAD_TASK_STATUS_LABELS[status])}</span>
+      <span class="gv-lead-priority-badge gv-lead-priority-badge--${escapeHtml(priority)}">${escapeHtml(LEAD_PIPELINE_PRIORITY_LABELS[priority])}</span>
+      <span class="gv-lead-followup-badge gv-lead-followup-badge--${escapeHtml(due)}">${escapeHtml(taskDueLabel(task))}</span>
+    </span>`;
+  }
+
+  function renderTaskRow(task, options = {}) {
+    const canEdit = canAdminEdit();
+    const lead = leadsData.find(item => item.id === task.lead_id);
+    const due = task.due_at ? formatLeadDateTime(task.due_at) : 'No due date';
+    const status = normalizeLeadTaskStatus(task.status);
+    return `<article class="gv-task-row gv-task-row--${escapeHtml(taskDueState(task))}">
+      <div class="gv-task-row-main">
+        <div class="gv-task-row-head">
+          <strong>${escapeHtml(task.title || 'Untitled task')}</strong>
+          ${renderTaskBadges(task)}
+        </div>
+        ${options.showLead && lead ? `<div class="gv-task-lead-ref">${escapeHtml(lead.name || lead.email || 'Lead')}${lead.company ? ` / ${escapeHtml(lead.company)}` : ''}</div>` : ''}
+        <div class="gv-task-meta">
+          <span>Due: ${escapeHtml(due)}</span>
+          ${task.assigned_to ? `<span>Owner: ${escapeHtml(task.assigned_to)}</span>` : '<span>Unassigned</span>'}
+          ${task.completed_at ? `<span>Completed: ${escapeHtml(formatLeadDateTime(task.completed_at))}</span>` : ''}
+        </div>
+        ${task.description ? `<p>${escapeHtml(task.description)}</p>` : ''}
+      </div>
+      <div class="gv-task-actions">
+        ${canEdit && status === 'open' ? `<button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--mint" data-admin-action="lead-task-complete" data-task-id="${escapeHtml(task.id)}">Complete</button>` : ''}
+        ${canEdit && status === 'open' ? `<button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--warn" data-admin-action="lead-task-cancel" data-task-id="${escapeHtml(task.id)}">Cancel</button>` : ''}
+        ${canEdit && status !== 'open' ? `<button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="lead-task-reopen" data-task-id="${escapeHtml(task.id)}">Reopen</button>` : ''}
+        ${options.showLead && task.lead_id ? `<button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="task-open-lead" data-lead-id="${escapeHtml(task.lead_id)}">Open Lead</button>` : ''}
+      </div>
+    </article>`;
+  }
+
+  function renderLeadTaskSection(lead, canEdit) {
+    const tasks = leadTasksFor(lead.id);
+    const open = tasks.filter(task => normalizeLeadTaskStatus(task.status) === 'open');
+    const done = tasks.filter(task => normalizeLeadTaskStatus(task.status) !== 'open');
+    const saveState = leadTaskSaveState.id === lead.id ? leadTaskSaveState : { status: 'idle', message: '' };
+    const dis = canEdit ? '' : ' disabled';
+    const taskMessage = saveState.message ? `<span class="gv-task-save-state gv-task-save-state--${escapeHtml(saveState.status)}">${escapeHtml(saveState.message)}</span>` : '';
+    const unavailable = leadTasksUnavailable ? '<div class="gv-task-empty">Tasks table is not available yet. Run the Phase 27 SQL patch.</div>' : '';
+    return `<section class="gv-lead-tasks${canEdit ? '' : ' gv-lead-tasks--readonly'}">
+      <div class="gv-lead-tasks-head">
+        <div>
+          <span class="gv-admin-pill">Tasks & Reminders</span>
+          <strong>${escapeHtml(open.length)} open / ${escapeHtml(done.length)} done</strong>
+        </div>
+        ${canEdit ? '' : '<span class="gv-lead-pipeline-readonly">Viewer mode</span>'}
+      </div>
+      ${unavailable}
+      ${open.length ? `<div class="gv-task-list">${open.map(task => renderTaskRow(task)).join('')}</div>` : '<div class="gv-task-empty">No open tasks.</div>'}
+      ${done.length ? `<details class="gv-task-completed"><summary>Completed / cancelled (${escapeHtml(done.length)})</summary><div class="gv-task-list">${done.slice(0, 8).map(task => renderTaskRow(task)).join('')}</div></details>` : ''}
+      <div class="gv-task-form" data-lead-task-form data-lead-id="${escapeHtml(lead.id)}">
+        <label><span>Title</span><input type="text" data-task-field="title" maxlength="240"${dis}></label>
+        <label><span>Priority</span><select data-task-field="priority"${dis}>${LEAD_PIPELINE_PRIORITIES.map(priority => `<option value="${escapeHtml(priority)}"${priority === 'normal' ? ' selected' : ''}>${escapeHtml(LEAD_PIPELINE_PRIORITY_LABELS[priority])}</option>`).join('')}</select></label>
+        <label><span>Owner</span><input type="text" data-task-field="assigned_to" maxlength="160" value="${escapeHtml(lead.assigned_to || '')}"${dis}></label>
+        <label><span>Due</span><input type="datetime-local" data-task-field="due_at"${dis}></label>
+        <label class="gv-task-form-wide"><span>Description</span><textarea data-task-field="description" maxlength="2000"${dis}></textarea></label>
+        <div class="gv-task-form-actions">
+          ${canEdit ? `<button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--mint" data-admin-action="lead-task-create" data-lead-id="${escapeHtml(lead.id)}">Create Task</button>` : ''}
+          ${taskMessage}
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function resetLeadTaskFilters() {
+    leadTaskFilters = { status: 'open', priority: 'all', assigned: '', due: 'all' };
+  }
+
+  function applyLeadTaskFiltersFromDom() {
+    const form = $('[data-task-filters]', dashboard || adminRoot || document);
+    if (!form) return;
+    const status = $('[data-task-filter-status]', form)?.value || 'open';
+    const priority = $('[data-task-filter-priority]', form)?.value || 'all';
+    const assigned = $('[data-task-filter-assigned]', form)?.value || '';
+    const due = $('[data-task-filter-due]', form)?.value || 'all';
+    leadTaskFilters = {
+      status: status === 'all' || LEAD_TASK_STATUSES.includes(status) ? status : 'open',
+      priority: priority === 'all' || LEAD_PIPELINE_PRIORITIES.includes(priority) ? priority : 'all',
+      assigned: String(assigned || '').trim().slice(0, 120),
+      due: ['all', 'overdue', 'today', 'upcoming', 'none'].includes(due) ? due : 'all'
+    };
+  }
+
+  function taskMatchesFilters(task) {
+    const filters = leadTaskFilters || {};
+    if (filters.status && filters.status !== 'all' && normalizeLeadTaskStatus(task.status) !== filters.status) return false;
+    if (filters.priority && filters.priority !== 'all' && normalizeLeadPriority(task.priority) !== filters.priority) return false;
+    if (filters.assigned) {
+      const assigned = String(task.assigned_to || '').toLowerCase();
+      if (!assigned.includes(filters.assigned.toLowerCase())) return false;
+    }
+    if (filters.due === 'none' && task.due_at) return false;
+    if (['overdue', 'today', 'upcoming'].includes(filters.due) && taskDueState(task) !== filters.due) return false;
+    return true;
+  }
+
+  function getTaskSummary(tasks = leadTasks) {
+    const open = tasks.filter(task => normalizeLeadTaskStatus(task.status) === 'open');
+    return {
+      open: open.length,
+      overdue: open.filter(task => taskDueState(task) === 'overdue').length,
+      today: open.filter(task => taskDueState(task) === 'today').length,
+      upcoming: open.filter(task => taskDueState(task) === 'upcoming').length,
+      completed: tasks.filter(task => normalizeLeadTaskStatus(task.status) === 'completed').length,
+      urgentHigh: open.filter(task => ['urgent', 'high'].includes(normalizeLeadPriority(task.priority))).length
+    };
+  }
+
+  function renderTaskSummaryCards(summary) {
+    const cards = [
+      ['Open tasks', summary.open],
+      ['Overdue', summary.overdue],
+      ['Due today', summary.today],
+      ['Upcoming', summary.upcoming],
+      ['Completed', summary.completed],
+      ['High/Urgent', summary.urgentHigh]
+    ];
+    return `<div class="gv-task-summary">${cards.map(([label, value]) => `<div class="gv-task-summary-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join('')}</div>`;
+  }
+
+  function renderTaskFilters() {
+    const filters = leadTaskFilters || {};
+    const option = (value, label, selected) => `<option value="${escapeHtml(value)}"${selected ? ' selected' : ''}>${escapeHtml(label)}</option>`;
+    const statusOptions = option('all', 'Any status', filters.status === 'all') + LEAD_TASK_STATUSES.map(status => option(status, LEAD_TASK_STATUS_LABELS[status], filters.status === status)).join('');
+    const priorityOptions = option('all', 'Any priority', filters.priority === 'all') + LEAD_PIPELINE_PRIORITIES.map(priority => option(priority, LEAD_PIPELINE_PRIORITY_LABELS[priority], filters.priority === priority)).join('');
+    const dueOptions = [
+      ['all', 'Any due date'],
+      ['overdue', 'Overdue'],
+      ['today', 'Due today'],
+      ['upcoming', 'Upcoming'],
+      ['none', 'No due date']
+    ].map(([value, label]) => option(value, label, filters.due === value)).join('');
+    return `<div class="gv-task-filters" data-task-filters>
+      <label><span>Status</span><select data-task-filter-status>${statusOptions}</select></label>
+      <label><span>Priority</span><select data-task-filter-priority>${priorityOptions}</select></label>
+      <label><span>Owner</span><input type="search" data-task-filter-assigned value="${escapeHtml(filters.assigned || '')}" placeholder="Assigned to"></label>
+      <label><span>Due</span><select data-task-filter-due>${dueOptions}</select></label>
+      <button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--mint" data-admin-action="tasks-filter-apply">Apply</button>
+      <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="tasks-filter-reset">Reset</button>
+    </div>`;
+  }
+
+  function renderTasksTab() {
+    if (leadTasksLoading) return '<p class="gv-admin-empty">Loading tasks...</p>';
+    const summary = getTaskSummary(leadTasks);
+    const visible = (leadTasks || []).filter(taskMatchesFilters);
+    const rows = visible.length
+      ? visible.map(task => renderTaskRow(task, { showLead: true })).join('')
+      : '<p class="gv-admin-empty">No tasks match the current filters.</p>';
+    const warning = leadTasksUnavailable || leadTasksError
+      ? `<div class="gv-admin-dashboard-message">${escapeHtml(leadTasksError || 'Tasks table is not available yet. Run the Phase 27 SQL patch.')}</div>`
+      : '';
+    return `<div class="gv-tasks-tab">
+      <div class="gv-tasks-head">
+        <div>
+          <span class="gv-admin-pill">Tasks</span>
+          <h3>CRM reminders</h3>
+          <small>Lead follow-up tasks, due dates, and owner assignments.</small>
+        </div>
+        <button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--mint" data-admin-action="leads-refresh">Refresh</button>
+      </div>
+      ${warning}
+      ${renderTaskSummaryCards(summary)}
+      ${renderTaskFilters()}
+      <div class="gv-task-list gv-task-list--global">${rows}</div>
     </div>`;
   }
 
@@ -8150,6 +8609,7 @@
           </div>
           ${renderLeadAttributionHtml(lead)}
           ${renderLeadPipelineForm(lead, canEdit)}
+          ${renderLeadTaskSection(lead, canEdit)}
           ${renderLeadActivityTimeline(lead)}
           <div class="gv-lead-message">${escapeHtml(lead.message || '')}</div>
           ${lead.user_agent ? `<div class="gv-lead-ua">${escapeHtml((lead.user_agent || '').slice(0, 120))}</div>` : ''}
