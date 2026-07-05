@@ -2114,6 +2114,7 @@
     if (action === 'lead-task-complete') completeLeadTask(actionElement.dataset.taskId);
     if (action === 'lead-task-cancel') cancelLeadTask(actionElement.dataset.taskId);
     if (action === 'lead-task-reopen') reopenLeadTask(actionElement.dataset.taskId);
+    if (action === 'lead-task-reminder') sendLeadTaskReminder(actionElement.dataset.taskId);
     if (action === 'tasks-filter-apply') {
       applyLeadTaskFiltersFromDom();
       renderDashboard();
@@ -6466,6 +6467,16 @@
     completed: 'Completed',
     cancelled: 'Cancelled'
   };
+  const LEAD_TASK_BASE_SELECT = 'id,lead_id,title,description,status,priority,assigned_to,due_at,completed_at,completed_by,created_by,created_by_email,updated_by,updated_by_email,metadata,created_at,updated_at';
+  const LEAD_TASK_PHASE28_SELECT = `${LEAD_TASK_BASE_SELECT},reminder_enabled,reminder_sent_at,reminder_count,last_reminder_error,automation_source`;
+  const TASK_AUTOMATION_STAGE_RULES = {
+    contacted: { title: 'Follow up with lead', dueDays: 2, source: 'stage:contacted' },
+    qualified: { title: 'Prepare proposal', dueDays: 3, source: 'stage:qualified' },
+    proposal: { title: 'Follow up on proposal', dueDays: 3, source: 'stage:proposal' },
+    won: { title: 'Onboarding next steps', dueDays: 1, source: 'stage:won' },
+    lost: { title: 'Record loss reason', dueDays: 0, source: 'stage:lost' },
+    nurture: { title: 'Nurture follow-up', dueDays: 14, source: 'stage:nurture' }
+  };
   let leadsData = [];
   let leadsLoading = false;
   let leadsExpanded = null;
@@ -6494,7 +6505,13 @@
   let leadTasksLoading = false;
   let leadTasksError = '';
   let leadTasksUnavailable = false;
+  let leadTaskReminderFieldsUnavailable = false;
   let leadTaskSaveState = {
+    id: null,
+    status: 'idle',
+    message: ''
+  };
+  let leadTaskReminderState = {
     id: null,
     status: 'idle',
     message: ''
@@ -6503,7 +6520,8 @@
     status: 'open',
     priority: 'all',
     assigned: '',
-    due: 'all'
+    due: 'all',
+    automation: 'all'
   };
   // Phase 20: test notification state
   let leadsNotifyState = 'idle'; // 'idle' | 'sending' | 'ok' | 'error'
@@ -7623,7 +7641,12 @@
       task_completed: 'Task completed',
       task_cancelled: 'Task cancelled',
       task_reopened: 'Task reopened',
-      task_updated: 'Task updated'
+      task_updated: 'Task updated',
+      task_reminder_sent: 'Task reminder sent',
+      task_reminder_failed: 'Task reminder failed',
+      automation_task_created: 'Automation task created',
+      automation_task_skipped_duplicate: 'Automation skipped duplicate',
+      suggested_task_created: 'Suggested task created'
     };
     return labels[type] || 'Activity';
   }
@@ -7911,12 +7934,46 @@
     return 'No due date';
   }
 
+  function leadTaskMetadata(task) {
+    return task && task.metadata && typeof task.metadata === 'object' && !Array.isArray(task.metadata)
+      ? task.metadata
+      : {};
+  }
+
+  function taskReminderSent(task) {
+    const metadata = leadTaskMetadata(task);
+    return Boolean(task?.reminder_sent_at || Number(task?.reminder_count || 0) > 0 || metadata.last_manual_reminder?.ok === true);
+  }
+
+  function taskReminderFailed(task) {
+    const metadata = leadTaskMetadata(task);
+    return Boolean(task?.last_reminder_error || metadata.last_manual_reminder?.ok === false);
+  }
+
+  function taskAutomationSource(task) {
+    const metadata = leadTaskMetadata(task);
+    return String(task?.automation_source || metadata.automation_source || '').trim();
+  }
+
+  function taskIsAutomationCreated(task) {
+    return Boolean(taskAutomationSource(task));
+  }
+
   function isMissingLeadTaskTableError(error) {
     const raw = getAuthErrorText(error);
     const code = String(error?.code || '');
     if (code === '42P01') return true;
     if (raw.includes('cms_lead_tasks') && (raw.includes('schema cache') || raw.includes('not found'))) return true;
     if (raw.includes('relation') && raw.includes('cms_lead_tasks') && raw.includes('does not exist')) return true;
+    return false;
+  }
+
+  function isMissingLeadTaskReminderColumnError(error) {
+    const raw = getAuthErrorText(error);
+    const code = String(error?.code || '');
+    if (code === '42703' && (raw.includes('reminder') || raw.includes('automation_source'))) return true;
+    if (raw.includes('cms_lead_tasks') && raw.includes('schema cache') && (raw.includes('reminder') || raw.includes('automation_source'))) return true;
+    if (raw.includes('column') && raw.includes('does not exist') && (raw.includes('reminder') || raw.includes('automation_source'))) return true;
     return false;
   }
 
@@ -7966,13 +8023,31 @@
     try {
       const { data, error } = await supabaseClient
         .from('cms_lead_tasks')
-        .select('id,lead_id,title,description,status,priority,assigned_to,due_at,completed_at,completed_by,created_by,created_by_email,updated_by,updated_by_email,metadata,created_at,updated_at')
+        .select(leadTaskReminderFieldsUnavailable ? LEAD_TASK_BASE_SELECT : LEAD_TASK_PHASE28_SELECT)
         .order('due_at', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: false })
         .limit(500);
       if (error) throw error;
       leadTasks = Array.isArray(data) ? data : [];
     } catch (error) {
+      if (!leadTaskReminderFieldsUnavailable && isMissingLeadTaskReminderColumnError(error)) {
+        leadTaskReminderFieldsUnavailable = true;
+        try {
+          const fallback = await supabaseClient
+            .from('cms_lead_tasks')
+            .select(LEAD_TASK_BASE_SELECT)
+            .order('due_at', { ascending: true, nullsFirst: false })
+            .order('created_at', { ascending: false })
+            .limit(500);
+          if (fallback.error) throw fallback.error;
+          leadTasks = Array.isArray(fallback.data) ? fallback.data : [];
+          leadTasksError = 'Reminder fields are not available yet. Run the Phase 28 SQL patch.';
+          leadTasksLoading = false;
+          return;
+        } catch (fallbackError) {
+          error = fallbackError;
+        }
+      }
       leadTasks = [];
       if (isMissingLeadTaskTableError(error)) {
         leadTasksError = 'Tasks table is not available yet. Run the Phase 27 SQL patch.';
@@ -7995,7 +8070,7 @@
       old_value: activityValue(extra.old_value),
       new_value: activityValue(extra.new_value || task.title),
       note: extra.note ? activityValue(extra.note) : null,
-      metadata: { source: 'admin_dashboard', phase: 27, task_id: task.id || null }
+      metadata: Object.assign({ source: 'admin_dashboard', phase: 28, task_id: task.id || null }, extra.metadata || {})
     }]);
   }
 
@@ -8020,7 +8095,7 @@
       const { data, error } = await supabaseClient
         .from('cms_lead_tasks')
         .insert(insertPayload)
-        .select('id,lead_id,title,description,status,priority,assigned_to,due_at,completed_at,completed_by,created_by,created_by_email,updated_by,updated_by_email,metadata,created_at,updated_at')
+        .select(leadTaskReminderFieldsUnavailable ? LEAD_TASK_BASE_SELECT : LEAD_TASK_PHASE28_SELECT)
         .maybeSingle();
       if (error) throw error;
       if (data) leadTasks = [data].concat(leadTasks).slice(0, 500);
@@ -8054,7 +8129,7 @@
         .from('cms_lead_tasks')
         .update(payload)
         .eq('id', taskId)
-        .select('id,lead_id,title,description,status,priority,assigned_to,due_at,completed_at,completed_by,created_by,created_by_email,updated_by,updated_by_email,metadata,created_at,updated_at')
+        .select(leadTaskReminderFieldsUnavailable ? LEAD_TASK_BASE_SELECT : LEAD_TASK_PHASE28_SELECT)
         .maybeSingle();
       if (error) throw error;
       if (data) Object.assign(task, data);
@@ -8095,14 +8170,152 @@
     }, 'task_reopened');
   }
 
+  async function sendLeadTaskReminder(taskId) {
+    if (!taskId || !canAdminEdit() || !supabaseClient || !currentUser) return;
+    if (leadTaskReminderFieldsUnavailable) {
+      leadTaskReminderState = { id: taskId, status: 'error', message: 'Run the Phase 28 SQL patch before sending reminders.' };
+      renderDashboard();
+      return;
+    }
+    leadTaskReminderState = { id: taskId, status: 'saving', message: 'Sending reminder...' };
+    renderDashboard();
+    try {
+      if (!supabaseClient.functions || typeof supabaseClient.functions.invoke !== 'function') {
+        throw new Error('Supabase Functions are not available in this client.');
+      }
+      const { data, error } = await supabaseClient.functions.invoke('task-reminder-notify', {
+        body: { task_id: taskId }
+      });
+      if (error) throw error;
+      if (data && data.ok === false) throw new Error(data.error || 'Reminder email failed.');
+      leadTaskReminderState = { id: taskId, status: 'saved', message: 'Reminder sent.' };
+      await Promise.all([loadLeadTasks(), loadLeadActivities(), loadNotificationLogs()]);
+    } catch (error) {
+      leadTaskReminderState = { id: taskId, status: 'error', message: classifySupabaseError(error) };
+    }
+    renderDashboard();
+  }
+
+  function automationDueDateIso(days) {
+    const due = new Date();
+    due.setDate(due.getDate() + Number(days || 0));
+    if (Number(days || 0) === 0) due.setHours(due.getHours() + 2, 0, 0, 0);
+    else due.setHours(10, 0, 0, 0);
+    return due.toISOString();
+  }
+
+  function sameAutomationTitle(a, b) {
+    return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+  }
+
+  async function logAutomationTaskActivity(leadId, activityType, rule, note = '') {
+    await logLeadTaskActivity({
+      id: null,
+      lead_id: leadId,
+      title: rule.title
+    }, activityType, {
+      field_name: 'automation',
+      new_value: rule.title,
+      note,
+      metadata: { automation_source: rule.source }
+    });
+  }
+
+  async function maybeCreateStageAutomationTask(leadId, previous, payload, leadRow) {
+    if (!leadId || !previous || !payload || leadTaskReminderFieldsUnavailable || leadTasksUnavailable) return { status: 'none' };
+    const oldStage = normalizeLeadPipelineStage(previous.pipeline_stage);
+    const newStage = normalizeLeadPipelineStage(payload.pipeline_stage);
+    if (oldStage === newStage) return { status: 'none' };
+    const rule = TASK_AUTOMATION_STAGE_RULES[newStage];
+    if (!rule) return { status: 'none' };
+    const duplicate = openLeadTasksFor(leadId).some(task =>
+      sameAutomationTitle(task.title, rule.title) && taskAutomationSource(task) === rule.source
+    );
+    if (duplicate) {
+      await logAutomationTaskActivity(leadId, 'automation_task_skipped_duplicate', rule, 'Similar open automation task already exists.');
+      return { status: 'duplicate' };
+    }
+    try {
+      const existing = await supabaseClient
+        .from('cms_lead_tasks')
+        .select('id')
+        .eq('lead_id', leadId)
+        .eq('status', 'open')
+        .eq('title', rule.title)
+        .eq('automation_source', rule.source)
+        .limit(1)
+        .maybeSingle();
+      if (existing.error) throw existing.error;
+      if (existing.data?.id) {
+        await logAutomationTaskActivity(leadId, 'automation_task_skipped_duplicate', rule, 'Similar open automation task already exists.');
+        return { status: 'duplicate' };
+      }
+    } catch (error) {
+      if (isMissingLeadTaskReminderColumnError(error)) {
+        leadTaskReminderFieldsUnavailable = true;
+        leadTasksError = 'Reminder fields are not available yet. Run the Phase 28 SQL patch.';
+        return { status: 'error' };
+      }
+    }
+    const insertPayload = {
+      lead_id: leadId,
+      title: rule.title,
+      description: `Auto-created when lead stage changed to ${leadStageLabel(newStage)}.`,
+      status: 'open',
+      priority: 'normal',
+      assigned_to: truncateLeadPipelineValue(payload.assigned_to || leadRow?.assigned_to, 160),
+      due_at: automationDueDateIso(rule.dueDays),
+      reminder_enabled: true,
+      automation_source: rule.source,
+      metadata: {
+        source: 'admin_dashboard',
+        phase: 28,
+        automation_rule: 'pipeline_stage_change',
+        automation_source: rule.source,
+        stage: newStage
+      },
+      created_by: currentUser?.id || null,
+      created_by_email: currentUser?.email || adminProfile?.email || null,
+      updated_by: currentUser?.id || null,
+      updated_by_email: currentUser?.email || adminProfile?.email || null
+    };
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_lead_tasks')
+        .insert(insertPayload)
+        .select(LEAD_TASK_PHASE28_SELECT)
+        .maybeSingle();
+      if (error) throw error;
+      if (data) leadTasks = [data].concat(leadTasks).slice(0, 500);
+      await logAutomationTaskActivity(leadId, 'automation_task_created', rule, insertPayload.description);
+      return { status: 'created' };
+    } catch (error) {
+      if (isMissingLeadTaskReminderColumnError(error)) {
+        leadTaskReminderFieldsUnavailable = true;
+        leadTasksError = 'Reminder fields are not available yet. Run the Phase 28 SQL patch.';
+      }
+      return { status: 'error' };
+    }
+  }
+
   function renderTaskBadges(task) {
     const status = normalizeLeadTaskStatus(task.status);
     const priority = normalizeLeadPriority(task.priority);
     const due = taskDueState(task);
+    const reminder = taskReminderFailed(task)
+      ? '<span class="gv-task-reminder-badge gv-task-reminder-badge--failed">Reminder failed</span>'
+      : taskReminderSent(task)
+        ? '<span class="gv-task-reminder-badge gv-task-reminder-badge--sent">Reminder sent</span>'
+        : '';
+    const automation = taskIsAutomationCreated(task)
+      ? '<span class="gv-task-reminder-badge gv-task-reminder-badge--auto">Automation</span>'
+      : '';
     return `<span class="gv-task-badges">
       <span class="gv-task-status gv-task-status--${escapeHtml(status)}">${escapeHtml(LEAD_TASK_STATUS_LABELS[status])}</span>
       <span class="gv-lead-priority-badge gv-lead-priority-badge--${escapeHtml(priority)}">${escapeHtml(LEAD_PIPELINE_PRIORITY_LABELS[priority])}</span>
       <span class="gv-lead-followup-badge gv-lead-followup-badge--${escapeHtml(due)}">${escapeHtml(taskDueLabel(task))}</span>
+      ${reminder}
+      ${automation}
     </span>`;
   }
 
@@ -8111,6 +8324,9 @@
     const lead = leadsData.find(item => item.id === task.lead_id);
     const due = task.due_at ? formatLeadDateTime(task.due_at) : 'No due date';
     const status = normalizeLeadTaskStatus(task.status);
+    const reminderState = leadTaskReminderState.id === task.id ? leadTaskReminderState : { status: 'idle', message: '' };
+    const reminderMessage = reminderState.message ? `<span class="gv-task-save-state gv-task-save-state--${escapeHtml(reminderState.status)}">${escapeHtml(reminderState.message)}</span>` : '';
+    const reminderSending = reminderState.status === 'saving';
     return `<article class="gv-task-row gv-task-row--${escapeHtml(taskDueState(task))}">
       <div class="gv-task-row-main">
         <div class="gv-task-row-head">
@@ -8121,15 +8337,20 @@
         <div class="gv-task-meta">
           <span>Due: ${escapeHtml(due)}</span>
           ${task.assigned_to ? `<span>Owner: ${escapeHtml(task.assigned_to)}</span>` : '<span>Unassigned</span>'}
+          ${task.reminder_sent_at ? `<span>Reminder: ${escapeHtml(formatLeadDateTime(task.reminder_sent_at))}</span>` : ''}
+          ${Number(task.reminder_count || 0) ? `<span>${escapeHtml(task.reminder_count)} reminder${Number(task.reminder_count || 0) === 1 ? '' : 's'}</span>` : ''}
           ${task.completed_at ? `<span>Completed: ${escapeHtml(formatLeadDateTime(task.completed_at))}</span>` : ''}
         </div>
+        ${task.last_reminder_error ? `<div class="gv-task-reminder-error">${escapeHtml(String(task.last_reminder_error).slice(0, 180))}</div>` : ''}
         ${task.description ? `<p>${escapeHtml(task.description)}</p>` : ''}
       </div>
       <div class="gv-task-actions">
+        ${canEdit && status === 'open' && !leadTaskReminderFieldsUnavailable ? `<button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="lead-task-reminder" data-task-id="${escapeHtml(task.id)}"${reminderSending ? ' disabled' : ''}>${reminderSending ? 'Sending...' : 'Send Reminder'}</button>` : ''}
         ${canEdit && status === 'open' ? `<button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--mint" data-admin-action="lead-task-complete" data-task-id="${escapeHtml(task.id)}">Complete</button>` : ''}
         ${canEdit && status === 'open' ? `<button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--warn" data-admin-action="lead-task-cancel" data-task-id="${escapeHtml(task.id)}">Cancel</button>` : ''}
         ${canEdit && status !== 'open' ? `<button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="lead-task-reopen" data-task-id="${escapeHtml(task.id)}">Reopen</button>` : ''}
         ${options.showLead && task.lead_id ? `<button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="task-open-lead" data-lead-id="${escapeHtml(task.lead_id)}">Open Lead</button>` : ''}
+        ${reminderMessage}
       </div>
     </article>`;
   }
@@ -8142,6 +8363,7 @@
     const dis = canEdit ? '' : ' disabled';
     const taskMessage = saveState.message ? `<span class="gv-task-save-state gv-task-save-state--${escapeHtml(saveState.status)}">${escapeHtml(saveState.message)}</span>` : '';
     const unavailable = leadTasksUnavailable ? '<div class="gv-task-empty">Tasks table is not available yet. Run the Phase 27 SQL patch.</div>' : '';
+    const reminderUnavailable = !leadTasksUnavailable && leadTaskReminderFieldsUnavailable ? '<div class="gv-task-empty">Reminder fields are not available yet. Run the Phase 28 SQL patch.</div>' : '';
     return `<section class="gv-lead-tasks${canEdit ? '' : ' gv-lead-tasks--readonly'}">
       <div class="gv-lead-tasks-head">
         <div>
@@ -8151,6 +8373,7 @@
         ${canEdit ? '' : '<span class="gv-lead-pipeline-readonly">Viewer mode</span>'}
       </div>
       ${unavailable}
+      ${reminderUnavailable}
       ${open.length ? `<div class="gv-task-list">${open.map(task => renderTaskRow(task)).join('')}</div>` : '<div class="gv-task-empty">No open tasks.</div>'}
       ${done.length ? `<details class="gv-task-completed"><summary>Completed / cancelled (${escapeHtml(done.length)})</summary><div class="gv-task-list">${done.slice(0, 8).map(task => renderTaskRow(task)).join('')}</div></details>` : ''}
       <div class="gv-task-form" data-lead-task-form data-lead-id="${escapeHtml(lead.id)}">
@@ -8168,7 +8391,7 @@
   }
 
   function resetLeadTaskFilters() {
-    leadTaskFilters = { status: 'open', priority: 'all', assigned: '', due: 'all' };
+    leadTaskFilters = { status: 'open', priority: 'all', assigned: '', due: 'all', automation: 'all' };
   }
 
   function applyLeadTaskFiltersFromDom() {
@@ -8178,11 +8401,13 @@
     const priority = $('[data-task-filter-priority]', form)?.value || 'all';
     const assigned = $('[data-task-filter-assigned]', form)?.value || '';
     const due = $('[data-task-filter-due]', form)?.value || 'all';
+    const automation = $('[data-task-filter-automation]', form)?.value || 'all';
     leadTaskFilters = {
       status: status === 'all' || LEAD_TASK_STATUSES.includes(status) ? status : 'open',
       priority: priority === 'all' || LEAD_PIPELINE_PRIORITIES.includes(priority) ? priority : 'all',
       assigned: String(assigned || '').trim().slice(0, 120),
-      due: ['all', 'overdue', 'today', 'upcoming', 'none'].includes(due) ? due : 'all'
+      due: ['all', 'overdue', 'today', 'upcoming', 'none'].includes(due) ? due : 'all',
+      automation: ['all', 'automation', 'manual', 'reminder-sent', 'reminder-failed'].includes(automation) ? automation : 'all'
     };
   }
 
@@ -8196,6 +8421,10 @@
     }
     if (filters.due === 'none' && task.due_at) return false;
     if (['overdue', 'today', 'upcoming'].includes(filters.due) && taskDueState(task) !== filters.due) return false;
+    if (filters.automation === 'automation' && !taskIsAutomationCreated(task)) return false;
+    if (filters.automation === 'manual' && taskIsAutomationCreated(task)) return false;
+    if (filters.automation === 'reminder-sent' && !taskReminderSent(task)) return false;
+    if (filters.automation === 'reminder-failed' && !taskReminderFailed(task)) return false;
     return true;
   }
 
@@ -8207,7 +8436,11 @@
       today: open.filter(task => taskDueState(task) === 'today').length,
       upcoming: open.filter(task => taskDueState(task) === 'upcoming').length,
       completed: tasks.filter(task => normalizeLeadTaskStatus(task.status) === 'completed').length,
-      urgentHigh: open.filter(task => ['urgent', 'high'].includes(normalizeLeadPriority(task.priority))).length
+      urgentHigh: open.filter(task => ['urgent', 'high'].includes(normalizeLeadPriority(task.priority))).length,
+      remindersSent: tasks.filter(taskReminderSent).length,
+      reminderFailures: tasks.filter(taskReminderFailed).length,
+      automated: tasks.filter(taskIsAutomationCreated).length,
+      noDueDate: open.filter(task => taskDueState(task) === 'none').length
     };
   }
 
@@ -8218,7 +8451,11 @@
       ['Due today', summary.today],
       ['Upcoming', summary.upcoming],
       ['Completed', summary.completed],
-      ['High/Urgent', summary.urgentHigh]
+      ['High/Urgent', summary.urgentHigh],
+      ['Reminders sent', summary.remindersSent],
+      ['Reminder failures', summary.reminderFailures],
+      ['Automation-created', summary.automated],
+      ['No due date', summary.noDueDate]
     ];
     return `<div class="gv-task-summary">${cards.map(([label, value]) => `<div class="gv-task-summary-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join('')}</div>`;
   }
@@ -8235,11 +8472,19 @@
       ['upcoming', 'Upcoming'],
       ['none', 'No due date']
     ].map(([value, label]) => option(value, label, filters.due === value)).join('');
+    const automationOptions = [
+      ['all', 'Any reminder state'],
+      ['automation', 'Automation-created'],
+      ['manual', 'Manual tasks'],
+      ['reminder-sent', 'Reminder sent'],
+      ['reminder-failed', 'Reminder failed']
+    ].map(([value, label]) => option(value, label, filters.automation === value)).join('');
     return `<div class="gv-task-filters" data-task-filters>
       <label><span>Status</span><select data-task-filter-status>${statusOptions}</select></label>
       <label><span>Priority</span><select data-task-filter-priority>${priorityOptions}</select></label>
       <label><span>Owner</span><input type="search" data-task-filter-assigned value="${escapeHtml(filters.assigned || '')}" placeholder="Assigned to"></label>
       <label><span>Due</span><select data-task-filter-due>${dueOptions}</select></label>
+      <label><span>Automation</span><select data-task-filter-automation>${automationOptions}</select></label>
       <button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--mint" data-admin-action="tasks-filter-apply">Apply</button>
       <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="tasks-filter-reset">Reset</button>
     </div>`;
@@ -8293,10 +8538,18 @@
       if (row) applyLeadPipelineDefaults(row);
       const activityRows = buildLeadPipelineActivityRows(id, previous, payload);
       const activityResult = await insertLeadActivities(activityRows);
+      const automationResult = await maybeCreateStageAutomationTask(id, previous, payload, row);
+      const automationMessage = automationResult.status === 'created'
+        ? ' Automation task created.'
+        : automationResult.status === 'duplicate'
+          ? ' Automation skipped duplicate task.'
+          : automationResult.status === 'error'
+            ? ' Automation task unavailable.'
+            : '';
       leadPipelineSaveState = {
         id,
         status: 'saved',
-        message: activityResult.ok || !activityRows.length ? 'Pipeline saved.' : 'Pipeline saved. Activity log unavailable.'
+        message: `${activityResult.ok || !activityRows.length ? 'Pipeline saved.' : 'Pipeline saved. Activity log unavailable.'}${automationMessage}`
       };
     } catch (error) {
       if (row && previous) Object.assign(row, previous);

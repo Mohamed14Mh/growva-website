@@ -2770,7 +2770,7 @@ body.gv-cms-loading [data-edit-key] {
 }
 .gv-task-summary {
   display: grid;
-  grid-template-columns: repeat(6,minmax(0,1fr));
+  grid-template-columns: repeat(auto-fit,minmax(118px,1fr));
   gap: 8px;
 }
 .gv-task-summary-card {
@@ -2800,7 +2800,7 @@ body.gv-cms-loading [data-edit-key] {
   align-items: end;
 }
 .gv-task-filters {
-  grid-template-columns: repeat(4,minmax(120px,1fr)) auto auto;
+  grid-template-columns: repeat(5,minmax(120px,1fr)) auto auto;
   padding: 10px;
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: 7px;
@@ -2910,10 +2910,38 @@ body.gv-cms-loading [data-edit-key] {
 }
 .gv-task-status--completed { background: rgba(134,239,172,0.15); color: #86efac; }
 .gv-task-status--cancelled { background: rgba(248,113,113,0.15); color: #fca5a5; }
+.gv-task-reminder-badge {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.62);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.gv-task-reminder-badge--sent {
+  background: rgba(97,191,255,0.14);
+  color: rgba(147,197,253,0.95);
+}
+.gv-task-reminder-badge--failed {
+  background: rgba(248,113,113,0.16);
+  color: #fca5a5;
+}
+.gv-task-reminder-badge--auto {
+  background: rgba(134,239,172,0.13);
+  color: #86efac;
+}
 .gv-task-meta span,
 .gv-task-lead-ref {
   color: rgba(255,255,255,0.42);
   font-size: 11px;
+}
+.gv-task-reminder-error {
+  color: #fca5a5;
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 .gv-task-row p {
   margin: 0;
