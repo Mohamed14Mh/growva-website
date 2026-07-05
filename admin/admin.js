@@ -924,6 +924,9 @@
     if (dashboardTab === 'leads' && leadsData.length === 0 && !leadsLoading) {
       Promise.all([loadLeads(), loadNotificationLogs()]).then(() => renderDashboard());
     }
+    if (dashboardTab === 'notifications' && !notificationLogsLoading) {
+      loadNotificationLogs().then(() => renderDashboard());
+    }
   }
 
   async function refreshDashboardData() {
@@ -988,6 +991,7 @@
       ['sections', 'Section Manager'],
       ['builder', 'Section Builder'],
       ['leads', 'Leads'],
+      ['notifications', 'Notifications'],
     ];
     $('[data-dashboard-tabs]', dashboard).innerHTML = tabs.map(([id, label]) => `
       <button type="button" role="tab" aria-selected="${dashboardTab === id ? 'true' : 'false'}" class="${dashboardTab === id ? 'is-active' : ''}" data-admin-action="dashboard-tab" data-dashboard-tab="${id}">${escapeHtml(label)}</button>
@@ -1010,6 +1014,7 @@
     if (dashboardTab === 'sections') return renderSectionManagerTab();
     if (dashboardTab === 'builder') return renderSectionBuilderTab();
     if (dashboardTab === 'leads') return renderLeadsTab();
+    if (dashboardTab === 'notifications') return renderNotificationsTab();
     return renderOverviewTab();
   }
 
@@ -1029,6 +1034,8 @@
         ${renderMetricCard('Supabase', getConnectionLabel())}
         ${renderMetricCard('Unsafe key', supabaseState.unsafeKey ? 'Yes' : 'No')}
         ${renderMetricCard('Leads (new)', leadsData.filter(l => l.status === 'new' && !l.is_archived).length)}
+        ${renderMetricCard('Notification health', notificationLogs.length ? getNotificationAnalytics().healthLabel : '—')}
+        ${renderMetricCard('Failed notifications', notificationLogs.length ? getNotificationAnalytics().problemTotal : '—')}
       </div>
       ${staleCount > 0 ? `<div class="gv-admin-stale-warning">⚠ ${staleCount} draft(s) are older than 7 days. Review carefully before publishing. <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="dashboard-tab" data-dashboard-tab="compare">View Draft Compare</button></div>` : ''}
       ${isLocalFileMode() ? '<div class="gv-admin-warning">For best CMS behavior, use Live Server or a deployed URL.</div>' : ''}
@@ -1213,6 +1220,256 @@
       </div>
       <div class="gv-admin-dashboard-message">${escapeHtml(lastHealthResult)}</div>
       <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="run-health-check">Run CMS Health Check</button>
+    `;
+  }
+
+  function normalizeNotificationStatus(status) {
+    const value = String(status || '').trim().toLowerCase();
+    return value || 'unknown';
+  }
+
+  function notificationStatusInfo(status) {
+    const st = normalizeNotificationStatus(status);
+    const map = {
+      sent: { label: 'sent', className: 'sent' },
+      failed: { label: 'failed', className: 'failed' },
+      test: { label: 'test', className: 'test' },
+      skipped: { label: 'skipped', className: 'skip' },
+      delivered: { label: 'delivered', className: 'delivered' },
+      bounced: { label: 'bounced', className: 'bounced' },
+      complained: { label: 'complained', className: 'complained' },
+      opened: { label: 'opened', className: 'opened' },
+      clicked: { label: 'clicked', className: 'clicked' },
+      unknown: { label: 'unknown', className: 'unknown' },
+    };
+    return map[st] || map.unknown;
+  }
+
+  function notifBadgeHtml(status) {
+    const info = notificationStatusInfo(status);
+    return `<span class="gv-notif-badge gv-notif-badge--${info.className}">${escapeHtml(info.label)}</span>`;
+  }
+
+  function notifMeta(log) {
+    return (log && log.metadata && typeof log.metadata === 'object' && !Array.isArray(log.metadata)) ? log.metadata : {};
+  }
+
+  function notifReason(log) {
+    const meta = notifMeta(log);
+    const latest = (meta.latest_resend_event && typeof meta.latest_resend_event === 'object') ? meta.latest_resend_event : {};
+    const details = (latest.details && typeof latest.details === 'object') ? latest.details : ((meta.provider_details && typeof meta.provider_details === 'object') ? meta.provider_details : {});
+    return log.error_message || latest.reason || details.reason || details.bounce_type || details.complaint_type || meta.reason || '';
+  }
+
+  function notifTime(log) {
+    return (
+      log.last_event_at ||
+      log.delivered_at ||
+      log.bounced_at ||
+      log.complained_at ||
+      log.opened_at ||
+      log.clicked_at ||
+      log.created_at
+    );
+  }
+
+  function notifNeedsReason(status) {
+    return ['failed', 'bounced', 'complained', 'unknown'].includes(normalizeNotificationStatus(status));
+  }
+
+  function notifProviderShort(id) {
+    const value = String(id || '');
+    return value.length > 14 ? `...${value.slice(-12)}` : value;
+  }
+
+  function formatRate(numerator, denominator) {
+    if (!denominator) return '—';
+    const value = Math.max(0, Math.min(100, (numerator / denominator) * 100));
+    return `${value.toFixed(value % 1 === 0 ? 0 : 1)}%`;
+  }
+
+  function getNotificationAnalytics() {
+    const statuses = ['sent', 'delivered', 'failed', 'bounced', 'complained', 'opened', 'clicked', 'unknown', 'test', 'skipped'];
+    const counts = statuses.reduce((acc, st) => ({ ...acc, [st]: 0 }), {});
+    const now = Date.now();
+    const timeline = {
+      day: { total: 0, delivered: 0, problems: 0 },
+      week: { total: 0, delivered: 0, problems: 0 },
+      month: { total: 0, delivered: 0, problems: 0 },
+    };
+    const problemStatuses = new Set(['failed', 'bounced', 'complained', 'unknown']);
+    const deliveredStatuses = new Set(['delivered', 'opened', 'clicked']);
+    const countedLogs = notificationLogs.filter(log => log && normalizeNotificationStatus(log.status) !== 'test');
+
+    countedLogs.forEach(log => {
+      const st = normalizeNotificationStatus(log.status);
+      counts[st] = (counts[st] || 0) + 1;
+      const date = new Date(notifTime(log) || log.created_at || '');
+      const time = date.getTime();
+      if (!Number.isNaN(time)) {
+        const age = now - time;
+        const buckets = [
+          ['day', 24 * 60 * 60 * 1000],
+          ['week', 7 * 24 * 60 * 60 * 1000],
+          ['month', 30 * 24 * 60 * 60 * 1000],
+        ];
+        buckets.forEach(([key, span]) => {
+          if (age >= 0 && age <= span) {
+            timeline[key].total += 1;
+            if (deliveredStatuses.has(st)) timeline[key].delivered += 1;
+            if (problemStatuses.has(st)) timeline[key].problems += 1;
+          }
+        });
+      }
+    });
+
+    const total = countedLogs.length;
+    const deliveredTotal = (counts.delivered || 0) + (counts.opened || 0) + (counts.clicked || 0);
+    const problemTotal = (counts.failed || 0) + (counts.bounced || 0) + (counts.complained || 0) + (counts.unknown || 0);
+    const deliveryDenominator = (counts.sent || 0) + deliveredTotal + problemTotal;
+    const engagementTotal = (counts.opened || 0) + (counts.clicked || 0);
+    const deliveryRate = formatRate(deliveredTotal, deliveryDenominator);
+    const failureRate = formatRate(problemTotal, total);
+    const engagementRate = formatRate(engagementTotal, deliveredTotal);
+    const healthLabel = !total ? '—'
+      : problemTotal === 0 ? 'Healthy'
+      : (problemTotal / total) <= 0.05 ? 'Watch'
+      : 'Needs attention';
+
+    return {
+      counts,
+      total,
+      deliveredTotal,
+      problemTotal,
+      deliveryDenominator,
+      engagementTotal,
+      deliveryRate,
+      failureRate,
+      engagementRate,
+      healthLabel,
+      timeline,
+    };
+  }
+
+  function renderNotificationsTab() {
+    if (notificationLogsLoading) {
+      return '<p class="gv-admin-empty">Loading notification analytics...</p>';
+    }
+    if (notificationLogsError) {
+      return `
+        <div class="gv-admin-dashboard-message">${escapeHtml(notificationLogsError)}</div>
+        <button type="button" class="gv-admin-action gv-admin-action--mint" data-admin-action="notifications-refresh">Refresh Notifications</button>
+      `;
+    }
+    if (!notificationLogs.length) {
+      return `
+        <div class="gv-notif-analytics-head">
+          <button type="button" class="gv-admin-action gv-admin-action--mint" data-admin-action="notifications-refresh">Refresh Notifications</button>
+        </div>
+        <p class="gv-admin-empty">No notification logs yet. Sent emails will appear here after Phase 21 logging is active.</p>
+      `;
+    }
+
+    const analytics = getNotificationAnalytics();
+    const statusOrder = ['sent', 'delivered', 'failed', 'bounced', 'complained', 'opened', 'clicked', 'unknown'];
+    const issueStatuses = new Set(['failed', 'bounced', 'complained', 'unknown']);
+    const recentIssues = notificationLogs
+      .filter(log => issueStatuses.has(normalizeNotificationStatus(log.status)))
+      .slice(0, 8);
+
+    const metricCards = [
+      ['Total notifications', analytics.total],
+      ['Sent', analytics.counts.sent || 0],
+      ['Delivered', analytics.deliveredTotal],
+      ['Failed', analytics.counts.failed || 0],
+      ['Bounced', analytics.counts.bounced || 0],
+      ['Complained', analytics.counts.complained || 0],
+      ['Opened', analytics.counts.opened || 0],
+      ['Clicked', analytics.counts.clicked || 0],
+      ['Unknown', analytics.counts.unknown || 0],
+    ].map(([label, value]) => renderMetricCard(label, value)).join('');
+
+    const rates = [
+      ['Delivery rate', analytics.deliveryRate, `${analytics.deliveredTotal} delivered / ${analytics.deliveryDenominator} tracked`],
+      ['Failure rate', analytics.failureRate, `${analytics.problemTotal} issue${analytics.problemTotal === 1 ? '' : 's'} / ${analytics.total} total`],
+      ['Engagement rate', analytics.engagementRate, `${analytics.engagementTotal} open/click / ${analytics.deliveredTotal} delivered`],
+    ].map(([label, value, note]) => `
+      <div class="gv-notif-rate-card">
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(value)}</strong>
+        <small>${escapeHtml(note)}</small>
+      </div>
+    `).join('');
+
+    const breakdown = statusOrder.map(st => {
+      const count = analytics.counts[st] || 0;
+      const pct = analytics.total ? Math.round((count / analytics.total) * 100) : 0;
+      return `
+        <div class="gv-notif-breakdown-row">
+          ${notifBadgeHtml(st)}
+          <div class="gv-notif-breakdown-track"><span style="width:${pct}%"></span></div>
+          <strong>${escapeHtml(count)}</strong>
+          <small>${escapeHtml(analytics.total ? `${pct}%` : '—')}</small>
+        </div>
+      `;
+    }).join('');
+
+    const leadNameById = new Map(leadsData.map(lead => [lead.id, lead.name || lead.email || 'Lead']));
+    const issueHtml = recentIssues.length ? recentIssues.map(log => {
+      const issueTime = notifTime(log);
+      const reason = notifReason(log);
+      const leadLabel = log.lead_id && leadNameById.has(log.lead_id) ? leadNameById.get(log.lead_id) : '';
+      return `
+        <article class="gv-notif-issue-row">
+          <div>
+            <div class="gv-notif-issue-head">
+              ${notifBadgeHtml(log.status)}
+              <strong>${escapeHtml(log.recipient_email || 'No recipient')}</strong>
+            </div>
+            <span>${escapeHtml(log.event_type || 'notification')} ${leadLabel ? `// ${escapeHtml(leadLabel)}` : ''}</span>
+            ${reason ? `<p>${escapeHtml(String(reason).slice(0, 180))}</p>` : ''}
+          </div>
+          <time>${escapeHtml(issueTime ? new Date(issueTime).toLocaleString() : '—')}</time>
+        </article>
+      `;
+    }).join('') : '<p class="gv-admin-empty">No recent delivery issues.</p>';
+
+    const timelineRows = [
+      ['Last 24 hours', analytics.timeline.day],
+      ['Last 7 days', analytics.timeline.week],
+      ['Last 30 days', analytics.timeline.month],
+    ].map(([label, row]) => `
+      <div class="gv-notif-timeline-row">
+        <strong>${escapeHtml(label)}</strong>
+        <span>${escapeHtml(row.total)} total</span>
+        <span>${escapeHtml(row.delivered)} delivered</span>
+        <span class="${row.problems ? 'is-warning' : ''}">${escapeHtml(row.problems)} issues</span>
+      </div>
+    `).join('');
+
+    return `
+      <div class="gv-notif-analytics-head">
+        <div>
+          <span class="gv-admin-pill">Delivery Health</span>
+          <strong>${escapeHtml(analytics.healthLabel)}</strong>
+          <small>Computed from latest ${escapeHtml(notificationLogs.length)} notification log rows.</small>
+        </div>
+        <button type="button" class="gv-admin-action gv-admin-action--mint" data-admin-action="notifications-refresh">Refresh Notifications</button>
+      </div>
+      <div class="gv-admin-dashboard-grid gv-notif-metric-grid">${metricCards}</div>
+      <div class="gv-notif-rate-grid">${rates}</div>
+      <section class="gv-notif-panel">
+        <h3>Status breakdown</h3>
+        <div class="gv-notif-breakdown">${breakdown}</div>
+      </section>
+      <section class="gv-notif-panel">
+        <h3>Recent delivery issues</h3>
+        <div class="gv-notif-issues">${issueHtml}</div>
+      </section>
+      <section class="gv-notif-panel">
+        <h3>Recent activity</h3>
+        <div class="gv-notif-timeline">${timelineRows}</div>
+      </section>
     `;
   }
 
@@ -1521,6 +1778,7 @@
     if (action === 'lead-unarchive')   updateLeadArchived(actionElement.dataset.leadId, false);
     if (action === 'lead-test-notify')  sendTestNotification();
     if (action === 'lead-retry-notify') retryNotification(actionElement.dataset.leadId);
+    if (action === 'notifications-refresh') { loadNotificationLogs().then(() => renderDashboard()); }
 
     // Phase 18: Responsive preview frame
     if (action === 'vd18-resp-preview') {
@@ -5833,6 +6091,7 @@
   // Phase 21: notification log state
   let notificationLogs = [];
   let notificationLogsLoading = false;
+  let notificationLogsError = '';
   let leadRetrying = null; // lead ID currently being retried
 
   // ── VD: Extended sanitizer ────────────────────────────────────────────────
@@ -6683,6 +6942,7 @@
   async function loadNotificationLogs() {
     if (!supabaseClient || !currentUser || !adminProfile) return;
     notificationLogsLoading = true;
+    notificationLogsError = '';
     try {
       const baseColumns = 'id,lead_id,status,event_type,recipient_email,provider_message_id,error_message,created_at';
       const phase22Columns = `${baseColumns},metadata,delivered_at,bounced_at,complained_at,opened_at,clicked_at,last_event_at`;
@@ -6690,19 +6950,23 @@
         .from('cms_notification_log')
         .select(phase22Columns)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(500);
       if (error) {
         const fallback = await supabaseClient
           .from('cms_notification_log')
           .select(baseColumns)
           .order('created_at', { ascending: false })
-          .limit(100);
+          .limit(500);
         data = fallback.data;
         error = fallback.error;
+      }
+      if (error) {
+        notificationLogsError = 'Notification logs could not be loaded. Check cms_notification_log RLS and Phase 21/22 SQL patches.';
       }
       notificationLogs = (!error && Array.isArray(data)) ? data : [];
     } catch (e) {
       notificationLogs = [];
+      notificationLogsError = 'Notification logs could not be loaded.';
     }
     notificationLogsLoading = false;
   }
@@ -6868,57 +7132,6 @@
         : 'No leads match the current filter.';
       return notifyPanel + filterBar + `<p class="gv-admin-empty">${escapeHtml(emptyMsg)}</p>`;
     }
-
-    // Phase 21/22: helper for notification status badges (values are fixed strings — no user content)
-    const notifBadgeHtml = (st) => {
-      const labels = {
-        sent: 'sent',
-        failed: 'failed',
-        test: 'test',
-        skipped: 'skipped',
-        delivered: 'delivered',
-        bounced: 'bounced',
-        complained: 'complained',
-        opened: 'opened',
-        clicked: 'clicked',
-        unknown: 'unknown',
-      };
-      const safeClass = {
-        sent: 'sent',
-        failed: 'failed',
-        test: 'test',
-        skipped: 'skip',
-        delivered: 'delivered',
-        bounced: 'bounced',
-        complained: 'complained',
-        opened: 'opened',
-        clicked: 'clicked',
-        unknown: 'unknown',
-      }[st] || 'unknown';
-      return `<span class="gv-notif-badge gv-notif-badge--${safeClass}">${escapeHtml(labels[st] || 'unknown')}</span>`;
-    };
-
-    const notifMeta = (lg) => (lg && lg.metadata && typeof lg.metadata === 'object' && !Array.isArray(lg.metadata)) ? lg.metadata : {};
-    const notifReason = (lg) => {
-      const meta = notifMeta(lg);
-      const latest = (meta.latest_resend_event && typeof meta.latest_resend_event === 'object') ? meta.latest_resend_event : {};
-      const details = (latest.details && typeof latest.details === 'object') ? latest.details : ((meta.provider_details && typeof meta.provider_details === 'object') ? meta.provider_details : {});
-      return lg.error_message || latest.reason || details.reason || details.bounce_type || details.complaint_type || meta.reason || '';
-    };
-    const notifTime = (lg) => (
-      lg.last_event_at ||
-      lg.delivered_at ||
-      lg.bounced_at ||
-      lg.complained_at ||
-      lg.opened_at ||
-      lg.clicked_at ||
-      lg.created_at
-    );
-    const notifNeedsReason = (st) => ['failed', 'bounced', 'complained'].includes(st);
-    const notifProviderShort = (id) => {
-      const value = String(id || '');
-      return value.length > 14 ? `...${value.slice(-12)}` : value;
-    };
 
     const rows = visible.map(lead => {
       const isExpanded = leadsExpanded === lead.id;

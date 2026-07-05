@@ -2386,3 +2386,177 @@ body.gv-cms-loading [data-edit-key] {
 .gv-notif-badge--test    { background: rgba(253,224,71,0.15);  color: #fde047; }
 .gv-notif-badge--skip,
 .gv-notif-badge--unknown { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.40); }
+
+/* Phase 23: notification analytics dashboard */
+.gv-notif-analytics-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid rgba(246,246,246,0.10);
+  border-radius: 8px;
+  background: rgba(246,246,246,0.04);
+}
+.gv-notif-analytics-head > div {
+  display: grid;
+  gap: 4px;
+}
+.gv-notif-analytics-head strong {
+  color: var(--gv-admin-ink);
+  font-size: 1rem;
+  line-height: 1.2;
+}
+.gv-notif-analytics-head small {
+  color: rgba(255,255,255,0.42);
+  font-size: 11px;
+}
+.gv-notif-metric-grid {
+  margin-bottom: 12px;
+}
+.gv-notif-rate-grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.gv-notif-rate-card,
+.gv-notif-panel {
+  border: 1px solid rgba(246,246,246,0.10);
+  border-radius: 8px;
+  background: rgba(246,246,246,0.04);
+}
+.gv-notif-rate-card {
+  display: grid;
+  gap: 5px;
+  min-height: 90px;
+  padding: 14px;
+}
+.gv-notif-rate-card span,
+.gv-notif-panel h3 {
+  margin: 0;
+  color: rgba(255,255,255,0.42);
+  font-family: var(--mono,'JetBrains Mono',monospace);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.gv-notif-rate-card strong {
+  color: var(--gv-admin-ink);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+.gv-notif-rate-card small {
+  color: rgba(255,255,255,0.42);
+  font-size: 11px;
+}
+.gv-notif-panel {
+  margin-top: 12px;
+  padding: 14px;
+}
+.gv-notif-breakdown,
+.gv-notif-issues,
+.gv-notif-timeline {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.gv-notif-breakdown-row {
+  display: grid;
+  grid-template-columns: 94px minmax(80px,1fr) 36px 42px;
+  align-items: center;
+  gap: 8px;
+}
+.gv-notif-breakdown-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+}
+.gv-notif-breakdown-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: rgba(177,250,32,0.65);
+}
+.gv-notif-breakdown-row strong,
+.gv-notif-breakdown-row small {
+  color: rgba(255,255,255,0.62);
+  font-family: var(--mono,'JetBrains Mono',monospace);
+  font-size: 11px;
+  text-align: right;
+}
+.gv-notif-breakdown-row small {
+  color: rgba(255,255,255,0.34);
+}
+.gv-notif-issue-row,
+.gv-notif-timeline-row {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 6px;
+  background: rgba(0,0,0,0.16);
+}
+.gv-notif-issue-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gv-notif-issue-row strong {
+  color: var(--gv-admin-ink);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.gv-notif-issue-row span,
+.gv-notif-issue-row time {
+  color: rgba(255,255,255,0.42);
+  font-family: var(--mono,'JetBrains Mono',monospace);
+  font-size: 10px;
+}
+.gv-notif-issue-row p {
+  margin: 6px 0 0;
+  color: #fca5a5;
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.gv-notif-timeline-row {
+  grid-template-columns: minmax(120px,1fr) repeat(3,auto);
+  align-items: center;
+}
+.gv-notif-timeline-row strong,
+.gv-notif-timeline-row span {
+  color: rgba(255,255,255,0.62);
+  font-size: 12px;
+}
+.gv-notif-timeline-row span {
+  color: rgba(255,255,255,0.42);
+  font-family: var(--mono,'JetBrains Mono',monospace);
+  font-size: 10px;
+}
+.gv-notif-timeline-row .is-warning {
+  color: #fca5a5;
+}
+
+@media (max-width: 760px) {
+  .gv-notif-analytics-head,
+  .gv-notif-issue-row,
+  .gv-notif-timeline-row {
+    grid-template-columns: 1fr;
+  }
+  .gv-notif-analytics-head {
+    display: grid;
+  }
+  .gv-notif-rate-grid {
+    grid-template-columns: 1fr;
+  }
+  .gv-notif-breakdown-row {
+    grid-template-columns: 86px minmax(60px,1fr) 30px 36px;
+  }
+}
