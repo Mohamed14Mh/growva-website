@@ -6684,11 +6684,22 @@
     if (!supabaseClient || !currentUser || !adminProfile) return;
     notificationLogsLoading = true;
     try {
-      const { data, error } = await supabaseClient
+      const baseColumns = 'id,lead_id,status,event_type,recipient_email,provider_message_id,error_message,created_at';
+      const phase22Columns = `${baseColumns},metadata,delivered_at,bounced_at,complained_at,opened_at,clicked_at,last_event_at`;
+      let { data, error } = await supabaseClient
         .from('cms_notification_log')
-        .select('id,lead_id,status,event_type,recipient_email,provider_message_id,error_message,created_at')
+        .select(phase22Columns)
         .order('created_at', { ascending: false })
         .limit(100);
+      if (error) {
+        const fallback = await supabaseClient
+          .from('cms_notification_log')
+          .select(baseColumns)
+          .order('created_at', { ascending: false })
+          .limit(100);
+        data = fallback.data;
+        error = fallback.error;
+      }
       notificationLogs = (!error && Array.isArray(data)) ? data : [];
     } catch (e) {
       notificationLogs = [];
@@ -6858,10 +6869,55 @@
       return notifyPanel + filterBar + `<p class="gv-admin-empty">${escapeHtml(emptyMsg)}</p>`;
     }
 
-    // Phase 21: helper for notification status badges (values are fixed strings — no user content)
+    // Phase 21/22: helper for notification status badges (values are fixed strings — no user content)
     const notifBadgeHtml = (st) => {
-      const safeClass = { sent:'sent', failed:'failed', test:'test', skipped:'skip' }[st] || 'skip';
-      return `<span class="gv-notif-badge gv-notif-badge--${safeClass}">${escapeHtml(st || '—')}</span>`;
+      const labels = {
+        sent: 'sent',
+        failed: 'failed',
+        test: 'test',
+        skipped: 'skipped',
+        delivered: 'delivered',
+        bounced: 'bounced',
+        complained: 'complained',
+        opened: 'opened',
+        clicked: 'clicked',
+        unknown: 'unknown',
+      };
+      const safeClass = {
+        sent: 'sent',
+        failed: 'failed',
+        test: 'test',
+        skipped: 'skip',
+        delivered: 'delivered',
+        bounced: 'bounced',
+        complained: 'complained',
+        opened: 'opened',
+        clicked: 'clicked',
+        unknown: 'unknown',
+      }[st] || 'unknown';
+      return `<span class="gv-notif-badge gv-notif-badge--${safeClass}">${escapeHtml(labels[st] || 'unknown')}</span>`;
+    };
+
+    const notifMeta = (lg) => (lg && lg.metadata && typeof lg.metadata === 'object' && !Array.isArray(lg.metadata)) ? lg.metadata : {};
+    const notifReason = (lg) => {
+      const meta = notifMeta(lg);
+      const latest = (meta.latest_resend_event && typeof meta.latest_resend_event === 'object') ? meta.latest_resend_event : {};
+      const details = (latest.details && typeof latest.details === 'object') ? latest.details : ((meta.provider_details && typeof meta.provider_details === 'object') ? meta.provider_details : {});
+      return lg.error_message || latest.reason || details.reason || details.bounce_type || details.complaint_type || meta.reason || '';
+    };
+    const notifTime = (lg) => (
+      lg.last_event_at ||
+      lg.delivered_at ||
+      lg.bounced_at ||
+      lg.complained_at ||
+      lg.opened_at ||
+      lg.clicked_at ||
+      lg.created_at
+    );
+    const notifNeedsReason = (st) => ['failed', 'bounced', 'complained'].includes(st);
+    const notifProviderShort = (id) => {
+      const value = String(id || '');
+      return value.length > 14 ? `...${value.slice(-12)}` : value;
     };
 
     const rows = visible.map(lead => {
@@ -6888,13 +6944,18 @@
       const logsHtml = leadLogs.length ? `
         <div class="gv-notif-log">
           <div class="gv-notif-log-title">Notification history</div>
-          ${leadLogs.map(lg => `
+          ${leadLogs.map(lg => {
+            const eventTime = notifTime(lg);
+            const reason = notifReason(lg);
+            return `
             <div class="gv-notif-log-row">
               ${notifBadgeHtml(lg.status)}
-              <span class="gv-notif-log-time">${escapeHtml(lg.created_at ? new Date(lg.created_at).toLocaleString() : '—')}</span>
+              <span class="gv-notif-log-time">${escapeHtml(eventTime ? new Date(eventTime).toLocaleString() : '—')}</span>
               <span class="gv-notif-log-type">${escapeHtml(lg.event_type || 'notification')}</span>
-              ${lg.status === 'failed' && lg.error_message ? `<div class="gv-notif-err">${escapeHtml(String(lg.error_message).slice(0, 120))}</div>` : ''}
-            </div>`).join('')}
+              ${lg.provider_message_id ? `<span class="gv-notif-log-id">${escapeHtml(notifProviderShort(lg.provider_message_id))}</span>` : ''}
+              ${notifNeedsReason(lg.status) && reason ? `<div class="gv-notif-err">${escapeHtml(String(reason).slice(0, 140))}</div>` : ''}
+            </div>`;
+          }).join('')}
         </div>` : `<div class="gv-notif-log"><div class="gv-notif-log-empty">No notification history.</div></div>`;
 
       const retryBtn = adminProfile?.role === 'owner' ? `

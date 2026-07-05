@@ -2352,6 +2352,11 @@ body.gv-cms-loading [data-edit-key] {
   color: rgba(255,255,255,0.25);
   font-style: italic;
 }
+.gv-notif-log-id {
+  font-size: 10px;
+  color: rgba(255,255,255,0.22);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
 .gv-notif-err {
   width: 100%;
   font-size: 11px;
@@ -2372,6 +2377,12 @@ body.gv-cms-loading [data-edit-key] {
   flex-shrink: 0;
 }
 .gv-notif-badge--sent    { background: rgba(134,239,172,0.15); color: #86efac; }
+.gv-notif-badge--delivered { background: rgba(94,234,212,0.16); color: #5eead4; }
 .gv-notif-badge--failed  { background: rgba(252,165,165,0.15); color: #fca5a5; }
+.gv-notif-badge--bounced,
+.gv-notif-badge--complained { background: rgba(248,113,113,0.18); color: #f87171; }
+.gv-notif-badge--opened,
+.gv-notif-badge--clicked { background: rgba(147,197,253,0.15); color: #93c5fd; }
 .gv-notif-badge--test    { background: rgba(253,224,71,0.15);  color: #fde047; }
-.gv-notif-badge--skip    { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.40); }
+.gv-notif-badge--skip,
+.gv-notif-badge--unknown { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.40); }
