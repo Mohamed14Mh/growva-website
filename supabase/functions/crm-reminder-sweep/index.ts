@@ -202,7 +202,7 @@ function renderTaskRows(tasks: SweepTask[], leadsById: Map<string, SweepLead>): 
   return tasks.map(task => {
     const lead = leadsById.get(task.lead_id);
     const leadLine = [
-      leadLabel(lead, task),
+      esc(leadLabel(lead, task)),
       lead?.email ? esc(lead.email) : '',
       lead?.company ? esc(lead.company) : '',
     ].filter(Boolean).join(' / ');

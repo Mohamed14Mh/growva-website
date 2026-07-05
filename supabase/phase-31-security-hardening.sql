@@ -1,0 +1,43 @@
+-- Phase 31: Final Security Hardening
+-- ---------------------------------------------------------------------------
+-- RUN THIS FILE in the Supabase SQL Editor after all prior phase patches.
+-- Idempotent and non-destructive: adds defense-in-depth privilege restrictions
+-- without removing any RLS policies or dropping any tables.
+--
+-- What this does:
+--   1. Explicitly revokes ALL privileges on cms_notification_log from anon.
+--      Phase 21 created this table with RLS enabled (no anon policy = deny),
+--      but did not include an explicit REVOKE. RLS already blocks anon access;
+--      this REVOKE adds an extra layer of protection (defense-in-depth).
+--
+-- What this does NOT do:
+--   - Does not alter any existing RLS policies
+--   - Does not drop or recreate any tables
+--   - Does not change any GRANT for the authenticated role
+--   - Does not affect Edge Function behavior (service-role bypasses RLS)
+
+-- 1. Harden cms_notification_log: explicit anon privilege revoke.
+--    This is defense-in-depth on top of the existing RLS (which already denies
+--    anon access because no SELECT/INSERT/UPDATE/DELETE policy exists for anon).
+
+REVOKE ALL ON public.cms_notification_log FROM anon;
+
+-- Verification queries:
+-- -- Confirm no anon privilege on cms_notification_log:
+-- SELECT grantee, privilege_type
+-- FROM information_schema.role_table_grants
+-- WHERE table_schema = 'public'
+--   AND table_name = 'cms_notification_log'
+-- ORDER BY grantee, privilege_type;
+--
+-- -- Confirm RLS is still enabled:
+-- SELECT tablename, rowsecurity
+-- FROM pg_tables
+-- WHERE schemaname = 'public'
+--   AND tablename = 'cms_notification_log';
+--
+-- -- Confirm existing policies are still in place:
+-- SELECT policyname, cmd, roles
+-- FROM pg_policies
+-- WHERE tablename = 'cms_notification_log'
+-- ORDER BY policyname;
