@@ -2047,10 +2047,21 @@
       leadsFilter = actionElement.dataset.leadsFilter || 'all';
       renderDashboard();
     }
+    if (action === 'lead-pipeline-filter-apply') {
+      applyLeadPipelineFiltersFromDom();
+      renderDashboard();
+    }
+    if (action === 'lead-pipeline-filter-reset') {
+      resetLeadPipelineFilters();
+      renderDashboard();
+    }
     if (action === 'lead-expand') {
       const lid = actionElement.dataset.leadId;
       leadsExpanded = leadsExpanded === lid ? null : lid;
       renderDashboard();
+    }
+    if (action === 'lead-pipeline-save') {
+      updateLeadPipeline(actionElement.dataset.leadId, actionElement.closest('[data-lead-pipeline-form]'));
     }
     if (action === 'lead-mark-read')   updateLeadStatus(actionElement.dataset.leadId, 'read');
     if (action === 'lead-mark-new')    updateLeadStatus(actionElement.dataset.leadId, 'new');
@@ -6364,10 +6375,38 @@
   let vdVisualDirty = false;
   let vd18ResponsivePreview = 'none'; // Phase 18: 'none' | 'tablet' | 'mobile'
   // Phase 19: Contact Leads
+  const LEAD_PIPELINE_STAGES = ['new', 'contacted', 'qualified', 'proposal', 'won', 'lost', 'nurture'];
+  const LEAD_PIPELINE_PRIORITIES = ['low', 'normal', 'high', 'urgent'];
+  const LEAD_PIPELINE_STAGE_LABELS = {
+    new: 'New',
+    contacted: 'Contacted',
+    qualified: 'Qualified',
+    proposal: 'Proposal',
+    won: 'Won',
+    lost: 'Lost',
+    nurture: 'Nurture'
+  };
+  const LEAD_PIPELINE_PRIORITY_LABELS = {
+    low: 'Low',
+    normal: 'Normal',
+    high: 'High',
+    urgent: 'Urgent'
+  };
   let leadsData = [];
   let leadsLoading = false;
   let leadsExpanded = null;
   let leadsFilter = 'all'; // 'all' | 'new' | 'read' | 'archived'
+  let leadsPipelineFilters = {
+    stage: 'all',
+    priority: 'all',
+    assigned: '',
+    followup: 'all'
+  };
+  let leadPipelineSaveState = {
+    id: null,
+    status: 'idle',
+    message: ''
+  };
   // Phase 20: test notification state
   let leadsNotifyState = 'idle'; // 'idle' | 'sending' | 'ok' | 'error'
   let leadsNotifyMsg = '';
@@ -7206,17 +7245,306 @@
 
   // ── Phase 19: Contact Form Lead Capture ──────────────────────────────────────
 
+  function normalizeLeadPipelineStage(value) {
+    const stage = String(value || '').trim().toLowerCase();
+    return LEAD_PIPELINE_STAGES.includes(stage) ? stage : 'new';
+  }
+
+  function normalizeLeadPriority(value) {
+    const priority = String(value || '').trim().toLowerCase();
+    return LEAD_PIPELINE_PRIORITIES.includes(priority) ? priority : 'normal';
+  }
+
+  function leadStageLabel(value) {
+    return LEAD_PIPELINE_STAGE_LABELS[normalizeLeadPipelineStage(value)] || 'New';
+  }
+
+  function leadPriorityLabel(value) {
+    return LEAD_PIPELINE_PRIORITY_LABELS[normalizeLeadPriority(value)] || 'Normal';
+  }
+
+  function leadDateValue(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function startOfLocalDay(date) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  }
+
+  function leadFollowUpState(lead) {
+    const followUp = leadDateValue(lead && lead.follow_up_at);
+    if (!followUp) return 'none';
+    const today = startOfLocalDay(new Date());
+    const dueDay = startOfLocalDay(followUp);
+    if (dueDay.getTime() < today.getTime()) return 'overdue';
+    if (dueDay.getTime() === today.getTime()) return 'today';
+    return 'upcoming';
+  }
+
+  function leadFollowUpLabel(lead) {
+    const state = leadFollowUpState(lead);
+    if (state === 'overdue') return 'Overdue';
+    if (state === 'today') return 'Today';
+    if (state === 'upcoming') return 'Upcoming';
+    return 'No follow-up';
+  }
+
+  function formatLeadDateTime(value) {
+    const date = leadDateValue(value);
+    return date ? date.toLocaleString() : 'Not set';
+  }
+
+  function formatDateTimeLocal(value) {
+    const date = leadDateValue(value);
+    if (!date) return '';
+    const pad = n => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  function datetimeLocalToIso(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return null;
+    const date = new Date(raw);
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  }
+
+  function truncateLeadPipelineValue(value, max = 1000) {
+    const text = String(value || '').trim();
+    return text ? text.slice(0, max) : null;
+  }
+
+  function applyLeadPipelineDefaults(lead) {
+    if (!lead) return lead;
+    lead.pipeline_stage = normalizeLeadPipelineStage(lead.pipeline_stage);
+    lead.priority = normalizeLeadPriority(lead.priority);
+    return lead;
+  }
+
+  function resetLeadPipelineFilters() {
+    leadsPipelineFilters = { stage: 'all', priority: 'all', assigned: '', followup: 'all' };
+  }
+
+  function applyLeadPipelineFiltersFromDom() {
+    const form = $('[data-lead-pipeline-filters]', dashboard || adminRoot || document);
+    if (!form) return;
+    const stage = $('[data-lead-filter-stage]', form)?.value || 'all';
+    const priority = $('[data-lead-filter-priority]', form)?.value || 'all';
+    const assigned = $('[data-lead-filter-assigned]', form)?.value || '';
+    const followup = $('[data-lead-filter-followup]', form)?.value || 'all';
+    leadsPipelineFilters = {
+      stage: stage === 'all' || LEAD_PIPELINE_STAGES.includes(stage) ? stage : 'all',
+      priority: priority === 'all' || LEAD_PIPELINE_PRIORITIES.includes(priority) ? priority : 'all',
+      assigned: String(assigned || '').trim().slice(0, 120),
+      followup: ['all', 'overdue', 'today', 'upcoming', 'unassigned'].includes(followup) ? followup : 'all'
+    };
+  }
+
+  function leadMatchesPipelineFilters(lead) {
+    const filters = leadsPipelineFilters || {};
+    if (filters.stage && filters.stage !== 'all' && normalizeLeadPipelineStage(lead.pipeline_stage) !== filters.stage) return false;
+    if (filters.priority && filters.priority !== 'all' && normalizeLeadPriority(lead.priority) !== filters.priority) return false;
+    if (filters.assigned) {
+      const assigned = String(lead.assigned_to || '').toLowerCase();
+      if (!assigned.includes(filters.assigned.toLowerCase())) return false;
+    }
+    if (filters.followup === 'unassigned' && String(lead.assigned_to || '').trim()) return false;
+    if (['overdue', 'today', 'upcoming'].includes(filters.followup) && leadFollowUpState(lead) !== filters.followup) return false;
+    return true;
+  }
+
+  function getLeadPipelineSummary(leads = leadsData) {
+    const active = (leads || []).filter(lead => !lead.is_archived);
+    const byStage = {};
+    const byPriority = {};
+    LEAD_PIPELINE_STAGES.forEach(stage => { byStage[stage] = 0; });
+    LEAD_PIPELINE_PRIORITIES.forEach(priority => { byPriority[priority] = 0; });
+    let overdue = 0;
+    let today = 0;
+    let upcoming = 0;
+    let unassigned = 0;
+    active.forEach(lead => {
+      byStage[normalizeLeadPipelineStage(lead.pipeline_stage)] += 1;
+      byPriority[normalizeLeadPriority(lead.priority)] += 1;
+      const follow = leadFollowUpState(lead);
+      if (follow === 'overdue') overdue += 1;
+      if (follow === 'today') today += 1;
+      if (follow === 'upcoming') upcoming += 1;
+      if (!String(lead.assigned_to || '').trim()) unassigned += 1;
+    });
+    return { activeCount: active.length, byStage, byPriority, overdue, today, upcoming, unassigned };
+  }
+
+  function renderLeadPipelineSummary(summary) {
+    const total = Math.max(summary.activeCount, 1);
+    const stageCards = LEAD_PIPELINE_STAGES.map(stage => {
+      const count = summary.byStage[stage] || 0;
+      const pct = Math.round((count / total) * 100);
+      return `<div class="gv-lead-pipeline-summary-card">
+        <span>${escapeHtml(LEAD_PIPELINE_STAGE_LABELS[stage])}</span>
+        <strong>${escapeHtml(count)}</strong>
+        <i style="width:${pct}%"></i>
+      </div>`;
+    }).join('');
+    const priorityCards = LEAD_PIPELINE_PRIORITIES.map(priority => {
+      const count = summary.byPriority[priority] || 0;
+      const pct = Math.round((count / total) * 100);
+      return `<div class="gv-lead-pipeline-summary-card gv-lead-pipeline-summary-card--priority">
+        <span>${escapeHtml(LEAD_PIPELINE_PRIORITY_LABELS[priority])}</span>
+        <strong>${escapeHtml(count)}</strong>
+        <i style="width:${pct}%"></i>
+      </div>`;
+    }).join('');
+    return `<section class="gv-lead-pipeline-summary" aria-label="Lead pipeline summary">
+      <div class="gv-lead-pipeline-summary-head">
+        <span class="gv-admin-pill">Pipeline</span>
+        <strong>${escapeHtml(summary.activeCount)} active leads</strong>
+      </div>
+      <div class="gv-lead-pipeline-summary-grid">${stageCards}</div>
+      <div class="gv-lead-pipeline-summary-grid gv-lead-pipeline-summary-grid--priority">${priorityCards}</div>
+      <div class="gv-lead-followup-summary">
+        <span><strong>${escapeHtml(summary.overdue)}</strong> overdue</span>
+        <span><strong>${escapeHtml(summary.today)}</strong> due today</span>
+        <span><strong>${escapeHtml(summary.upcoming)}</strong> upcoming</span>
+        <span><strong>${escapeHtml(summary.unassigned)}</strong> unassigned</span>
+      </div>
+    </section>`;
+  }
+
+  function renderLeadPipelineFilters() {
+    const filters = leadsPipelineFilters || {};
+    const option = (value, label, selected) => `<option value="${escapeHtml(value)}"${selected ? ' selected' : ''}>${escapeHtml(label)}</option>`;
+    const stageOptions = option('all', 'Any stage', filters.stage === 'all') + LEAD_PIPELINE_STAGES.map(stage => option(stage, LEAD_PIPELINE_STAGE_LABELS[stage], filters.stage === stage)).join('');
+    const priorityOptions = option('all', 'Any priority', filters.priority === 'all') + LEAD_PIPELINE_PRIORITIES.map(priority => option(priority, LEAD_PIPELINE_PRIORITY_LABELS[priority], filters.priority === priority)).join('');
+    const followOptions = [
+      ['all', 'Any follow-up'],
+      ['overdue', 'Overdue'],
+      ['today', 'Due today'],
+      ['upcoming', 'Upcoming'],
+      ['unassigned', 'Unassigned']
+    ].map(([value, label]) => option(value, label, filters.followup === value)).join('');
+    return `<div class="gv-lead-pipeline-filters" data-lead-pipeline-filters>
+      <label><span>Stage</span><select data-lead-filter-stage>${stageOptions}</select></label>
+      <label><span>Priority</span><select data-lead-filter-priority>${priorityOptions}</select></label>
+      <label><span>Owner</span><input type="search" data-lead-filter-assigned value="${escapeHtml(filters.assigned || '')}" placeholder="Assigned to"></label>
+      <label><span>Follow-up</span><select data-lead-filter-followup>${followOptions}</select></label>
+      <button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--mint" data-admin-action="lead-pipeline-filter-apply">Apply</button>
+      <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="lead-pipeline-filter-reset">Reset</button>
+    </div>`;
+  }
+
+  function renderLeadPipelineBadges(lead) {
+    const stage = normalizeLeadPipelineStage(lead.pipeline_stage);
+    const priority = normalizeLeadPriority(lead.priority);
+    const follow = leadFollowUpState(lead);
+    return `<span class="gv-lead-pipeline-badges">
+      <span class="gv-lead-stage-badge gv-lead-stage-badge--${escapeHtml(stage)}">${escapeHtml(LEAD_PIPELINE_STAGE_LABELS[stage])}</span>
+      <span class="gv-lead-priority-badge gv-lead-priority-badge--${escapeHtml(priority)}">${escapeHtml(LEAD_PIPELINE_PRIORITY_LABELS[priority])}</span>
+      <span class="gv-lead-followup-badge gv-lead-followup-badge--${escapeHtml(follow)}">${escapeHtml(leadFollowUpLabel(lead))}</span>
+    </span>`;
+  }
+
+  function renderLeadPipelineForm(lead, canEdit) {
+    const stage = normalizeLeadPipelineStage(lead.pipeline_stage);
+    const priority = normalizeLeadPriority(lead.priority);
+    const option = (value, label, selected) => `<option value="${escapeHtml(value)}"${selected ? ' selected' : ''}>${escapeHtml(label)}</option>`;
+    const dis = canEdit ? '' : ' disabled';
+    const readonlyClass = canEdit ? '' : ' gv-lead-pipeline--readonly';
+    const saveState = leadPipelineSaveState.id === lead.id ? leadPipelineSaveState : { status: 'idle', message: '' };
+    const saveMessage = saveState.message ? `<span class="gv-lead-pipeline-save-state gv-lead-pipeline-save-state--${escapeHtml(saveState.status)}">${escapeHtml(saveState.message)}</span>` : '';
+    return `<section class="gv-lead-pipeline${readonlyClass}" data-lead-pipeline-form data-lead-id="${escapeHtml(lead.id)}">
+      <div class="gv-lead-pipeline-head">
+        <div>
+          <span class="gv-admin-pill">Pipeline</span>
+          <strong>${escapeHtml(leadStageLabel(stage))} / ${escapeHtml(leadPriorityLabel(priority))}</strong>
+        </div>
+        ${canEdit ? `<button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--mint"${saveState.status === 'saving' ? ' disabled' : ''} data-admin-action="lead-pipeline-save" data-lead-id="${escapeHtml(lead.id)}">${saveState.status === 'saving' ? 'Saving...' : 'Save Pipeline'}</button>` : '<span class="gv-lead-pipeline-readonly">Viewer mode</span>'}
+      </div>
+      <div class="gv-lead-pipeline-grid">
+        <label><span>Stage</span><select data-pipeline-field="pipeline_stage"${dis}>${LEAD_PIPELINE_STAGES.map(item => option(item, LEAD_PIPELINE_STAGE_LABELS[item], stage === item)).join('')}</select></label>
+        <label><span>Priority</span><select data-pipeline-field="priority"${dis}>${LEAD_PIPELINE_PRIORITIES.map(item => option(item, LEAD_PIPELINE_PRIORITY_LABELS[item], priority === item)).join('')}</select></label>
+        <label><span>Assigned owner</span><input type="text" data-pipeline-field="assigned_to" value="${escapeHtml(lead.assigned_to || '')}" maxlength="160"${dis}></label>
+        <label><span>Outcome</span><input type="text" data-pipeline-field="outcome" value="${escapeHtml(lead.outcome || '')}" maxlength="240"${dis}></label>
+        <label><span>Follow-up date</span><input type="datetime-local" data-pipeline-field="follow_up_at" value="${escapeHtml(formatDateTimeLocal(lead.follow_up_at))}"${dis}></label>
+        <label><span>Last contacted</span><input type="datetime-local" data-pipeline-field="last_contacted_at" value="${escapeHtml(formatDateTimeLocal(lead.last_contacted_at))}"${dis}></label>
+      </div>
+      <label class="gv-lead-pipeline-wide"><span>Next action</span><textarea data-pipeline-field="next_action" maxlength="1000"${dis}>${escapeHtml(lead.next_action || '')}</textarea></label>
+      <label class="gv-lead-pipeline-wide"><span>Internal notes</span><textarea data-pipeline-field="internal_notes" maxlength="4000"${dis}>${escapeHtml(lead.internal_notes || '')}</textarea></label>
+      <div class="gv-lead-pipeline-meta">
+        <span>Follow-up: ${escapeHtml(leadFollowUpLabel(lead))}</span>
+        <span>Last contacted: ${escapeHtml(formatLeadDateTime(lead.last_contacted_at))}</span>
+        ${lead.pipeline_updated_at ? `<span>Pipeline updated: ${escapeHtml(formatLeadDateTime(lead.pipeline_updated_at))}</span>` : ''}
+        ${saveMessage}
+      </div>
+    </section>`;
+  }
+
+  function readLeadPipelinePayload(form) {
+    if (!form) return null;
+    const field = name => $(`[data-pipeline-field="${name}"]`, form);
+    return {
+      pipeline_stage: normalizeLeadPipelineStage(field('pipeline_stage')?.value),
+      priority: normalizeLeadPriority(field('priority')?.value),
+      assigned_to: truncateLeadPipelineValue(field('assigned_to')?.value, 160),
+      follow_up_at: datetimeLocalToIso(field('follow_up_at')?.value),
+      last_contacted_at: datetimeLocalToIso(field('last_contacted_at')?.value),
+      outcome: truncateLeadPipelineValue(field('outcome')?.value, 240),
+      next_action: truncateLeadPipelineValue(field('next_action')?.value, 1000),
+      internal_notes: truncateLeadPipelineValue(field('internal_notes')?.value, 4000),
+      pipeline_updated_at: new Date().toISOString()
+    };
+  }
+
+  async function updateLeadPipeline(id, form) {
+    if (!id || !canAdminEdit()) return;
+    if (!supabaseClient || !currentUser) return;
+    const payload = readLeadPipelinePayload(form);
+    if (!payload) return;
+    const row = leadsData.find(lead => lead.id === id);
+    const previous = row ? Object.assign({}, row) : null;
+    if (row) Object.assign(row, payload);
+    leadPipelineSaveState = { id, status: 'saving', message: 'Saving pipeline...' };
+    renderDashboard();
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_contact_submissions')
+        .update(payload)
+        .eq('id', id)
+        .select('pipeline_stage,priority,assigned_to,follow_up_at,last_contacted_at,outcome,next_action,internal_notes,pipeline_updated_at')
+        .maybeSingle();
+      if (error) throw error;
+      if (row && data) Object.assign(row, data);
+      if (row) applyLeadPipelineDefaults(row);
+      leadPipelineSaveState = { id, status: 'saved', message: 'Pipeline saved.' };
+    } catch (error) {
+      if (row && previous) Object.assign(row, previous);
+      leadPipelineSaveState = { id, status: 'error', message: 'Pipeline could not be saved.' };
+    }
+    renderDashboard();
+  }
+
   async function loadLeads() {
     if (!supabaseClient || !currentUser || !adminProfile) return;
     leadsLoading = true;
     try {
       const baseColumns = 'id,name,email,company,project_type,budget,message,page_path,source,status,is_archived,user_agent,created_at';
       const phase24Columns = `${baseColumns},landing_page,referrer,utm_source,utm_medium,utm_campaign,utm_term,utm_content,attribution_json`;
+      const phase25Columns = `${phase24Columns},pipeline_stage,priority,assigned_to,follow_up_at,last_contacted_at,outcome,next_action,internal_notes,pipeline_updated_at`;
       let { data, error } = await supabaseClient
         .from('cms_contact_submissions')
-        .select(phase24Columns)
+        .select(phase25Columns)
         .order('created_at', { ascending: false })
         .limit(500);
+      if (error) {
+        const fallback = await supabaseClient
+          .from('cms_contact_submissions')
+          .select(phase24Columns)
+          .order('created_at', { ascending: false })
+          .limit(500);
+        data = fallback.data;
+        error = fallback.error;
+      }
       if (error) {
         const fallback = await supabaseClient
           .from('cms_contact_submissions')
@@ -7226,7 +7554,7 @@
         data = fallback.data;
         error = fallback.error;
       }
-      leadsData = (!error && Array.isArray(data)) ? data : [];
+      leadsData = (!error && Array.isArray(data)) ? data.map(applyLeadPipelineDefaults) : [];
     } catch (e) {
       leadsData = [];
     }
@@ -7376,6 +7704,8 @@
     const newCount      = leadsData.filter(l => l.status === 'new' && !l.is_archived).length;
     const readCount     = leadsData.filter(l => l.status === 'read' && !l.is_archived).length;
     const archivedCount = leadsData.filter(l => l.is_archived).length;
+    const pipelineSummary = getLeadPipelineSummary(leadsData);
+    const pipelineSummaryHtml = renderLeadPipelineSummary(pipelineSummary);
 
     // Phase 20: owner-only test notification panel
     let notifyPanel = '';
@@ -7408,6 +7738,8 @@
         <button type="button" class="gv-admin-action gv-admin-action--sm" style="margin-left:auto;" data-admin-action="leads-refresh">↻ Refresh</button>
       </div>`;
 
+    const pipelineFilterBar = renderLeadPipelineFilters();
+
     // Apply filter
     let visible = leadsData;
     if (leadsFilter === 'archived') {
@@ -7419,12 +7751,13 @@
     } else {
       visible = leadsData.filter(l => !l.is_archived);
     }
+    visible = visible.filter(leadMatchesPipelineFilters);
 
     if (!visible.length) {
       const emptyMsg = leadsData.length === 0
         ? 'No leads yet. Form submissions will appear here.'
         : 'No leads match the current filter.';
-      return notifyPanel + filterBar + `<p class="gv-admin-empty">${escapeHtml(emptyMsg)}</p>`;
+      return notifyPanel + pipelineSummaryHtml + filterBar + pipelineFilterBar + `<p class="gv-admin-empty">${escapeHtml(emptyMsg)}</p>`;
     }
 
     const rows = visible.map(lead => {
@@ -7432,6 +7765,7 @@
       const statusBadge = lead.status === 'new'
         ? '<span class="gv-lead-badge gv-lead-badge--new">new</span>'
         : '<span class="gv-lead-badge gv-lead-badge--read">read</span>';
+      const pipelineBadges = renderLeadPipelineBadges(lead);
       const msgPreview = escapeHtml((lead.message || '').slice(0, 120));
       const createdDate = lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '';
 
@@ -7479,6 +7813,7 @@
             ${lead.created_at  ? `<div><span class="gv-admin-diff-label">Received</span> ${escapeHtml(new Date(lead.created_at).toLocaleString())}</div>` : ''}
           </div>
           ${renderLeadAttributionHtml(lead)}
+          ${renderLeadPipelineForm(lead, canEdit)}
           <div class="gv-lead-message">${escapeHtml(lead.message || '')}</div>
           ${lead.user_agent ? `<div class="gv-lead-ua">${escapeHtml((lead.user_agent || '').slice(0, 120))}</div>` : ''}
           ${logsHtml}
@@ -7499,10 +7834,13 @@
             <div class="gv-lead-header">
               <strong>${escapeHtml(lead.name || '—')}</strong>
               ${statusBadge}
+              ${pipelineBadges}
               <span class="gv-lead-date">${escapeHtml(createdDate)}</span>
             </div>
             <span class="gv-lead-email">${escapeHtml(lead.email || '—')}</span>
             ${lead.company ? `<span class="gv-lead-company">${escapeHtml(lead.company)}</span>` : ''}
+            ${lead.assigned_to ? `<span class="gv-lead-company">Owner: ${escapeHtml(lead.assigned_to)}</span>` : ''}
+            ${lead.next_action ? `<span class="gv-lead-company">Next: ${escapeHtml(String(lead.next_action).slice(0, 90))}${String(lead.next_action).length > 90 ? '...' : ''}</span>` : ''}
             <div class="gv-admin-diff-value">${msgPreview}${(lead.message || '').length > 120 ? '…' : ''}</div>
             <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="lead-expand" data-lead-id="${escapeHtml(lead.id)}">${isExpanded ? 'Collapse' : 'Expand'}</button>
             ${detail}
@@ -7510,7 +7848,7 @@
         </article>`;
     }).join('');
 
-    return notifyPanel + filterBar + `<div class="gv-admin-row-list">${rows}</div>`;
+    return notifyPanel + pipelineSummaryHtml + filterBar + pipelineFilterBar + `<div class="gv-admin-row-list">${rows}</div>`;
   }
 
   // ── Phase 18: Visual Designer Production Hardening ───────────────────────────
