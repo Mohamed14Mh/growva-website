@@ -1029,9 +1029,18 @@
     if (dashboardTab === 'visual') setTimeout(bindVisualControlEvents, 0);
     if (dashboardTab === 'sections') setTimeout(bindSectionManagerEvents, 0);
     if (dashboardTab === 'builder') setTimeout(bindSectionBuilderEvents, 0);
-    // Phase 19/21: load leads + notification logs on first open of Leads tab
+    // Phase 19/21/26: load leads, notifications, and activity on CRM tabs
     if (dashboardTab === 'leads' && leadsData.length === 0 && !leadsLoading) {
-      Promise.all([loadLeads(), loadNotificationLogs()]).then(() => renderDashboard());
+      Promise.all([loadLeads(), loadNotificationLogs(), loadLeadActivities()]).then(() => renderDashboard());
+    }
+    if (dashboardTab === 'leads' && leadsData.length && !leadActivitiesLoading && !leadActivities.length && !leadActivitiesUnavailable) {
+      loadLeadActivities().then(() => renderDashboard());
+    }
+    if (dashboardTab === 'pipeline' && leadsData.length === 0 && !leadsLoading) {
+      Promise.all([loadLeads(), loadLeadActivities()]).then(() => renderDashboard());
+    }
+    if (dashboardTab === 'pipeline' && leadsData.length && !leadActivitiesLoading && !leadActivities.length && !leadActivitiesUnavailable) {
+      loadLeadActivities().then(() => renderDashboard());
     }
     if (dashboardTab === 'lead-insights' && leadsData.length === 0 && !leadsLoading) {
       loadLeads().then(() => renderDashboard());
@@ -1103,6 +1112,7 @@
       ['sections', 'Section Manager'],
       ['builder', 'Section Builder'],
       ['leads', 'Leads'],
+      ['pipeline', 'Pipeline'],
       ['lead-insights', 'Lead Insights'],
       ['notifications', 'Notifications'],
     ];
@@ -1127,6 +1137,7 @@
     if (dashboardTab === 'sections') return renderSectionManagerTab();
     if (dashboardTab === 'builder') return renderSectionBuilderTab();
     if (dashboardTab === 'leads') return renderLeadsTab();
+    if (dashboardTab === 'pipeline') return renderPipelineTab();
     if (dashboardTab === 'lead-insights') return renderLeadInsightsTab();
     if (dashboardTab === 'notifications') return renderNotificationsTab();
     return renderOverviewTab();
@@ -2042,7 +2053,7 @@
       if (selectedElement && canAdminEdit()) saveVisualStyleDraft(selectedElement);
     }
     // Phase 19: Leads tab actions
-    if (action === 'leads-refresh') { Promise.all([loadLeads(), loadNotificationLogs()]).then(() => renderDashboard()); }
+    if (action === 'leads-refresh') { Promise.all([loadLeads(), loadNotificationLogs(), loadLeadActivities()]).then(() => renderDashboard()); }
     if (action === 'leads-filter') {
       leadsFilter = actionElement.dataset.leadsFilter || 'all';
       renderDashboard();
@@ -2062,6 +2073,23 @@
     }
     if (action === 'lead-pipeline-save') {
       updateLeadPipeline(actionElement.dataset.leadId, actionElement.closest('[data-lead-pipeline-form]'));
+    }
+    if (action === 'pipeline-board-filter-apply') {
+      applyLeadBoardFiltersFromDom();
+      renderDashboard();
+    }
+    if (action === 'pipeline-board-filter-reset') {
+      resetLeadBoardFilters();
+      renderDashboard();
+    }
+    if (action === 'pipeline-open-lead') {
+      const lid = actionElement.dataset.leadId;
+      if (lid) {
+        dashboardTab = 'leads';
+        leadsExpanded = lid;
+        Promise.all([loadLeadActivities(), loadNotificationLogs()]).then(() => renderDashboard());
+        renderDashboard();
+      }
     }
     if (action === 'lead-mark-read')   updateLeadStatus(actionElement.dataset.leadId, 'read');
     if (action === 'lead-mark-new')    updateLeadStatus(actionElement.dataset.leadId, 'new');
@@ -6402,11 +6430,20 @@
     assigned: '',
     followup: 'all'
   };
+  let leadBoardFilters = {
+    priority: 'all',
+    assigned: '',
+    followup: 'all',
+    showArchived: false
+  };
   let leadPipelineSaveState = {
     id: null,
     status: 'idle',
     message: ''
   };
+  let leadActivities = [];
+  let leadActivitiesLoading = false;
+  let leadActivitiesUnavailable = false;
   // Phase 20: test notification state
   let leadsNotifyState = 'idle'; // 'idle' | 'sending' | 'ok' | 'error'
   let leadsNotifyMsg = '';
@@ -7496,6 +7533,285 @@
     };
   }
 
+  function activityValue(value) {
+    if (value == null || value === '') return '';
+    if (value instanceof Date) return value.toISOString();
+    return String(value).slice(0, 1000);
+  }
+
+  function sameActivityValue(a, b) {
+    return activityValue(a) === activityValue(b);
+  }
+
+  function leadActivityTypeLabel(type) {
+    const labels = {
+      pipeline_updated: 'Pipeline updated',
+      stage_changed: 'Stage changed',
+      priority_changed: 'Priority changed',
+      assigned_to_changed: 'Owner changed',
+      follow_up_changed: 'Follow-up changed',
+      last_contacted_changed: 'Last contacted changed',
+      outcome_changed: 'Outcome changed',
+      next_action_changed: 'Next action changed',
+      internal_note_added: 'Internal note updated',
+      archived: 'Archived',
+      unarchived: 'Unarchived',
+      marked_read: 'Marked read',
+      marked_new: 'Marked new'
+    };
+    return labels[type] || 'Activity';
+  }
+
+  function buildLeadPipelineActivityRows(leadId, previous, payload) {
+    if (!leadId || !previous || !payload) return [];
+    const fields = [
+      ['pipeline_stage', 'stage_changed'],
+      ['priority', 'priority_changed'],
+      ['assigned_to', 'assigned_to_changed'],
+      ['follow_up_at', 'follow_up_changed'],
+      ['last_contacted_at', 'last_contacted_changed'],
+      ['outcome', 'outcome_changed'],
+      ['next_action', 'next_action_changed'],
+      ['internal_notes', 'internal_note_added']
+    ];
+    return fields
+      .filter(([field]) => !sameActivityValue(previous[field], payload[field]))
+      .map(([field, type]) => ({
+        lead_id: leadId,
+        actor_id: currentUser?.id || null,
+        actor_email: currentUser?.email || adminProfile?.email || null,
+        activity_type: type,
+        field_name: field,
+        old_value: activityValue(previous[field]),
+        new_value: activityValue(payload[field]),
+        note: field === 'internal_notes' ? activityValue(payload[field]).slice(0, 1000) : null,
+        metadata: { source: 'admin_dashboard', phase: 26 }
+      }));
+  }
+
+  async function insertLeadActivities(rows) {
+    if (!rows || !rows.length || !supabaseClient || !currentUser || !canAdminEdit()) return { ok: true, skipped: true };
+    if (leadActivitiesUnavailable) return { ok: false, skipped: true };
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_lead_activity')
+        .insert(rows)
+        .select('id,lead_id,actor_id,actor_email,activity_type,field_name,old_value,new_value,note,metadata,created_at');
+      if (error) throw error;
+      if (Array.isArray(data)) {
+        leadActivities = data.concat(leadActivities).slice(0, 500);
+      }
+      return { ok: true };
+    } catch (error) {
+      leadActivitiesUnavailable = true;
+      return { ok: false, error };
+    }
+  }
+
+  async function logLeadSimpleActivity(leadId, activityType, extra = {}) {
+    if (!leadId || !canAdminEdit()) return;
+    const row = {
+      lead_id: leadId,
+      actor_id: currentUser?.id || null,
+      actor_email: currentUser?.email || adminProfile?.email || null,
+      activity_type: activityType,
+      field_name: extra.field_name || null,
+      old_value: activityValue(extra.old_value),
+      new_value: activityValue(extra.new_value),
+      note: extra.note ? activityValue(extra.note) : null,
+      metadata: { source: 'admin_dashboard', phase: 26 }
+    };
+    await insertLeadActivities([row]);
+  }
+
+  async function loadLeadActivities() {
+    if (!supabaseClient || !currentUser || !adminProfile || leadActivitiesUnavailable) return;
+    leadActivitiesLoading = true;
+    try {
+      const { data, error } = await supabaseClient
+        .from('cms_lead_activity')
+        .select('id,lead_id,actor_id,actor_email,activity_type,field_name,old_value,new_value,note,metadata,created_at')
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      leadActivities = Array.isArray(data) ? data : [];
+    } catch (error) {
+      leadActivities = [];
+      leadActivitiesUnavailable = true;
+    }
+    leadActivitiesLoading = false;
+  }
+
+  function leadActivitiesFor(leadId, limit = 8) {
+    return (leadActivities || [])
+      .filter(activity => activity.lead_id === leadId)
+      .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))
+      .slice(0, limit);
+  }
+
+  function renderLeadActivityTimeline(lead) {
+    const rows = leadActivitiesFor(lead.id, 8);
+    const unavailable = leadActivitiesUnavailable
+      ? '<div class="gv-lead-activity-note">Activity table is not available yet. Run the Phase 26 SQL patch.</div>'
+      : '';
+    if (!rows.length) {
+      return `<section class="gv-lead-activity">
+        <div class="gv-lead-activity-title">Activity Timeline</div>
+        ${unavailable || '<div class="gv-lead-activity-empty">No activity yet.</div>'}
+      </section>`;
+    }
+    return `<section class="gv-lead-activity">
+      <div class="gv-lead-activity-title">Activity Timeline</div>
+      ${unavailable}
+      ${rows.map(activity => {
+        const time = activity.created_at ? new Date(activity.created_at).toLocaleString() : '';
+        const oldValue = activity.old_value ? `<span class="gv-activity-chip">${escapeHtml(activity.old_value)}</span>` : '';
+        const newValue = activity.new_value ? `<span class="gv-activity-chip gv-activity-chip--new">${escapeHtml(activity.new_value)}</span>` : '';
+        const delta = oldValue || newValue ? `<div class="gv-lead-activity-delta">${oldValue}<span>-></span>${newValue}</div>` : '';
+        return `<div class="gv-lead-activity-row">
+          <div class="gv-lead-activity-row-head">
+            <strong>${escapeHtml(leadActivityTypeLabel(activity.activity_type))}</strong>
+            <time>${escapeHtml(time)}</time>
+          </div>
+          <div class="gv-lead-activity-meta">
+            ${activity.actor_email ? `<span>${escapeHtml(activity.actor_email)}</span>` : ''}
+            ${activity.field_name ? `<span>${escapeHtml(activity.field_name)}</span>` : ''}
+          </div>
+          ${delta}
+          ${activity.note ? `<p>${escapeHtml(activity.note)}</p>` : ''}
+        </div>`;
+      }).join('')}
+    </section>`;
+  }
+
+  function resetLeadBoardFilters() {
+    leadBoardFilters = { priority: 'all', assigned: '', followup: 'all', showArchived: false };
+  }
+
+  function applyLeadBoardFiltersFromDom() {
+    const form = $('[data-pipeline-board-filters]', dashboard || adminRoot || document);
+    if (!form) return;
+    const priority = $('[data-board-filter-priority]', form)?.value || 'all';
+    const assigned = $('[data-board-filter-assigned]', form)?.value || '';
+    const followup = $('[data-board-filter-followup]', form)?.value || 'all';
+    const showArchived = Boolean($('[data-board-filter-archived]', form)?.checked);
+    leadBoardFilters = {
+      priority: priority === 'all' || LEAD_PIPELINE_PRIORITIES.includes(priority) ? priority : 'all',
+      assigned: String(assigned || '').trim().slice(0, 120),
+      followup: ['all', 'overdue', 'today', 'upcoming', 'unassigned'].includes(followup) ? followup : 'all',
+      showArchived
+    };
+  }
+
+  function leadMatchesBoardFilters(lead) {
+    const filters = leadBoardFilters || {};
+    if (!filters.showArchived && lead.is_archived) return false;
+    if (filters.priority && filters.priority !== 'all' && normalizeLeadPriority(lead.priority) !== filters.priority) return false;
+    if (filters.assigned) {
+      const assigned = String(lead.assigned_to || '').toLowerCase();
+      if (!assigned.includes(filters.assigned.toLowerCase())) return false;
+    }
+    if (filters.followup === 'unassigned' && String(lead.assigned_to || '').trim()) return false;
+    if (['overdue', 'today', 'upcoming'].includes(filters.followup) && leadFollowUpState(lead) !== filters.followup) return false;
+    return true;
+  }
+
+  function renderPipelineBoardFilters() {
+    const filters = leadBoardFilters || {};
+    const option = (value, label, selected) => `<option value="${escapeHtml(value)}"${selected ? ' selected' : ''}>${escapeHtml(label)}</option>`;
+    const priorityOptions = option('all', 'Any priority', filters.priority === 'all') + LEAD_PIPELINE_PRIORITIES.map(priority => option(priority, LEAD_PIPELINE_PRIORITY_LABELS[priority], filters.priority === priority)).join('');
+    const followOptions = [
+      ['all', 'Any follow-up'],
+      ['overdue', 'Overdue'],
+      ['today', 'Due today'],
+      ['upcoming', 'Upcoming'],
+      ['unassigned', 'Unassigned']
+    ].map(([value, label]) => option(value, label, filters.followup === value)).join('');
+    return `<div class="gv-pipeline-board-filters" data-pipeline-board-filters>
+      <label><span>Priority</span><select data-board-filter-priority>${priorityOptions}</select></label>
+      <label><span>Owner</span><input type="search" data-board-filter-assigned value="${escapeHtml(filters.assigned || '')}" placeholder="Assigned to"></label>
+      <label><span>Follow-up</span><select data-board-filter-followup>${followOptions}</select></label>
+      <label class="gv-pipeline-board-toggle"><input type="checkbox" data-board-filter-archived${filters.showArchived ? ' checked' : ''}> <span>Show archived</span></label>
+      <button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--mint" data-admin-action="pipeline-board-filter-apply">Apply</button>
+      <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="pipeline-board-filter-reset">Reset</button>
+    </div>`;
+  }
+
+  function getPipelineBoardSummary(leads) {
+    const active = (leads || []).filter(lead => !lead.is_archived);
+    return {
+      total: active.length,
+      overdue: active.filter(lead => leadFollowUpState(lead) === 'overdue').length,
+      today: active.filter(lead => leadFollowUpState(lead) === 'today').length,
+      urgentHigh: active.filter(lead => ['urgent', 'high'].includes(normalizeLeadPriority(lead.priority))).length,
+      unassigned: active.filter(lead => !String(lead.assigned_to || '').trim()).length,
+      won: active.filter(lead => normalizeLeadPipelineStage(lead.pipeline_stage) === 'won').length,
+      lost: active.filter(lead => normalizeLeadPipelineStage(lead.pipeline_stage) === 'lost').length
+    };
+  }
+
+  function renderPipelineBoardSummary(summary) {
+    const cards = [
+      ['Active', summary.total],
+      ['Overdue', summary.overdue],
+      ['Due today', summary.today],
+      ['High/Urgent', summary.urgentHigh],
+      ['Unassigned', summary.unassigned],
+      ['Won', summary.won],
+      ['Lost', summary.lost]
+    ];
+    return `<div class="gv-pipeline-board-summary">
+      ${cards.map(([label, value]) => `<div class="gv-pipeline-board-summary-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join('')}
+    </div>`;
+  }
+
+  function renderPipelineTab() {
+    if (leadsLoading) return '<p class="gv-admin-empty">Loading pipeline...</p>';
+    const summary = getPipelineBoardSummary(leadsData);
+    const filtered = (leadsData || []).filter(leadMatchesBoardFilters);
+    const columns = LEAD_PIPELINE_STAGES.map(stage => {
+      const stageLeads = filtered.filter(lead => normalizeLeadPipelineStage(lead.pipeline_stage) === stage);
+      const cards = stageLeads.length ? stageLeads.map(lead => {
+        const createdDate = lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short' }) : '';
+        return `<article class="gv-pipeline-card${lead.is_archived ? ' is-archived' : ''}">
+          <div class="gv-pipeline-card-head">
+            <strong>${escapeHtml(lead.name || lead.email || 'Lead')}</strong>
+            ${renderLeadPipelineBadges(lead)}
+          </div>
+          <span class="gv-pipeline-card-email">${escapeHtml(lead.email || '')}</span>
+          <div class="gv-pipeline-card-meta">
+            ${lead.assigned_to ? `<span>Owner: ${escapeHtml(lead.assigned_to)}</span>` : '<span>Unassigned</span>'}
+            ${lead.project_type ? `<span>${escapeHtml(lead.project_type)}</span>` : ''}
+            ${lead.source ? `<span>${escapeHtml(lead.source)}</span>` : ''}
+            ${createdDate ? `<span>${escapeHtml(createdDate)}</span>` : ''}
+          </div>
+          ${lead.next_action ? `<p>${escapeHtml(String(lead.next_action).slice(0, 140))}${String(lead.next_action).length > 140 ? '...' : ''}</p>` : ''}
+          <button type="button" class="gv-admin-action gv-admin-action--sm" data-admin-action="pipeline-open-lead" data-lead-id="${escapeHtml(lead.id)}">Open in Leads</button>
+        </article>`;
+      }).join('') : '<div class="gv-pipeline-empty">No leads in this stage.</div>';
+      return `<section class="gv-pipeline-column">
+        <div class="gv-pipeline-column-head">
+          <strong>${escapeHtml(LEAD_PIPELINE_STAGE_LABELS[stage])}</strong>
+          <span>${escapeHtml(stageLeads.length)}</span>
+        </div>
+        <div class="gv-pipeline-column-body">${cards}</div>
+      </section>`;
+    }).join('');
+    return `<div class="gv-pipeline-board">
+      <div class="gv-pipeline-board-head">
+        <div>
+          <span class="gv-admin-pill">Pipeline Board</span>
+          <h3>Lead workflow by stage</h3>
+          <small>${leadActivitiesUnavailable ? 'Activity table not available yet. Run the Phase 26 SQL patch for timelines.' : 'Click a card to open the lead record in the Leads tab.'}</small>
+        </div>
+        <button type="button" class="gv-admin-action gv-admin-action--sm gv-admin-action--mint" data-admin-action="leads-refresh">Refresh</button>
+      </div>
+      ${renderPipelineBoardSummary(summary)}
+      ${renderPipelineBoardFilters()}
+      <div class="gv-pipeline-columns">${columns}</div>
+    </div>`;
+  }
+
   async function updateLeadPipeline(id, form) {
     if (!id || !canAdminEdit()) return;
     if (!supabaseClient || !currentUser) return;
@@ -7516,7 +7832,13 @@
       if (error) throw error;
       if (row && data) Object.assign(row, data);
       if (row) applyLeadPipelineDefaults(row);
-      leadPipelineSaveState = { id, status: 'saved', message: 'Pipeline saved.' };
+      const activityRows = buildLeadPipelineActivityRows(id, previous, payload);
+      const activityResult = await insertLeadActivities(activityRows);
+      leadPipelineSaveState = {
+        id,
+        status: 'saved',
+        message: activityResult.ok || !activityRows.length ? 'Pipeline saved.' : 'Pipeline saved. Activity log unavailable.'
+      };
     } catch (error) {
       if (row && previous) Object.assign(row, previous);
       leadPipelineSaveState = { id, status: 'error', message: 'Pipeline could not be saved.' };
@@ -7597,13 +7919,20 @@
     if (!id || !canAdminEdit()) return;
     if (!supabaseClient || !currentUser) return;
     const row = leadsData.find(l => l.id === id);
+    const previousStatus = row ? row.status : null;
     if (row) row.status = status; // optimistic update
     renderDashboard();
     try {
-      await supabaseClient
+      const { error } = await supabaseClient
         .from('cms_contact_submissions')
         .update({ status, updated_at: new Date().toISOString() })
         .eq('id', id);
+      if (error) throw error;
+      await logLeadSimpleActivity(id, status === 'read' ? 'marked_read' : 'marked_new', {
+        field_name: 'status',
+        old_value: previousStatus,
+        new_value: status
+      });
     } catch (e) {
       // revert on error
       if (row) row.status = status === 'read' ? 'new' : 'read';
@@ -7615,13 +7944,20 @@
     if (!id || !canAdminEdit()) return;
     if (!supabaseClient || !currentUser) return;
     const row = leadsData.find(l => l.id === id);
+    const previousArchived = row ? row.is_archived : null;
     if (row) row.is_archived = isArchived; // optimistic update
     renderDashboard();
     try {
-      await supabaseClient
+      const { error } = await supabaseClient
         .from('cms_contact_submissions')
         .update({ is_archived: isArchived, updated_at: new Date().toISOString() })
         .eq('id', id);
+      if (error) throw error;
+      await logLeadSimpleActivity(id, isArchived ? 'archived' : 'unarchived', {
+        field_name: 'is_archived',
+        old_value: previousArchived,
+        new_value: isArchived
+      });
     } catch (e) {
       if (row) row.is_archived = !isArchived;
       renderDashboard();
@@ -7814,6 +8150,7 @@
           </div>
           ${renderLeadAttributionHtml(lead)}
           ${renderLeadPipelineForm(lead, canEdit)}
+          ${renderLeadActivityTimeline(lead)}
           <div class="gv-lead-message">${escapeHtml(lead.message || '')}</div>
           ${lead.user_agent ? `<div class="gv-lead-ua">${escapeHtml((lead.user_agent || '').slice(0, 120))}</div>` : ''}
           ${logsHtml}
