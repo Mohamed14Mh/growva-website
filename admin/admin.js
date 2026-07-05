@@ -924,6 +924,9 @@
     if (dashboardTab === 'leads' && leadsData.length === 0 && !leadsLoading) {
       Promise.all([loadLeads(), loadNotificationLogs()]).then(() => renderDashboard());
     }
+    if (dashboardTab === 'lead-insights' && leadsData.length === 0 && !leadsLoading) {
+      loadLeads().then(() => renderDashboard());
+    }
     if (dashboardTab === 'notifications' && !notificationLogsLoading) {
       loadNotificationLogs().then(() => renderDashboard());
     }
@@ -991,6 +994,7 @@
       ['sections', 'Section Manager'],
       ['builder', 'Section Builder'],
       ['leads', 'Leads'],
+      ['lead-insights', 'Lead Insights'],
       ['notifications', 'Notifications'],
     ];
     $('[data-dashboard-tabs]', dashboard).innerHTML = tabs.map(([id, label]) => `
@@ -1014,6 +1018,7 @@
     if (dashboardTab === 'sections') return renderSectionManagerTab();
     if (dashboardTab === 'builder') return renderSectionBuilderTab();
     if (dashboardTab === 'leads') return renderLeadsTab();
+    if (dashboardTab === 'lead-insights') return renderLeadInsightsTab();
     if (dashboardTab === 'notifications') return renderNotificationsTab();
     return renderOverviewTab();
   }
@@ -1034,6 +1039,8 @@
         ${renderMetricCard('Supabase', getConnectionLabel())}
         ${renderMetricCard('Unsafe key', supabaseState.unsafeKey ? 'Yes' : 'No')}
         ${renderMetricCard('Leads (new)', leadsData.filter(l => l.status === 'new' && !l.is_archived).length)}
+        ${renderMetricCard('Leads last 7 days', leadsData.length ? getLeadInsights().last7 : '-')}
+        ${renderMetricCard('Top source', leadsData.length ? getLeadInsights().topSource : '-')}
         ${renderMetricCard('Notification health', notificationLogs.length ? getNotificationAnalytics().healthLabel : '—')}
         ${renderMetricCard('Failed notifications', notificationLogs.length ? getNotificationAnalytics().problemTotal : '—')}
       </div>
@@ -1220,6 +1227,170 @@
       </div>
       <div class="gv-admin-dashboard-message">${escapeHtml(lastHealthResult)}</div>
       <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="run-health-check">Run CMS Health Check</button>
+    `;
+  }
+
+  function leadAttr(lead, key) {
+    if (!lead) return '';
+    if (lead[key]) return String(lead[key]);
+    const meta = (lead.attribution_json && typeof lead.attribution_json === 'object' && !Array.isArray(lead.attribution_json)) ? lead.attribution_json : {};
+    if (meta[key]) return String(meta[key]);
+    if (meta.utm && typeof meta.utm === 'object' && meta.utm[key]) return String(meta.utm[key]);
+    return '';
+  }
+
+  function leadAttributionSource(lead) {
+    return leadAttr(lead, 'utm_source') || lead.source || leadAttr(lead, 'referrer_host') || 'direct';
+  }
+
+  function leadAttributionPage(lead) {
+    return lead.page_path || leadAttr(lead, 'landing_page') || 'not captured';
+  }
+
+  function leadDaysAgo(lead) {
+    const time = new Date(lead.created_at || '').getTime();
+    return Number.isNaN(time) ? Infinity : Date.now() - time;
+  }
+
+  function topLeadCounts(leads, getter, limit = 6) {
+    const counts = new Map();
+    leads.forEach(lead => {
+      const raw = getter(lead);
+      const value = String(raw || '').trim();
+      if (!value || value === 'not captured') return;
+      counts.set(value, (counts.get(value) || 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .slice(0, limit)
+      .map(([label, count]) => ({ label, count }));
+  }
+
+  function getLeadInsights() {
+    const leads = leadsData || [];
+    const active = leads.filter(lead => !lead.is_archived);
+    const dayMs = 24 * 60 * 60 * 1000;
+    const last24 = leads.filter(lead => leadDaysAgo(lead) <= dayMs).length;
+    const last7 = leads.filter(lead => leadDaysAgo(lead) <= 7 * dayMs).length;
+    const last30 = leads.filter(lead => leadDaysAgo(lead) <= 30 * dayMs).length;
+    const sources = topLeadCounts(leads, leadAttributionSource);
+    const pages = topLeadCounts(leads, leadAttributionPage);
+    const projects = topLeadCounts(leads, lead => lead.project_type || '');
+    const campaigns = topLeadCounts(leads, lead => leadAttr(lead, 'utm_campaign'));
+    return {
+      total: leads.length,
+      active: active.length,
+      newCount: leads.filter(lead => lead.status === 'new' && !lead.is_archived).length,
+      archived: leads.filter(lead => lead.is_archived).length,
+      last24,
+      last7,
+      last30,
+      topSource: sources[0]?.label || '-',
+      topPage: pages[0]?.label || '-',
+      topProject: projects[0]?.label || '-',
+      topCampaign: campaigns[0]?.label || '-',
+      sources,
+      pages,
+      projects,
+      campaigns,
+    };
+  }
+
+  function renderLeadBarList(title, rows, total, emptyText) {
+    const body = rows.length ? rows.map(row => {
+      const pct = total ? Math.round((row.count / total) * 100) : 0;
+      return `
+        <div class="gv-lead-insight-bar-row">
+          <span>${escapeHtml(row.label)}</span>
+          <div class="gv-lead-insight-track"><i style="width:${pct}%"></i></div>
+          <strong>${escapeHtml(row.count)}</strong>
+          <small>${escapeHtml(total ? `${pct}%` : '-')}</small>
+        </div>
+      `;
+    }).join('') : `<p class="gv-admin-empty">${escapeHtml(emptyText)}</p>`;
+    return `
+      <section class="gv-lead-insight-panel">
+        <h3>${escapeHtml(title)}</h3>
+        ${body}
+      </section>
+    `;
+  }
+
+  function renderLeadInsightsTab() {
+    if (leadsLoading) {
+      return '<p class="gv-admin-empty">Loading lead insights...</p>';
+    }
+    if (!leadsData.length) {
+      return `
+        <div class="gv-lead-insights-head">
+          <button type="button" class="gv-admin-action gv-admin-action--mint" data-admin-action="lead-insights-refresh">Refresh Leads</button>
+        </div>
+        <p class="gv-admin-empty">No leads yet. Attribution insights will appear after contact form submissions are captured.</p>
+      `;
+    }
+
+    const insights = getLeadInsights();
+    const metrics = [
+      ['Total leads', insights.total],
+      ['New leads', insights.newCount],
+      ['Archived leads', insights.archived],
+      ['Leads last 7 days', insights.last7],
+      ['Leads last 30 days', insights.last30],
+      ['Top source', insights.topSource],
+      ['Top page', insights.topPage],
+      ['Top project type', insights.topProject],
+      ['Top campaign', insights.topCampaign],
+    ].map(([label, value]) => renderMetricCard(label, value)).join('');
+
+    return `
+      <div class="gv-lead-insights-head">
+        <div>
+          <span class="gv-admin-pill">Lead Attribution</span>
+          <strong>${escapeHtml(insights.total)} captured lead${insights.total === 1 ? '' : 's'}</strong>
+          <small>Computed from latest ${escapeHtml(leadsData.length)} lead rows.</small>
+        </div>
+        <button type="button" class="gv-admin-action gv-admin-action--mint" data-admin-action="lead-insights-refresh">Refresh Leads</button>
+      </div>
+      <div class="gv-admin-dashboard-grid gv-lead-insight-metrics">${metrics}</div>
+      <section class="gv-lead-insight-panel">
+        <h3>Leads over time</h3>
+        <div class="gv-lead-insight-timeline">
+          <div><strong>${escapeHtml(insights.last24)}</strong><span>Last 24 hours</span></div>
+          <div><strong>${escapeHtml(insights.last7)}</strong><span>Last 7 days</span></div>
+          <div><strong>${escapeHtml(insights.last30)}</strong><span>Last 30 days</span></div>
+        </div>
+      </section>
+      ${renderLeadBarList('Top sources', insights.sources, insights.total, 'No source attribution captured yet.')}
+      ${renderLeadBarList('Top pages', insights.pages, insights.total, 'No page attribution captured yet.')}
+      ${renderLeadBarList('Top project types', insights.projects, insights.total, 'No project type data yet.')}
+      ${renderLeadBarList('Campaign performance', insights.campaigns, insights.total, 'No UTM campaigns captured yet.')}
+    `;
+  }
+
+  function renderLeadAttributionHtml(lead) {
+    const fields = [
+      ['Source', leadAttributionSource(lead)],
+      ['Landing page', leadAttr(lead, 'landing_page')],
+      ['Page path', lead.page_path],
+      ['Referrer', leadAttr(lead, 'referrer')],
+      ['UTM source', leadAttr(lead, 'utm_source')],
+      ['UTM medium', leadAttr(lead, 'utm_medium')],
+      ['UTM campaign', leadAttr(lead, 'utm_campaign')],
+      ['UTM term', leadAttr(lead, 'utm_term')],
+      ['UTM content', leadAttr(lead, 'utm_content')],
+    ];
+    return `
+      <div class="gv-lead-attribution">
+        <div class="gv-lead-attribution-title">Attribution</div>
+        <div class="gv-lead-attribution-grid">
+          ${fields.map(([label, value]) => `
+            <div>
+              <span>${escapeHtml(label)}</span>
+              <strong>${escapeHtml(value || 'Not captured')}</strong>
+            </div>
+          `).join('')}
+        </div>
+      </div>
     `;
   }
 
@@ -1779,6 +1950,7 @@
     if (action === 'lead-test-notify')  sendTestNotification();
     if (action === 'lead-retry-notify') retryNotification(actionElement.dataset.leadId);
     if (action === 'notifications-refresh') { loadNotificationLogs().then(() => renderDashboard()); }
+    if (action === 'lead-insights-refresh') { loadLeads().then(() => renderDashboard()); }
 
     // Phase 18: Responsive preview frame
     if (action === 'vd18-resp-preview') {
@@ -2738,7 +2910,7 @@
   }
 
   function escapeHtml(value) {
-    return String(value || '')
+    return String(value == null ? '' : value)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
@@ -6927,11 +7099,22 @@
     if (!supabaseClient || !currentUser || !adminProfile) return;
     leadsLoading = true;
     try {
-      const { data, error } = await supabaseClient
+      const baseColumns = 'id,name,email,company,project_type,budget,message,page_path,source,status,is_archived,user_agent,created_at';
+      const phase24Columns = `${baseColumns},landing_page,referrer,utm_source,utm_medium,utm_campaign,utm_term,utm_content,attribution_json`;
+      let { data, error } = await supabaseClient
         .from('cms_contact_submissions')
-        .select('id,name,email,company,project_type,budget,message,page_path,source,status,is_archived,user_agent,created_at')
+        .select(phase24Columns)
         .order('created_at', { ascending: false })
-        .limit(200);
+        .limit(500);
+      if (error) {
+        const fallback = await supabaseClient
+          .from('cms_contact_submissions')
+          .select(baseColumns)
+          .order('created_at', { ascending: false })
+          .limit(500);
+        data = fallback.data;
+        error = fallback.error;
+      }
       leadsData = (!error && Array.isArray(data)) ? data : [];
     } catch (e) {
       leadsData = [];
@@ -7184,6 +7367,7 @@
             ${lead.source      ? `<div><span class="gv-admin-diff-label">Source</span>  ${escapeHtml(lead.source)}</div>` : ''}
             ${lead.created_at  ? `<div><span class="gv-admin-diff-label">Received</span> ${escapeHtml(new Date(lead.created_at).toLocaleString())}</div>` : ''}
           </div>
+          ${renderLeadAttributionHtml(lead)}
           <div class="gv-lead-message">${escapeHtml(lead.message || '')}</div>
           ${lead.user_agent ? `<div class="gv-lead-ua">${escapeHtml((lead.user_agent || '').slice(0, 120))}</div>` : ''}
           ${logsHtml}

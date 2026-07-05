@@ -4,6 +4,20 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
+  /* ---------- First-party attribution memory (no third-party tracking) ---------- */
+  (function rememberLandingPage() {
+    try {
+      const key = 'growva_landing_page';
+      if (!sessionStorage.getItem(key)) {
+        const path = String(window.location.pathname || '/').slice(0, 240);
+        const query = String(window.location.search || '').slice(0, 500);
+        sessionStorage.setItem(key, (path + query).slice(0, 700));
+      }
+    } catch (e) {
+      // sessionStorage may be unavailable in strict privacy modes; attribution still falls back.
+    }
+  })();
+
   /* ---------- Preloader ---------- */
   const preloader = document.getElementById('preloader');
   if (preloader) {
@@ -508,6 +522,67 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitBtn = contactForm.querySelector('[type="submit"]');
     let gvSubmitLocked = false;
 
+    function safeAttributionText(value, max) {
+      return String(value || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, max || 500);
+    }
+
+    function currentPathWithQuery() {
+      const path = safeAttributionText(window.location.pathname || '/contact.html', 240);
+      const query = safeAttributionText(window.location.search || '', 500);
+      return (path + query).slice(0, 700);
+    }
+
+    function getLandingPage() {
+      const key = 'growva_landing_page';
+      try {
+        const existing = sessionStorage.getItem(key);
+        if (existing) return safeAttributionText(existing, 700);
+        const landing = currentPathWithQuery();
+        sessionStorage.setItem(key, landing);
+        return landing;
+      } catch (e) {
+        return currentPathWithQuery();
+      }
+    }
+
+    function referrerHost(referrer) {
+      try {
+        const url = new URL(referrer);
+        return safeAttributionText(url.hostname.replace(/^www\./, ''), 160);
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function collectLeadAttribution() {
+      const params = new URLSearchParams(window.location.search || '');
+      const referrer = safeAttributionText(document.referrer || '', 700);
+      const utm = {
+        utm_source: safeAttributionText(params.get('utm_source'), 160),
+        utm_medium: safeAttributionText(params.get('utm_medium'), 160),
+        utm_campaign: safeAttributionText(params.get('utm_campaign'), 200),
+        utm_term: safeAttributionText(params.get('utm_term'), 200),
+        utm_content: safeAttributionText(params.get('utm_content'), 200),
+      };
+      const source = utm.utm_source || referrerHost(referrer) || 'direct';
+      return {
+        page_path: currentPathWithQuery(),
+        landing_page: getLandingPage(),
+        referrer,
+        source,
+        ...utm,
+        attribution_json: {
+          captured_at: new Date().toISOString(),
+          page_path: currentPathWithQuery(),
+          landing_page: getLandingPage(),
+          referrer,
+          referrer_host: referrerHost(referrer),
+          source,
+          utm,
+        },
+      };
+    }
+
     function showFormStatus(msg, type) {
       if (!statusEl) return;
       statusEl.textContent = msg;
@@ -575,17 +650,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const cfg = window.GROWVA_SUPABASE_CONFIG;
         if (cfg && cfg.url && cfg.anonKey && window.supabase) {
           const client = window.supabase.createClient(cfg.url, cfg.anonKey);
-          const { error } = await client.from('cms_contact_submissions').insert([{
+          const attribution = collectLeadAttribution();
+          const basePayload = {
             name,
             email,
             company:      company      || null,
             project_type: projectType  || null,
             budget:       budget       || null,
             message,
-            page_path:    window.location.pathname || '/contact.html',
-            source:       'contact_form',
+            page_path:    attribution.page_path || '/contact.html',
+            source:       attribution.source || 'direct',
             user_agent:   navigator.userAgent ? navigator.userAgent.slice(0, 400) : null,
-          }]);
+          };
+          const attributionPayload = Object.assign({}, basePayload, {
+            landing_page:     attribution.landing_page     || null,
+            referrer:         attribution.referrer         || null,
+            utm_source:       attribution.utm_source       || null,
+            utm_medium:       attribution.utm_medium       || null,
+            utm_campaign:     attribution.utm_campaign     || null,
+            utm_term:         attribution.utm_term         || null,
+            utm_content:      attribution.utm_content      || null,
+            attribution_json: attribution.attribution_json || {},
+          });
+          let { error } = await client.from('cms_contact_submissions').insert([attributionPayload]);
+          const canFallbackToBase =
+            error &&
+            /column|schema cache|could not find/i.test(String(error.message || error.details || error.hint || ''));
+          if (canFallbackToBase) {
+            const fallback = await client.from('cms_contact_submissions').insert([basePayload]);
+            error = fallback.error;
+          }
           if (error) throw new Error(error.message || 'Submission failed');
         } else {
           // Supabase not configured — form submission cannot be stored
