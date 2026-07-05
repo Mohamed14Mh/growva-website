@@ -1280,6 +1280,11 @@ body.editor-safe-mode [data-admin-ui="true"] {
   color: #ff5050;
 }
 
+.gv-admin-action--warn {
+  border-color: rgba(251,191,36,.5);
+  color: #fbbf24;
+}
+
 @media(max-width:760px){
   .gv-admin-section-row { flex-direction: column; align-items: flex-start; }
   .gv-admin-token-row { flex-direction: column; align-items: flex-start; }
@@ -3557,6 +3562,9 @@ body.gv-cms-loading [data-edit-key] {
   .gv-lead-insight-bar-row strong,
   .gv-lead-insight-bar-row small {
     text-align: left;
+  }
+  .gv-lead-detail-grid {
+    grid-template-columns: 1fr;
   }
 }
 
