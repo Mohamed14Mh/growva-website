@@ -6,8 +6,25 @@
   const MOCK_CUSTOM_SECTIONS_KEY = 'growva_admin_custom_sections';
   const MOCK_EMAIL = 'admin@growva.local';
   const MOCK_PASSWORD = 'growva-admin';
+  const ADMIN_MODE_INTENT_KEY = 'growva_admin_mode_intent';
+  const ADMIN_NAV_PENDING_KEY = 'growva_admin_nav_pending';
+  const ADMIN_NAV_HANDOFF_KEY = 'growva_admin_last_navigation_handoff';
   const PLACEHOLDER_URL = 'https://YOUR_PROJECT.supabase.co';
   const PLACEHOLDER_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  const ADMIN_RUNTIME_BUILD = Object.freeze({
+    id: 'admin-productized-runtime-v1',
+    timestamp: '2026-07-06T19:45:00Z',
+    loadedAt: new Date().toISOString(),
+    features: [
+      'assertRealAdminReady',
+      'runRealQaChecklist',
+      'getCmsState',
+      'listCurrentPageOverrides',
+      'listCurrentPageImages',
+      'editorV2'
+    ]
+  });
+  window.GROWVA_ADMIN_BUILD = ADMIN_RUNTIME_BUILD;
 
   const params = new URLSearchParams(window.location.search);
   const mockAdminEnabled = params.get('mockAdmin') === 'true';
@@ -107,6 +124,18 @@
   let publishInFlight = false;
   let resetInFlight = false;
   let adminEntryInFlight = false;
+  let loginInProgress = false;
+  let adminLoginCompletionPromise = null;
+  let adminSessionRestorePromise = null;
+  let adminSessionRestoreState = 'idle';
+  let lastAdminSessionRestoreResult = null;
+  let authStateListenerBound = false;
+  let publishedEditsLoaded = false;
+  let publishedHydrationInProgress = false;
+  let publishedHydrationPromise = null;
+  const hydratedPagePaths = new Set();
+  let lastHydratedAt = 0;
+  let bootWantedAdminMode = false;
   let dashboardTab = 'overview';
   let dashboardDraftRows = [];
   let dashboardPublishedRows = [];
@@ -117,6 +146,24 @@
   let pendingPublishRows = [];
   let pendingCustomPublishRows = [];
   let pendingVisualPublishCount = 0;
+  let lastAdminSaveResult = null;
+  let lastAdminSaveError = null;
+  let lastAdminPublishResult = null;
+  let lastAdminPublishError = null;
+  const performanceState = {
+    hydrationCalls: 0,
+    authRestoreCalls: 0,
+    authStorageClearCalls: 0,
+    saveDraftCalls: 0,
+    publishCalls: 0,
+    navigationHandoffCalls: 0,
+    lastHydrationDuration: 0,
+    lastSaveDuration: 0,
+    lastPublishDuration: 0,
+    currentInFlightOperations: []
+  };
+  let lastAuthStorageClear = null;
+  let lastNavigationHandoff = null;
   let inspectorDirty = false;
   let inspectorBaselineValue = '';
   let mediaAssets = [];
@@ -171,6 +218,42 @@
     return getAdminRole() === 'owner';
   }
 
+  function canUseMediaUpload() {
+    return Boolean(supabaseClient && currentUser && canAdminEdit() && !isLocalFileMode());
+  }
+
+  function getMediaUploadUnavailableMessage() {
+    if (isLocalFileMode()) return 'Upload not configured yet. Use Live Server/deployed URL, image URL, or Media Library.';
+    if (!supabaseClient || !currentUser || !adminProfile) return 'Upload not configured yet. Use image URL or Media Library.';
+    if (!canAdminEdit()) return 'Upload requires owner or editor access. Use image URL or Media Library.';
+    return 'Upload not configured yet. Use image URL or Media Library.';
+  }
+
+  function beginAdminOperation(name) {
+    const startedAt = performance.now();
+    performanceState.currentInFlightOperations.push(name);
+    return () => {
+      const index = performanceState.currentInFlightOperations.indexOf(name);
+      if (index >= 0) performanceState.currentInFlightOperations.splice(index, 1);
+      return Math.round(performance.now() - startedAt);
+    };
+  }
+
+  function getAdminPerformanceState() {
+    return {
+      hydrationCalls: performanceState.hydrationCalls,
+      authRestoreCalls: performanceState.authRestoreCalls,
+      authStorageClearCalls: performanceState.authStorageClearCalls,
+      saveDraftCalls: performanceState.saveDraftCalls,
+      publishCalls: performanceState.publishCalls,
+      navigationHandoffCalls: performanceState.navigationHandoffCalls,
+      lastHydrationDuration: performanceState.lastHydrationDuration,
+      lastSaveDuration: performanceState.lastSaveDuration,
+      lastPublishDuration: performanceState.lastPublishDuration,
+      currentInFlightOperations: performanceState.currentInFlightOperations.slice()
+    };
+  }
+
   function classifySupabaseError(error) {
     if (!error) return 'An unknown error occurred.';
     const raw = String(error.message || error.details || error.hint || error).toLowerCase();
@@ -202,6 +285,138 @@
     return 'Operation failed. Add ?cmsDebug=true to the URL for technical details.';
   }
 
+  function getRawOperationErrorMessage(error) {
+    if (!error) return 'Unknown Supabase error.';
+    return [error.message, error.details, error.hint, error.code]
+      .filter(Boolean)
+      .join(' | ') || String(error || 'Unknown Supabase error.');
+  }
+
+  function getRlsHintForError(error) {
+    const raw = getRawOperationErrorMessage(error).toLowerCase();
+    if (raw.includes('row-level security') || raw.includes('permission denied') || raw.includes('rls') || raw.includes('violates row')) {
+      return 'RLS hint: verify public.admin_profiles role and cms_content policies for the authenticated admin user.';
+    }
+    return '';
+  }
+
+  function makeAdminOperationFailure(operation, tableName, editKey, error) {
+    const editKeys = Array.isArray(editKey) ? editKey.filter(Boolean) : (editKey ? [editKey] : []);
+    const rawError = getRawOperationErrorMessage(error);
+    return {
+      ok: false,
+      operation,
+      table: tableName || null,
+      pagePath,
+      edit_key: editKeys[0] || null,
+      edit_keys: editKeys,
+      supabaseError: rawError,
+      message: classifySupabaseError(error),
+      rlsHint: getRlsHintForError(error),
+      debugHelper: 'await window.growvaAdminDebug.runRealQaChecklist()',
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  function makeAdminOperationSuccess(operation, tableName, editKey, extra = {}) {
+    const editKeys = Array.isArray(editKey) ? editKey.filter(Boolean) : (editKey ? [editKey] : []);
+    return Object.assign({
+      ok: true,
+      operation,
+      table: tableName || null,
+      pagePath,
+      edit_key: editKeys[0] || null,
+      edit_keys: editKeys,
+      timestamp: new Date().toISOString()
+    }, extra);
+  }
+
+  function formatAdminOperationFailure(failure) {
+    if (!failure) return 'Operation failed.';
+    const parts = [
+      `${failure.operation || 'Operation'} failed`,
+      failure.table ? `table=${failure.table}` : '',
+      `pagePath=${failure.pagePath || pagePath}`,
+      failure.edit_key ? `edit_key=${failure.edit_key}` : '',
+      failure.supabaseError ? `Supabase: ${failure.supabaseError}` : failure.message || '',
+      failure.rlsHint || '',
+      `Debug: ${failure.debugHelper || 'await window.growvaAdminDebug.runRealQaChecklist()'}`
+    ].filter(Boolean);
+    return parts.join(' | ');
+  }
+
+  function adminDebugEnabled() {
+    return Boolean(window.GROWVA_ADMIN_DEBUG) || cmsDebug;
+  }
+
+  function adminDebugLog(step, details = {}) {
+    if (!adminDebugEnabled()) return;
+    console.info('[GROWVA Admin Auth]', {
+      step,
+      supabase_configured: supabaseState.configured,
+      supabase_ready: supabaseState.ready,
+      supabase_failed: supabaseState.failed,
+      unsafe_key: supabaseState.unsafeKey,
+      has_client: Boolean(supabaseClient),
+      ...details
+    });
+  }
+
+  function redactEmail(email) {
+    const value = String(email || '').trim();
+    if (!value || !value.includes('@')) return value ? '[invalid-email]' : '';
+    const parts = value.split('@');
+    return `${parts[0].slice(0, 2)}***@${parts.slice(1).join('@')}`;
+  }
+
+  function isPlaceholderAdminEmail(email) {
+    return String(email || '').trim().toLowerCase() === MOCK_EMAIL;
+  }
+
+  function describeSupabaseConfig(config = getSupabaseConfig()) {
+    return {
+      url: config.url || '',
+      hasAnonKey: Boolean(config.anonKey),
+      configured: config.configured,
+      unsafeKey: config.unsafeKey,
+      sdkLoaded: Boolean(window.supabase && typeof window.supabase.createClient === 'function')
+    };
+  }
+
+  function getMissingConfigMessage() {
+    const config = getSupabaseConfig();
+    if (config.unsafeKey) return 'Unsafe Supabase key detected. Use a publishable/anon key, never a service role key.';
+    if (!config.url) return 'Missing Supabase config: SUPABASE_URL is empty in admin/supabase-config.js.';
+    if (!config.anonKey) return 'Missing Supabase config: SUPABASE_ANON_KEY is empty in admin/supabase-config.js.';
+    if (config.url === PLACEHOLDER_URL || config.url.includes('YOUR_PROJECT')) return 'Missing Supabase config: replace the placeholder SUPABASE_URL in admin/supabase-config.js.';
+    if (config.anonKey === PLACEHOLDER_KEY || config.anonKey.includes('YOUR_SUPABASE')) return 'Missing Supabase config: replace the placeholder SUPABASE_ANON_KEY in admin/supabase-config.js.';
+    if (!window.supabase || typeof window.supabase.createClient !== 'function') return 'Supabase SDK not loaded. Check the @supabase/supabase-js script before admin/admin.js.';
+    return 'Supabase could not be initialized. Check admin/supabase-config.js and the browser console.';
+  }
+
+  function classifyLoginError(error, email) {
+    const raw = getAuthErrorText(error);
+    if (isPlaceholderAdminEmail(email) && (raw.includes('invalid login') || raw.includes('invalid credentials') || raw.includes('user not found') || raw.includes('email not found'))) {
+      return 'This email is not a Supabase admin user. Use a real Supabase Auth user linked to public.admin_profiles.';
+    }
+    if (raw.includes('invalid login') || raw.includes('invalid credentials')) return 'Wrong email or password.';
+    if (raw.includes('email not confirmed')) return 'Email is not confirmed in Supabase Auth.';
+    if (raw.includes('signup disabled') || raw.includes('user not found') || raw.includes('email not found')) return 'This email is not a Supabase Auth user.';
+    if (raw.includes('failed to fetch') || raw.includes('networkerror') || raw.includes('network request') || raw.includes('fetch error')) {
+      return 'Network/CORS/Supabase unreachable. Check the Supabase URL, browser network tab, and local network connection.';
+    }
+    if (raw.includes('timeout') || raw.includes('timed out')) {
+      return 'Auth request timed out. Supabase Auth may be unreachable. Please retry or refresh.';
+    }
+    if (raw.includes('invalid api key') || raw.includes('apikey') || raw.includes('unauthorized')) {
+      return 'Supabase authentication failed. Check that admin/supabase-config.js uses the correct publishable/anon key.';
+    }
+    if (isRevokedOrInvalidAuthSessionError(error)) {
+      return 'Stored Supabase session was invalid and has been cleared. Try signing in again.';
+    }
+    return error?.message ? `Supabase auth error: ${error.message}` : 'Could not sign in with those Supabase credentials.';
+  }
+
   function getAuthErrorText(error) {
     if (!error) return '';
     return [
@@ -219,15 +434,99 @@
   function isRevokedOrInvalidAuthSessionError(error) {
     const raw = getAuthErrorText(error);
     if (!raw) return false;
-    if (raw.includes('authapierror')) return true;
     if (raw.includes('refresh token') && (raw.includes('revoked') || raw.includes('invalid') || raw.includes('not found') || raw.includes('already used'))) return true;
     if (raw.includes('invalid refresh token') || raw.includes('refresh token revoked')) return true;
-    if (raw.includes('invalid_grant') || raw.includes('auth session missing') || raw.includes('session missing')) return true;
-    if ((raw.includes('jwt') || raw.includes('session')) && (raw.includes('expired') || raw.includes('invalid') || raw.includes('refresh'))) return true;
+    if (raw.includes('invalid_grant')) return true;
+    if ((raw.includes('jwt') || raw.includes('session')) && (raw.includes('revoked') || raw.includes('invalid refresh') || raw.includes('invalid token'))) return true;
+    if (raw.includes('authapierror') && (raw.includes('revoked') || raw.includes('invalid refresh') || raw.includes('invalid_grant'))) return true;
     return false;
   }
 
-  function clearSupabaseAuthStorage() {
+  function isMissingAuthSessionError(error) {
+    const raw = getAuthErrorText(error);
+    if (!raw) return false;
+    return raw.includes('auth session missing') || raw.includes('session missing') || raw.includes('no session');
+  }
+
+  function isAuthTimeoutError(error) {
+    const raw = getAuthErrorText(error);
+    return raw.includes('timeout') || raw.includes('timed out');
+  }
+
+  function makeAdminRestoreResult(ok, reason, extra = {}) {
+    return Object.assign({
+      ok: Boolean(ok),
+      reason,
+      clearedStorage: false,
+      clearedIntent: false,
+      message: ''
+    }, extra);
+  }
+
+  function sanitizeAdminRestoreResult(result) {
+    if (!result) return null;
+    return {
+      ok: Boolean(result.ok),
+      reason: result.reason || '',
+      code: result.code || null,
+      message: result.message || '',
+      clearedStorage: Boolean(result.clearedStorage),
+      clearedIntent: Boolean(result.clearedIntent),
+      hasUser: Boolean(result.user || currentUser),
+      hasProfile: Boolean(result.profile || adminProfile),
+      profileRole: (result.profile && result.profile.role) || (adminProfile && adminProfile.role) || null
+    };
+  }
+
+  function getRestoreLoginMessage(result) {
+    if (!result) return '';
+    if (result.reason === 'auth_timeout' || result.reason === 'user_timeout' || result.reason === 'profile_timeout') {
+      return 'Admin session restore timed out. Please retry or refresh.';
+    }
+    if (result.reason === 'invalid_session' || result.reason === 'revoked_session') {
+      return 'Stored Supabase session was invalid and has been cleared. Please sign in again.';
+    }
+    if (result.reason === 'missing_profile') {
+      return 'Login succeeded, but no admin profile was found in public.admin_profiles.';
+    }
+    if (result.reason === 'invalid_role') {
+      return 'Admin profile role is not allowed. Use owner, editor, or viewer.';
+    }
+    if (result.reason === 'profile_error') {
+      return 'Admin profile check failed. Please retry or refresh.';
+    }
+    if (result.reason === 'connection_failed') {
+      return 'Supabase connection failed. Check the project URL, publishable key, and RLS policies.';
+    }
+    return '';
+  }
+
+  function getSupabaseAuthStorageKeys() {
+    const keys = [];
+    [
+      ['localStorage', window.localStorage],
+      ['sessionStorage', window.sessionStorage]
+    ].forEach(([area, storage]) => {
+      if (!storage) return;
+      try {
+        Object.keys(storage)
+          .filter(key =>
+            key.startsWith('sb-') ||
+            key.includes('supabase.auth') ||
+            key.includes('supabase')
+          )
+          .forEach(key => keys.push({ area, key }));
+      } catch (_) {}
+    });
+    return keys;
+  }
+
+  function getSupabaseAuthStorageKeysCount() {
+    return getSupabaseAuthStorageKeys().length;
+  }
+
+  function clearSupabaseAuthStorage(source = 'unknown', reason = 'invalid-or-revoked-auth-session') {
+    const keysBefore = getSupabaseAuthStorageKeys();
     [window.localStorage, window.sessionStorage].forEach(storage => {
       if (!storage) return;
       try {
@@ -235,16 +534,24 @@
           .filter(key =>
             key.startsWith('sb-') ||
             key.includes('supabase.auth') ||
-            key.includes('supabase') ||
-            key.includes('growva_admin_session') ||
-            key.includes('growva_admin')
+            key.includes('supabase')
           )
           .forEach(key => storage.removeItem(key));
       } catch (_) {
         // ignore — storage may be unavailable in some contexts
       }
     });
-    if (cmsDebug) console.info('[GROWVA Admin] stale auth cleared');
+    performanceState.authStorageClearCalls += 1;
+    lastAuthStorageClear = {
+      source,
+      reason,
+      keysRemovedCount: keysBefore.length,
+      keysRemoved: keysBefore.map(item => `${item.area}:${item.key}`),
+      currentPath: window.location.pathname || '/',
+      pagePath,
+      at: new Date().toISOString()
+    };
+    adminDebugLog('stale-supabase-auth-storage-cleared', lastAuthStorageClear);
   }
 
   function resetAdminAuthState(label = 'Logged out') {
@@ -267,13 +574,17 @@
   }
 
   function handleAdminAuthSessionFailure(error, context = 'auth-session-check') {
-    if (isRevokedOrInvalidAuthSessionError(error)) clearSupabaseAuthStorage();
+    const shouldClear = isRevokedOrInvalidAuthSessionError(error);
+    if (shouldClear) {
+      clearSupabaseAuthStorage(context, 'invalid-or-revoked-auth-session');
+      clearAdminModeIntent(context);
+    }
     resetAdminAuthState('Logged out');
     if (cmsDebug) {
       console.info('[GROWVA CMS Auth]', {
         context,
         treated_as_logged_out: true,
-        stale_auth_storage_cleared: isRevokedOrInvalidAuthSessionError(error),
+        stale_auth_storage_cleared: shouldClear,
         error_name: error?.name || null,
         error_message: error?.message || String(error || '')
       });
@@ -331,6 +642,140 @@
     return clean || 'index.html';
   }
 
+  function getPagePathAliases(path = pagePath) {
+    const canonical = String(path || 'index.html').replace(/^\/+/, '') || 'index.html';
+    const aliases = new Set([canonical, `/${canonical}`]);
+    if (canonical === 'index.html') {
+      aliases.add('/');
+      aliases.add('/index.html');
+    }
+    return Array.from(aliases).filter(Boolean);
+  }
+
+  function getPagePathInFilter(column = 'page_path') {
+    const quoted = getPagePathAliases().map(value => `"${String(value).replace(/"/g, '\\"')}"`).join(',');
+    return `${column}.in.(${quoted})`;
+  }
+
+  function sortRowsByPagePathPreference(rows) {
+    const aliases = getPagePathAliases();
+    return (Array.isArray(rows) ? rows : []).slice().sort((a, b) => {
+      const aRank = aliases.indexOf(a && a.page_path);
+      const bRank = aliases.indexOf(b && b.page_path);
+      const rankDelta = (aRank < 0 ? 999 : aRank) - (bRank < 0 ? 999 : bRank);
+      if (rankDelta) return rankDelta;
+      return getRowTime(b) - getRowTime(a);
+    });
+  }
+
+  function getRowTime(row) {
+    const value = row && (row.updated_at || row.created_at);
+    const time = value ? new Date(value).getTime() : 0;
+    return Number.isFinite(time) ? time : 0;
+  }
+
+  function getValuePreview(value, max = 120) {
+    const clean = sanitizeText(value);
+    return clean.length > max ? clean.slice(0, max - 1) + '...' : clean;
+  }
+
+  function hasAdminModeIntent() {
+    try {
+      return window.localStorage.getItem(ADMIN_MODE_INTENT_KEY) === '1';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function setAdminModeIntent() {
+    if (!currentUser || !adminProfile || isMockAdminSession()) return;
+    try {
+      window.localStorage.setItem(ADMIN_MODE_INTENT_KEY, '1');
+    } catch (_) {}
+    adminDebugLog('admin-mode-intent-set', {
+      currentPath: window.location.pathname || '/',
+      pagePath,
+      role: adminProfile ? adminProfile.role : null
+    });
+  }
+
+  function clearAdminModeIntent(reason = 'clear') {
+    try {
+      window.localStorage.removeItem(ADMIN_MODE_INTENT_KEY);
+    } catch (_) {}
+    try {
+      window.sessionStorage.removeItem(ADMIN_NAV_PENDING_KEY);
+    } catch (_) {}
+    adminDebugLog('admin-mode-intent-cleared', { reason });
+  }
+
+  function clearAdminIntentOnly(reason = 'debug-clear-intent-only') {
+    clearAdminModeIntent(reason);
+    return {
+      ok: true,
+      reason,
+      adminModeIntent: hasAdminModeIntent(),
+      adminNavPending: hasAdminNavPending(),
+      supabaseStorageKeysCount: getSupabaseAuthStorageKeysCount(),
+      message: 'Admin intent cleared. Supabase auth storage was not cleared.'
+    };
+  }
+
+  function hasAdminNavPending() {
+    try {
+      return window.sessionStorage.getItem(ADMIN_NAV_PENDING_KEY) === '1';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function consumeAdminNavPending() {
+    const pending = hasAdminNavPending();
+    if (pending) {
+      performanceState.navigationHandoffCalls += 1;
+      lastNavigationHandoff = getLastNavigationHandoff();
+      adminDebugLog('admin-navigation-handoff-consumed', {
+        currentPath: window.location.pathname || '/',
+        pagePath,
+        handoff: lastNavigationHandoff
+      });
+      try {
+        window.sessionStorage.removeItem(ADMIN_NAV_PENDING_KEY);
+      } catch (_) {}
+    }
+    return pending;
+  }
+
+  function setAdminNavigationHandoff(source, targetPath) {
+    const handoff = {
+      source,
+      fromUrl: window.location.href,
+      fromPath: window.location.pathname || '/',
+      toPath: targetPath || '',
+      adminModeActive: document.body.classList.contains('admin-mode'),
+      adminModeIntent: hasAdminModeIntent(),
+      supabaseStorageKeysCount: getSupabaseAuthStorageKeysCount(),
+      at: new Date().toISOString()
+    };
+    lastNavigationHandoff = handoff;
+    performanceState.navigationHandoffCalls += 1;
+    try {
+      window.sessionStorage.setItem(ADMIN_NAV_PENDING_KEY, '1');
+      window.sessionStorage.setItem(ADMIN_NAV_HANDOFF_KEY, JSON.stringify(handoff));
+    } catch (_) {}
+    adminDebugLog('admin-navigation-handoff-set', handoff);
+    return handoff;
+  }
+
+  function getLastNavigationHandoff() {
+    if (lastNavigationHandoff) return lastNavigationHandoff;
+    try {
+      const raw = window.sessionStorage.getItem(ADMIN_NAV_HANDOFF_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (_) {}
+    return null;
+  }
+
   function getSupabaseConfig() {
     const config = window.GROWVA_SUPABASE_CONFIG || {};
     const url = typeof config.url === 'string' ? config.url.trim() : '';
@@ -377,17 +822,21 @@
     supabaseState.unsafeKey = config.unsafeKey;
     supabaseState.failed = false;
     supabaseState.warning = '';
+    adminDebugLog('config-loaded', describeSupabaseConfig(config));
     if (config.unsafeKey) {
       supabaseClient = null;
       supabaseState.ready = false;
       supabaseState.label = 'Unsafe key detected';
       supabaseState.warning = 'Unsafe Supabase key detected. Use publishable/anon key only.';
+      adminDebugLog('config-unsafe-key');
       return;
     }
     if (!config.configured) {
       supabaseClient = null;
       supabaseState.ready = false;
       supabaseState.label = 'Supabase not configured';
+      supabaseState.warning = getMissingConfigMessage();
+      adminDebugLog('config-missing', { message: supabaseState.warning });
       return;
     }
     if (!window.supabase || typeof window.supabase.createClient !== 'function') {
@@ -395,7 +844,8 @@
       supabaseState.ready = false;
       supabaseState.failed = true;
       supabaseState.label = 'Supabase connection failed';
-      supabaseState.warning = 'Supabase connection failed. The browser client could not initialize.';
+      supabaseState.warning = getMissingConfigMessage();
+      adminDebugLog('sdk-not-loaded', { message: supabaseState.warning });
       return;
     }
     try {
@@ -414,24 +864,742 @@
       });
       supabaseState.ready = true;
       supabaseState.label = 'Logged out';
+      adminDebugLog('supabase-client-ready', { url: config.url });
     } catch (error) {
       supabaseClient = null;
       supabaseState.ready = false;
       supabaseState.failed = true;
       supabaseState.label = 'Supabase connection failed';
       supabaseState.warning = 'Supabase connection failed. Check the project URL and publishable key.';
+      adminDebugLog('supabase-client-error', { message: error?.message || String(error || '') });
     }
+  }
+
+  async function testSupabaseAuthEndpoint(config = getSupabaseConfig()) {
+    if (!config.url || !config.anonKey) return { ok: false, status: 0, error: 'missing-config' };
+    const baseUrl = config.url.replace(/\/+$/, '');
+    const endpoints = [`${baseUrl}/auth/v1/health`, `${baseUrl}/auth/v1/settings`];
+    let last = null;
+    for (const endpoint of endpoints) {
+      try {
+        const response = await withTimeout(fetch(endpoint, {
+          method: 'GET',
+          cache: 'no-store',
+          headers: {
+            apikey: config.anonKey
+          }
+        }), 5000, null);
+        if (!response) {
+          last = { ok: false, status: 0, endpoint, error: 'timeout' };
+          continue;
+        }
+        const result = { ok: response.ok, status: response.status, endpoint };
+        if (response.ok || response.status === 404 || response.status === 401 || response.status === 403) return result;
+        last = result;
+      } catch (error) {
+        last = { ok: false, status: 0, endpoint, error: error?.message || String(error || '') };
+      }
+    }
+    return last || { ok: false, status: 0, error: 'unknown' };
+  }
+
+  async function testSupabaseDebugConnection() {
+    const config = getSupabaseConfig();
+    const result = {
+      config: describeSupabaseConfig(config),
+      clientReady: Boolean(supabaseClient),
+      currentPath: window.location.pathname || '/',
+      canonicalPagePath: pagePath,
+      pagePathAliases: getPagePathAliases(),
+      adminModeIntent: hasAdminModeIntent(),
+      adminNavPending: hasAdminNavPending(),
+      supabaseStorageKeysCount: getSupabaseAuthStorageKeysCount(),
+      lastAuthStorageClear,
+      lastNavigationHandoff: getLastNavigationHandoff(),
+      restoreState: adminSessionRestoreState,
+      lastRestoreResult: lastAdminSessionRestoreResult,
+      getSession: null,
+      authEndpoint: null,
+      currentUser: null,
+      adminProfile: null
+    };
+    adminDebugLog('testSupabase-start', result.config);
+    result.authEndpoint = await testSupabaseAuthEndpoint(config);
+    if (!supabaseClient) {
+      result.error = getMissingConfigMessage();
+      adminDebugLog('testSupabase-no-client', result);
+      return result;
+    }
+    try {
+      const sessionResult = await withTimeout(supabaseClient.auth.getSession(), 5000, { data: null, error: new Error('getSession timed out') });
+      result.getSession = {
+        ok: Boolean(sessionResult && !sessionResult.error),
+        hasSession: Boolean(sessionResult?.data?.session),
+        error: sessionResult?.error?.message || null,
+        staleAuthCleared: false
+      };
+      if (sessionResult?.error && isRevokedOrInvalidAuthSessionError(sessionResult.error)) {
+        handleAdminAuthSessionFailure(sessionResult.error, 'debug-get-session-result');
+        result.getSession.staleAuthCleared = true;
+      }
+      const user = sessionResult?.data?.session?.user || null;
+      if (user) {
+        result.currentUser = { id: user.id, email: user.email || null };
+        const profileResult = await fetchAdminProfile(user);
+        result.adminProfile = profileResult === false
+          ? { found: false, role: null, email: null, error: 'profile lookup failed' }
+          : {
+              found: Boolean(profileResult.data),
+              role: profileResult.data?.role || null,
+              email: profileResult.data?.email || null,
+              error: profileResult.error?.message || null
+            };
+      }
+    } catch (error) {
+      const staleAuth = isRevokedOrInvalidAuthSessionError(error);
+      if (staleAuth) handleAdminAuthSessionFailure(error, 'debug-get-session');
+      result.getSession = {
+        ok: false,
+        hasSession: false,
+        error: error?.message || String(error || ''),
+        staleAuthCleared: staleAuth
+      };
+    }
+    adminDebugLog('testSupabase-result', result);
+    return result;
+  }
+
+  function installGrowvaAdminDebug() {
+    async function testAuthLoginDebug(email, password) {
+      const t0 = Date.now();
+      const result = {
+        ok: false,
+        stage: 'init',
+        code: null,
+        message: '',
+        durationMs: 0,
+        networkReachable: false,
+        healthOk: false,
+        authTokenEndpointOk: false,
+        supabaseClientReady: false,
+        sdkReady: false,
+        sessionBefore: null,
+        signInReturned: false,
+        userIdPresent: false,
+        emailConfirmedKnown: null,
+        profileFound: false,
+        profileRole: null,
+        rawErrorName: null,
+        rawErrorMessage: null,
+        rawErrorStatus: null
+      };
+      const done = (ok, stage, msg, extra = {}) => {
+        result.ok = ok;
+        result.stage = stage;
+        result.message = msg;
+        result.durationMs = Date.now() - t0;
+        Object.assign(result, extra);
+        console.info('[GROWVA Admin] testAuthLogin result', result);
+        return result;
+      };
+      // Stage 1: SDK exists
+      if (!window.supabase && !window.__supabaseCreateClient) {
+        result.sdkReady = Boolean(supabaseClient);
+      } else {
+        result.sdkReady = true;
+      }
+      // Stage 2: config
+      const config = getSupabaseConfig();
+      if (!config.configured) return done(false, 'config', 'Supabase not configured — check admin/supabase-config.js');
+      result.stage = 'config_ok';
+      // Stage 3: client
+      result.supabaseClientReady = Boolean(supabaseClient);
+      if (!supabaseClient) return done(false, 'no_client', 'Supabase client not initialized');
+      result.stage = 'client_ok';
+      // Stage 4: health endpoint
+      const healthResult = await testSupabaseAuthEndpoint(config).catch(() => ({ ok: false, status: 0 }));
+      result.networkReachable = healthResult.ok || (healthResult.status > 0 && healthResult.status < 500);
+      result.healthOk = healthResult.ok;
+      result.authTokenEndpointOk = healthResult.ok;
+      if (!result.networkReachable) return done(false, 'health_unreachable', `Auth health endpoint unreachable (status ${healthResult.status})`);
+      result.stage = 'health_ok';
+      // Stage 5: session before login
+      try {
+        const sessionBefore = await withTimeout(supabaseClient.auth.getSession(), 5000, { data: null, error: new Error('getSession timed out') });
+        result.sessionBefore = Boolean(sessionBefore?.data?.session);
+      } catch (_) {
+        result.sessionBefore = false;
+      }
+      result.stage = 'pre_signin';
+      result.authStateSignedInSeen = false;
+      result.adminModeEntered = false;
+      // Stage 6: signInWithPassword (25s timeout matches the login form)
+      let signInData = null;
+      let signInError = null;
+      const signInTimeoutSentinel = new Error('signInWithPassword timed out after 25s');
+      try {
+        const signInResult = await withTimeout(
+          supabaseClient.auth.signInWithPassword({ email, password }),
+          25000,
+          { data: null, error: signInTimeoutSentinel }
+        );
+        signInData = signInResult?.data || null;
+        signInError = signInResult?.error || null;
+      } catch (err) {
+        signInError = err;
+      }
+      result.signInReturned = Boolean(signInData && signInData.user);
+      const signInTimedOut = signInError === signInTimeoutSentinel || isAuthTimeoutError(signInError);
+      if (signInError && !signInTimedOut) {
+        result.rawErrorName = signInError?.name || null;
+        result.rawErrorMessage = signInError?.message || null;
+        result.rawErrorStatus = signInError?.status || null;
+        return done(false, 'signin_failed', classifyLoginError(signInError, email));
+      }
+      // If signIn timed out but the real request may still be in flight,
+      // wait up to 15s for onAuthStateChange(SIGNED_IN) to fire and complete login.
+      if (signInTimedOut || !signInData || !signInData.user) {
+        if (signInTimedOut) {
+          result.stage = 'signin_timeout';
+          adminDebugLog('signin_timeout_waiting_for_auth_state', { email: redactEmail(email) });
+        }
+        const AUTH_WAIT_MS = 15000;
+        const step = 400;
+        let waited = 0;
+        while (!document.body.classList.contains('admin-mode') && waited < AUTH_WAIT_MS) {
+          await new Promise(resolve => setTimeout(resolve, step));
+          waited += step;
+        }
+        result.adminModeEntered = document.body.classList.contains('admin-mode');
+        result.authStateSignedInSeen = result.adminModeEntered;
+        result.profileFound = Boolean(adminProfile);
+        result.profileRole = adminProfile ? adminProfile.role : null;
+        if (result.adminModeEntered) {
+          return done(true, 'auth_state_completed_after_timeout', 'Sign-in timed out, but auth state completed and Admin Mode entered.');
+        }
+        result.rawErrorName = signInError?.name || null;
+        result.rawErrorMessage = signInError?.message || null;
+        result.rawErrorStatus = signInError?.status || null;
+        return done(false, 'signin_timeout', 'Sign-in timed out and auth state did not complete. Check Network tab for auth/v1/token request status.');
+      }
+      const user = signInData.user;
+      result.userIdPresent = Boolean(user.id);
+      result.emailConfirmedKnown = user.email_confirmed_at ? true : (user.confirmed_at ? true : null);
+      result.stage = 'signin_ok';
+      // Stage 7: profile lookup via completeAdminLoginFromUser (shared path)
+      const completion = await completeAdminLoginFromUser(user, 'testAuthLogin');
+      result.adminModeEntered = document.body.classList.contains('admin-mode');
+      result.authStateSignedInSeen = result.adminModeEntered;
+      result.profileFound = Boolean(adminProfile);
+      result.profileRole = adminProfile ? adminProfile.role : null;
+      if (completion && completion.ok) {
+        return done(true, 'complete', 'All checks passed. Profile found with valid role. Admin Mode entered.');
+      }
+      if (completion && completion.reason === 'no_profile') {
+        return done(false, 'profile_missing', completion.message || 'Login succeeded, but no admin profile was found in public.admin_profiles.');
+      }
+      return done(false, completion ? completion.reason || 'profile_error' : 'profile_error', completion ? completion.message || 'Profile check failed.' : 'Profile check failed.');
+    }
+
+    async function forceCompleteLoginDebug() {
+      if (!supabaseClient) return { ok: false, reason: 'no_client' };
+      try {
+        const sessionResult = await withTimeout(supabaseClient.auth.getSession(), 5000, { data: null, error: new Error('getSession timed out') });
+        const user = sessionResult?.data?.session?.user || null;
+        if (!user) return { ok: false, reason: 'no_session', message: 'No Supabase session found. Log in first.' };
+        adminDebugLog('force-complete-login', { user_email: redactEmail(user.email || '') });
+        return completeAdminLoginFromUser(user, 'force-debug');
+      } catch (err) {
+        return { ok: false, reason: 'error', message: err?.message || String(err || '') };
+      }
+    }
+
+    async function traceSessionPersistenceDebug() {
+      const trace = {
+        currentUrl: window.location.href,
+        pagePath,
+        adminModeIntent: hasAdminModeIntent(),
+        adminNavPending: hasAdminNavPending(),
+        supabaseStorageKeys: getSupabaseAuthStorageKeys().map(item => `${item.area}:${item.key}`),
+        supabaseStorageKeysCount: getSupabaseAuthStorageKeysCount(),
+        hasSession: false,
+        hasUser: false,
+        hasProfile: Boolean(adminProfile),
+        profileRole: adminProfile ? adminProfile.role : null,
+        sessionError: '',
+        userError: '',
+        profileError: '',
+        lastAuthStorageClear,
+        restoreState: adminSessionRestoreState,
+        lastSessionRestoreResult: lastAdminSessionRestoreResult,
+        lastNavigationHandoff: getLastNavigationHandoff(),
+        currentBodyClasses: Array.from(document.body.classList)
+      };
+      if (!supabaseClient) {
+        trace.sessionError = getMissingConfigMessage();
+        return trace;
+      }
+      try {
+        const sessionResult = await withTimeout(
+          supabaseClient.auth.getSession(),
+          5000,
+          { data: null, error: new Error('getSession timed out') }
+        );
+        if (sessionResult?.error) trace.sessionError = getRawOperationErrorMessage(sessionResult.error);
+        const sessionUser = sessionResult?.data?.session?.user || null;
+        trace.hasSession = Boolean(sessionUser);
+        if (sessionUser) {
+          const userResult = await withTimeout(
+            supabaseClient.auth.getUser(),
+            5000,
+            { data: null, error: new Error('getUser timed out') }
+          );
+          if (userResult?.error) trace.userError = getRawOperationErrorMessage(userResult.error);
+          const verifiedUser = userResult?.data?.user || sessionUser;
+          trace.hasUser = Boolean(verifiedUser);
+          if (verifiedUser) {
+            const profileResult = await withTimeout(
+              fetchAdminProfile(verifiedUser),
+              5000,
+              { timeout: true, error: new Error('admin profile lookup timed out') }
+            );
+            if (profileResult?.timeout) {
+              trace.profileError = profileResult.error.message;
+            } else if (profileResult === false) {
+              trace.profileError = 'Profile lookup failed.';
+            } else if (profileResult?.error) {
+              trace.profileError = getRawOperationErrorMessage(profileResult.error);
+            } else {
+              trace.hasProfile = Boolean(profileResult?.data);
+              trace.profileRole = profileResult?.data?.role || null;
+            }
+          }
+        }
+      } catch (error) {
+        trace.sessionError = getRawOperationErrorMessage(error);
+      }
+      return trace;
+    }
+
+    function assertRealAdminReadyDebug() {
+      const mockBlocked = Boolean(mockAdminEnabled || isMockAdminSession());
+      const role = adminProfile ? adminProfile.role : null;
+      const hasSession = Boolean(currentUser && currentUser.id && currentUser.id !== 'mock-user' && !mockBlocked);
+      const hasProfile = Boolean(adminProfile && adminProfile.id && adminProfile.id !== 'mock-user' && !mockBlocked);
+      const adminModeActive = document.body.classList.contains('admin-mode');
+      const validRole = ['owner', 'editor', 'viewer'].includes(role);
+      const reason = mockBlocked
+        ? 'mock_mode'
+        : !hasSession
+          ? 'no_real_session'
+          : !hasProfile
+            ? 'no_admin_profile'
+            : !validRole
+              ? 'invalid_role'
+              : !adminModeActive
+                ? 'admin_mode_inactive'
+                : 'ready';
+      return {
+        ok: Boolean(hasSession && hasProfile && validRole && adminModeActive),
+        reason,
+        hasSession,
+        hasProfile,
+        profileRole: role,
+        adminModeActive,
+        isMockMode: mockBlocked,
+        currentPagePath: pagePath,
+        message: mockBlocked
+          ? 'Real QA cannot run in mockAdmin mode.'
+          : hasSession && hasProfile && validRole && adminModeActive
+            ? 'Real admin is ready.'
+            : 'Real admin is not ready. Sign in with a real Supabase admin user and enter Admin Mode.'
+      };
+    }
+
+    async function runRealQaChecklistDebug() {
+      const mockBlocked = Boolean(mockAdminEnabled || isMockAdminSession());
+      const registry = getRegistry();
+      const editableFieldCount = typeof registry.keys === 'function'
+        ? registry.keys().length
+        : Object.keys(registry.fields || {}).length;
+      let sessionExists = false;
+      let sessionError = '';
+      let profileFound = false;
+      let profileRole = null;
+      let profileError = '';
+      let sessionUser = null;
+
+      if (!supabaseClient) {
+        sessionError = getMissingConfigMessage();
+      } else {
+        try {
+          const sessionResult = await withTimeout(
+            supabaseClient.auth.getSession(),
+            5000,
+            { data: null, error: new Error('getSession timed out') }
+          );
+          if (sessionResult?.error) {
+            sessionError = getRawOperationErrorMessage(sessionResult.error);
+            if (isRevokedOrInvalidAuthSessionError(sessionResult.error)) handleAdminAuthSessionFailure(sessionResult.error, 'real-qa-get-session');
+          }
+          sessionUser = sessionResult?.data?.session?.user || null;
+          if (sessionUser && !mockBlocked) {
+            const userResult = await withTimeout(
+              supabaseClient.auth.getUser(),
+              5000,
+              { data: null, error: new Error('getUser timed out') }
+            );
+            if (userResult?.error) {
+              sessionError = getRawOperationErrorMessage(userResult.error);
+              if (isRevokedOrInvalidAuthSessionError(userResult.error)) handleAdminAuthSessionFailure(userResult.error, 'real-qa-get-user');
+            } else {
+              sessionUser = userResult?.data?.user || sessionUser;
+              sessionExists = Boolean(sessionUser);
+            }
+          } else {
+            sessionExists = Boolean(sessionUser && !mockBlocked);
+          }
+          if (sessionUser && !mockBlocked) {
+            const profileResult = await withTimeout(
+              fetchAdminProfile(sessionUser),
+              5000,
+              { timeout: true, error: new Error('admin profile lookup timed out') }
+            );
+            if (profileResult?.timeout) {
+              profileError = profileResult.error.message;
+            } else if (profileResult === false) {
+              profileError = 'Profile lookup failed.';
+            } else if (profileResult?.error) {
+              profileError = getRawOperationErrorMessage(profileResult.error);
+            } else {
+              profileFound = Boolean(profileResult?.data);
+              profileRole = profileResult?.data?.role || null;
+            }
+          }
+        } catch (error) {
+          sessionError = getRawOperationErrorMessage(error);
+          if (isRevokedOrInvalidAuthSessionError(error)) handleAdminAuthSessionFailure(error, 'real-qa-unexpected-auth');
+        }
+      }
+
+      const adminModeActive = document.body.classList.contains('admin-mode');
+      const selectedExists = Boolean(selectedElement && document.body.contains(selectedElement));
+      const dashboardTabs = dashboard
+        ? $all('[data-dashboard-tab]', dashboard).map(button => button.textContent.trim()).filter(Boolean)
+        : ['Overview', 'Pages', 'Current Page', 'Media', 'Publish Center', 'Advanced'];
+      const imageFieldCount = getCurrentPageImages().filter(item => item.editable).length;
+      const linkFieldCount = $all('[data-edit-key]').filter(isLinkEditable).length;
+      const exitButtonVisible = isElementVisible($('[data-admin-exit-button], [data-admin-action="exit-admin"]', adminRoot || document));
+      const logoutButtonVisible = isElementVisible($('[data-admin-logout-button], [data-admin-action="logout"]', adminRoot || document));
+      const readiness = assertRealAdminReadyDebug();
+      const checklist = {
+        ok: Boolean(!mockBlocked && sessionExists && profileFound && ['owner', 'editor', 'viewer'].includes(profileRole) && adminModeActive),
+        reason: readiness.reason,
+        runtime: getRuntimeBuildDebug(),
+        currentUrl: window.location.href,
+        currentPagePath: pagePath,
+        adminModeActive,
+        hasSession: sessionExists,
+        sessionError,
+        hasProfile: profileFound,
+        profileRole,
+        profileError,
+        editableFieldCount,
+        selectedElementExists: selectedExists,
+        selectedEditKey: selectedExists ? selectedElement.dataset.editKey || null : null,
+        draftCount: Object.keys(draftRows).length,
+        publishedOverrideCount: Object.keys(publishedRows).length,
+        hydrationCompleted: hydratedPagePaths.has(pagePath) && !publishedHydrationInProgress,
+        lastSaveResult: lastAdminSaveResult,
+        lastSaveError: lastAdminSaveError,
+        lastPublishResult: lastAdminPublishResult,
+        lastPublishError: lastAdminPublishError,
+        adminModeIntent: hasAdminModeIntent(),
+        adminNavPending: hasAdminNavPending(),
+        adminIntent: hasAdminModeIntent(),
+        supabaseStorageKeysCount: getSupabaseAuthStorageKeysCount(),
+        lastAuthStorageClearReason: lastAuthStorageClear ? lastAuthStorageClear.reason : null,
+        lastAuthStorageClearSource: lastAuthStorageClear ? lastAuthStorageClear.source : null,
+        lastAuthStorageClear,
+        lastSessionRestoreResult: lastAdminSessionRestoreResult,
+        lastNavigationHandoff: getLastNavigationHandoff(),
+        currentBodyClasses: Array.from(document.body.classList),
+        exitButtonVisible,
+        logoutButtonVisible,
+        dashboardTabs,
+        imageFieldCount,
+        linkFieldCount,
+        isMockMode: mockBlocked,
+        logoutState: {
+          adminModeActive,
+          currentUserCleared: !currentUser,
+          adminProfileCleared: !adminProfile,
+          adminIntentCleared: !hasAdminModeIntent(),
+          supabaseSessionExists: sessionExists,
+          appearsLoggedOut: Boolean(!sessionExists && !currentUser && !adminProfile && !adminModeActive && !hasAdminModeIntent())
+        },
+        assertRealAdminReady: readiness
+      };
+      return checklist;
+    }
+
+    function getRuntimeBuildDebug() {
+      return Object.assign({}, window.GROWVA_ADMIN_BUILD || ADMIN_RUNTIME_BUILD);
+    }
+
+    function getAdminScriptSrcsDebug() {
+      return Array.from(document.scripts)
+        .map(script => script.src || '')
+        .filter(src => src && src.includes('admin'));
+    }
+
+    function getLoadedAdminScriptSrc() {
+      const scripts = getAdminScriptSrcsDebug();
+      return scripts.find(src => {
+        try {
+          return /\/admin\/admin\.js$/i.test(new URL(src, window.location.href).pathname);
+        } catch (_) {
+          return src.includes('admin/admin.js');
+        }
+      }) || scripts.find(src => src.includes('/admin/admin.js')) || new URL('admin/admin.js', getSiteRootUrl()).href;
+    }
+
+    function isElementVisible(element) {
+      if (!element || !document.body.contains(element)) return false;
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none' && style.opacity !== '0' && !element.hidden;
+    }
+
+    function selfTestDebug() {
+      const debug = window.growvaAdminDebug || {};
+      const result = {
+        ok: false,
+        buildId: (window.GROWVA_ADMIN_BUILD && window.GROWVA_ADMIN_BUILD.id) || null,
+        hasAssertRealAdminReady: typeof debug.assertRealAdminReady === 'function',
+        hasRunRealQaChecklist: typeof debug.runRealQaChecklist === 'function',
+        hasGetCmsState: typeof debug.getCmsState === 'function',
+        hasListImages: typeof debug.listCurrentPageImages === 'function',
+        hasExitAdminButton: Boolean($('[data-admin-exit-button], [data-admin-action="exit-admin"]', adminRoot || document)),
+        hasLogoutButton: Boolean($('[data-admin-logout-button], [data-admin-action="logout"]', adminRoot || document)),
+        scriptSrcs: getAdminScriptSrcsDebug(),
+        currentPagePath: pagePath
+      };
+      result.ok = Boolean(
+        result.buildId === ADMIN_RUNTIME_BUILD.id &&
+        result.hasAssertRealAdminReady &&
+        result.hasRunRealQaChecklist &&
+        result.hasGetCmsState &&
+        result.hasListImages &&
+        result.hasExitAdminButton &&
+        result.hasLogoutButton
+      );
+      return result;
+    }
+
+    async function verifyLoadedAdminFileDebug() {
+      const scriptSrc = getLoadedAdminScriptSrc();
+      const url = new URL(scriptSrc, window.location.href);
+      url.searchParams.set('gv_admin_verify', String(Date.now()));
+      let text = '';
+      let error = '';
+      try {
+        const response = await fetch(url.href, { cache: 'no-store' });
+        text = await response.text();
+        if (!response.ok) error = `HTTP ${response.status}`;
+      } catch (caught) {
+        error = caught?.message || String(caught || '');
+      }
+      const result = {
+        ok: false,
+        scriptSrc,
+        fetchedUrl: url.href,
+        containsRunRealQaChecklist: text.includes('runRealQaChecklist'),
+        containsAssertRealAdminReady: text.includes('assertRealAdminReady'),
+        containsGrowvaAdminBuild: text.includes('GROWVA_ADMIN_BUILD'),
+        error
+      };
+      result.ok = Boolean(result.containsRunRealQaChecklist && result.containsAssertRealAdminReady && result.containsGrowvaAdminBuild && !error);
+      if (!result.ok) console.warn('[GROWVA Admin] Loaded admin.js does not match expected runtime build.', result);
+      return result;
+    }
+
+    window.growvaAdminDebug = Object.assign({}, window.growvaAdminDebug || {}, {
+      testSupabase: testSupabaseDebugConnection,
+      testAuthLogin: testAuthLoginDebug,
+      forceCompleteLogin: forceCompleteLoginDebug,
+      runRealQaChecklist: runRealQaChecklistDebug,
+      assertRealAdminReady: assertRealAdminReadyDebug,
+      traceSessionPersistence: traceSessionPersistenceDebug,
+      clearAdminIntentOnly,
+      getRuntimeBuild: getRuntimeBuildDebug,
+      selfTest: selfTestDebug,
+      verifyLoadedAdminFile: verifyLoadedAdminFileDebug,
+      getPerformanceState: getAdminPerformanceState,
+      getState: () => ({
+        config: describeSupabaseConfig(),
+        supabaseState: Object.assign({}, supabaseState),
+        hasClient: Boolean(supabaseClient),
+        hasSession: Boolean(currentUser),
+        hasProfile: Boolean(adminProfile),
+        profileRole: adminProfile ? adminProfile.role : null,
+        currentPath: window.location.pathname || '/',
+        canonicalPagePath: pagePath,
+        pagePathAliases: getPagePathAliases(),
+        adminModeIntent: hasAdminModeIntent(),
+        adminNavPending: hasAdminNavPending(),
+        supabaseStorageKeysCount: getSupabaseAuthStorageKeysCount(),
+        lastAuthStorageClear,
+        lastNavigationHandoff: getLastNavigationHandoff(),
+        restoreState: adminSessionRestoreState,
+        lastRestoreResult: lastAdminSessionRestoreResult,
+        bodyAdminClasses: Array.from(document.body.classList).filter(name => name.includes('admin')),
+        currentUser: currentUser ? { id: currentUser.id, email: currentUser.email || null } : null,
+        adminProfile: adminProfile ? { id: adminProfile.id, email: adminProfile.email, role: adminProfile.role } : null
+      }),
+      clearSupabaseAuthStorage: (source = 'debug-clearSupabaseAuthStorage', reason = 'debug-requested') => clearSupabaseAuthStorage(source, reason),
+      getCmsState: () => ({
+        currentPath: window.location.pathname || '/',
+        canonicalPagePath: pagePath,
+        pathAliases: getPagePathAliases(),
+        hydrationInProgress: publishedHydrationInProgress,
+        hydratedPagePaths: Array.from(hydratedPagePaths),
+        lastHydratedAt: lastHydratedAt ? new Date(lastHydratedAt).toISOString() : null,
+        publishedOverrideCount: Object.keys(publishedRows).length,
+        draftCount: Object.keys(draftRows).length,
+        selectedEditKey: selectedElement ? selectedElement.dataset.editKey || null : null,
+        selectedEditType: selectedElement ? selectedElement.dataset.editType || 'text' : null,
+        selectedCleanValuePreview: selectedElement ? getValuePreview(getEditableValue(selectedElement), 140) : '',
+        adminModeIntent: hasAdminModeIntent(),
+        adminNavPending: hasAdminNavPending(),
+        supabaseStorageKeysCount: getSupabaseAuthStorageKeysCount(),
+        lastAuthStorageClear,
+        lastNavigationHandoff: getLastNavigationHandoff(),
+        hasSession: Boolean(currentUser),
+        hasProfile: Boolean(adminProfile),
+        profileRole: adminProfile ? adminProfile.role : null,
+        adminMode: document.body.classList.contains('admin-mode')
+      }),
+      listCurrentPageOverrides: async () => {
+        const fromMemory = () => Object.values(Object.assign({}, publishedRows, draftRows)).map(formatOverrideDebugRow);
+        if (!supabaseClient) return fromMemory();
+        try {
+          const { data, error } = await supabaseClient
+            .from('cms_content')
+            .select('page_path,edit_key,edit_type,status,value_text,value_json,updated_at')
+            .in('page_path', getPagePathAliases())
+            .order('updated_at', { ascending: false });
+          if (error || !Array.isArray(data)) return { error: error?.message || 'Override query failed.', rows: fromMemory() };
+          return sortRowsByPagePathPreference(data).map(formatOverrideDebugRow);
+        } catch (error) {
+          return { error: error?.message || String(error || ''), rows: fromMemory() };
+        }
+      },
+      findOverrideByText: async (search) => {
+        const s = String(search || '').toLowerCase();
+        const rows = await window.growvaAdminDebug.listCurrentPageOverrides();
+        const list = Array.isArray(rows) ? rows : rows.rows || [];
+        return list.filter(row => String(row.valuePreview || '').toLowerCase().includes(s));
+      },
+      listCurrentPageImages: () => getCurrentPageImages().map(item => ({
+        edit_key: item.key || '',
+        type: item.type,
+        editable: Boolean(item.editable),
+        reason: item.reason,
+        urlPreview: getValuePreview(item.url || '', 140),
+        altPreview: getValuePreview(item.alt || '', 80)
+      })),
+      resetOverride: async (editKey, status, confirmation) => {
+        if (confirmation !== 'RESET_GROWVA_OVERRIDE') return { ok: false, reason: 'confirmation_required', message: 'Pass confirmation exactly as RESET_GROWVA_OVERRIDE.' };
+        if (!supabaseClient || !currentUser || !adminProfile) return { ok: false, reason: 'not_admin' };
+        if (!editKey) return { ok: false, reason: 'no_key' };
+        const normalizedStatus = String(status || '').trim().toLowerCase();
+        if (!['draft', 'published'].includes(normalizedStatus)) return { ok: false, reason: 'invalid_status', message: 'Status must be draft or published.' };
+        const { error } = await supabaseClient
+          .from('cms_content')
+          .delete()
+          .in('page_path', getPagePathAliases())
+          .eq('edit_key', editKey)
+          .eq('status', normalizedStatus);
+        if (error) return { ok: false, reason: 'db_error', message: error.message };
+        if (normalizedStatus === 'published') delete publishedRows[editKey];
+        if (normalizedStatus === 'draft') delete draftRows[editKey];
+        const el = getElementByEditKey(editKey);
+        if (el) {
+          const fallback = normalizedStatus === 'draft' && publishedRows[editKey] ? publishedRows[editKey].value_text : originalValues[editKey] || el.dataset.adminOriginalText || '';
+          setEditableValue(el, fallback);
+        }
+        return { ok: true, editKey, status: normalizedStatus };
+      }
+    });
+    const runtimeSelfTest = window.growvaAdminDebug.selfTest();
+    if (!runtimeSelfTest.ok) console.warn('[GROWVA Admin] Runtime self-test failed after debug install.', runtimeSelfTest);
+  }
+
+  function formatOverrideDebugRow(row) {
+    return {
+      page_path: row?.page_path || '',
+      edit_key: row?.edit_key || '',
+      edit_type: row?.edit_type || '',
+      status: row?.status || '',
+      valuePreview: getValuePreview(row?.value_text || row?.value_json?.url || row?.value_json?.href || '', 140),
+      updated_at: row?.updated_at || null
+    };
   }
 
   function setupAuthStateListener() {
     if (!supabaseClient || !supabaseClient.auth || typeof supabaseClient.auth.onAuthStateChange !== 'function') return;
+    if (authStateListenerBound) return;
+    authStateListenerBound = true;
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
+      adminDebugLog('auth-state-change', { event, has_session: Boolean(session), user_email: redactEmail(session?.user?.email || '') });
+      if (event === 'SIGNED_OUT') {
+        clearAdminModeIntent('signed-out');
         resetAdminAuthState('Logged out');
         if (document.body.classList.contains('admin-mode')) exitAdminMode();
         updateTopbar();
         return;
       }
+      if (!session) {
+        adminDebugLog('auth-state-no-session', {
+          event,
+          preserved_admin_intent: hasAdminModeIntent(),
+          preserved_nav_pending: hasAdminNavPending()
+        });
+        resetAdminAuthState('Logged out');
+        updateTopbar();
+        return;
+      }
+      if (event === 'SIGNED_IN' && session.user) {
+        adminDebugLog('auth_state_signed_in_seen', { user_email: redactEmail(session.user.email || '') });
+        // Enter admin mode if the user explicitly triggered it OR if boot wanted it
+        // (handles cold-start where getSession raced with token refresh and timed out).
+        const wantsEntry = loginInProgress
+          || (modal && modal.classList.contains('is-open'))
+          || hasAdminModeIntent()
+          || bootWantedAdminMode;
+        if (wantsEntry) {
+          await completeAdminLoginFromUser(session.user, 'auth-state-change');
+        } else {
+          await loadAdminProfile(session.user).catch(err => handleAdminAuthSessionFailure(err, 'auth-state-signin-silent'));
+        }
+        updateTopbar();
+        return;
+      }
+      // TOKEN_REFRESHED fires when the SDK auto-refreshes the stored JWT.
+      // If the boot-time session restore timed out (getUser cold-start), use this
+      // event as a recovery path to complete admin-mode entry.
+      if (event === 'TOKEN_REFRESHED' && session.user) {
+        adminDebugLog('auth_state_token_refreshed', { user_email: redactEmail(session.user.email || '') });
+        if (bootWantedAdminMode && !document.body.classList.contains('admin-mode')) {
+          await completeAdminLoginFromUser(session.user, 'token-refreshed-recovery');
+        } else {
+          await loadAdminProfile(session.user).catch(err => handleAdminAuthSessionFailure(err, 'auth-state-token-refresh'));
+        }
+        updateTopbar();
+        return;
+      }
+      // INITIAL_SESSION, USER_UPDATED, etc. — update profile state only.
       if (session.user) {
         await loadAdminProfile(session.user).catch(error => handleAdminAuthSessionFailure(error, 'auth-state-profile-check'));
         updateTopbar();
@@ -604,7 +1772,7 @@
       <div class="gv-admin-brand">
         <div class="gv-admin-mark">G</div>
         <div class="gv-admin-title">
-          <strong>GROWVA Admin</strong>
+          <strong>GROWVA</strong>
           <span data-admin-page-label></span>
         </div>
       </div>
@@ -613,15 +1781,24 @@
         <button type="button" data-admin-action="mode-edit">Edit</button>
       </div>
       <div class="gv-admin-actions">
-        <span class="gv-admin-state" data-admin-counts>Unsaved 0 / Drafts 0</span>
-        <span class="gv-admin-state" data-admin-connection><span class="gv-admin-status-dot"></span>Offline</span>
+        <span class="gv-admin-state gv-admin-state--compact" data-admin-counts></span>
+        <span class="gv-admin-state gv-admin-state--compact" data-admin-connection><span class="gv-admin-status-dot"></span></span>
         <span class="sr-only" aria-live="polite" aria-atomic="true" data-admin-live-status></span>
-        <button class="gv-admin-action" type="button" data-admin-action="toggle-safe-mode" data-admin-safe-mode-btn>Safe Mode: ON</button>
-        <button class="gv-admin-action" type="button" data-admin-action="enter-visitor-preview">Preview as Visitor</button>
-        <button class="gv-admin-action" type="button" data-admin-action="open-dashboard">CMS Dashboard</button>
+        <button class="gv-admin-action" type="button" data-admin-action="open-dashboard">Dashboard</button>
         <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="publish-page">Publish</button>
-        <button class="gv-admin-action" type="button" data-admin-action="exit-admin">Exit Admin</button>
-        <button class="gv-admin-action" type="button" data-admin-action="logout">Logout</button>
+        <button class="gv-admin-action" type="button" data-admin-action="exit-admin" data-admin-exit-button>Exit Admin</button>
+        <button class="gv-admin-action gv-admin-action--danger" type="button" data-admin-action="logout" data-admin-logout-button>Logout</button>
+        <div class="gv-admin-more-wrap">
+          <button class="gv-admin-action gv-admin-more-btn" type="button" aria-label="More options" aria-expanded="false" data-admin-action="toggle-more-menu">&#x22EE;</button>
+          <div class="gv-admin-more-menu" hidden>
+            <button class="gv-admin-more-item" type="button" data-admin-action="toggle-safe-mode" data-admin-safe-mode-btn>Safe Mode: ON</button>
+            <button class="gv-admin-more-item" type="button" data-admin-action="enter-visitor-preview">Preview as Visitor</button>
+            <button class="gv-admin-more-item" type="button" data-admin-action="open-dashboard">CMS Dashboard</button>
+            <div class="gv-admin-more-divider"></div>
+            <button class="gv-admin-more-item" type="button" data-admin-action="exit-admin">Exit Admin</button>
+            <button class="gv-admin-more-item gv-admin-more-item--danger" type="button" data-admin-action="logout">Logout</button>
+          </div>
+        </div>
       </div>
     `;
     adminRoot.appendChild(topbar);
@@ -662,7 +1839,14 @@
             <h2 id="gvDashboardTitle">Content Control Room</h2>
             <p>Manage this page's drafts, published overrides, audit history, role access, and system health.</p>
           </div>
-          <button class="gv-admin-close" type="button" aria-label="Close dashboard" data-admin-action="close-dashboard">x</button>
+          <div class="gv-admin-dashboard-head-actions">
+            <button class="gv-admin-action" type="button" data-admin-action="mode-preview">Preview</button>
+            <button class="gv-admin-action" type="button" data-admin-action="mode-edit">Edit</button>
+            <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="publish-page">Publish</button>
+            <button class="gv-admin-action" type="button" data-admin-action="exit-admin">Exit Admin</button>
+            <button class="gv-admin-action gv-admin-action--danger" type="button" data-admin-action="logout">Logout</button>
+            <button class="gv-admin-close" type="button" aria-label="Close dashboard" data-admin-action="close-dashboard">x</button>
+          </div>
         </div>
         <div class="gv-admin-dashboard-tabs" role="tablist" data-dashboard-tabs></div>
         <div class="gv-admin-dashboard-body" data-dashboard-body></div>
@@ -799,22 +1983,33 @@
     ensureRoot();
     logAdminEntryDebug('admin-entry-click', trigger, 'checking-session', sourceEvent);
     try {
-      const hasSession = currentUser && adminProfile
-        ? true
-        : await withTimeout(hasActiveAdminSession(), 5000, false);
-      if (hasSession) {
+      // If a login form submission is actively in progress, open modal without
+      // starting another session restore that could race with signInWithPassword.
+      const restoreResult = loginInProgress
+        ? makeAdminRestoreResult(false, 'login_in_progress', { message: 'Login in progress.' })
+        : currentUser && adminProfile
+          ? makeAdminRestoreResult(true, 'memory_session', { user: currentUser, profile: adminProfile })
+          : await restoreAdminSession({ source: 'open-admin' });
+      if (restoreResult && restoreResult.ok) {
         await enterAdminMode();
+        setAdminModeIntent();
         logAdminEntryDebug('admin-entry-action', trigger, 'enter-admin', sourceEvent);
       } else {
-        // No valid session — clear any stale Supabase auth tokens so they cannot
-        // block the Supabase client's internal lock during the next signInWithPassword call.
-        clearSupabaseAuthStorage();
         openModal();
+        const message = getRestoreLoginMessage(restoreResult);
+        if (message) setLoginError(message);
         logAdminEntryDebug('admin-entry-action', trigger, 'login-modal', sourceEvent);
       }
     } catch (error) {
-      clearSupabaseAuthStorage();
+      if (isRevokedOrInvalidAuthSessionError(error)) {
+        clearSupabaseAuthStorage('open-admin-error', 'invalid-or-revoked-auth-session');
+        clearAdminModeIntent('open-admin-error');
+        resetAdminAuthState('Logged out');
+      }
       openModal();
+      if (isRevokedOrInvalidAuthSessionError(error)) {
+        setLoginError('Stored Supabase session was invalid and has been cleared. Please sign in again.');
+      }
       logAdminEntryDebug('admin-entry-action', trigger, 'fallback-login-modal', sourceEvent, { error: error?.message || String(error || '') });
     } finally {
       setAdminEntryLoading(trigger, false);
@@ -839,10 +2034,10 @@
 
   function withTimeout(promise, timeoutMs, fallbackValue) {
     let timer = null;
-    const timeout = new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       timer = setTimeout(() => resolve(fallbackValue), timeoutMs);
-    });
-    return Promise.race([promise, timeout]).finally(() => {
+      Promise.resolve(promise).then(resolve, reject);
+    }).finally(() => {
       if (timer) clearTimeout(timer);
     });
   }
@@ -879,40 +2074,290 @@
     });
   }
 
-  async function hasActiveAdminSession() {
+  async function restoreAdminSession(options = {}) {
+    // Do not run a session restore while a login submission is actively in progress.
+    // signInWithPassword holds the Supabase auth state; running getUser/getSession
+    // concurrently can conflict with the token being written.
+    if (loginInProgress && !options.force) {
+      return makeAdminRestoreResult(false, 'login_in_progress', { message: 'Login in progress.' });
+    }
+    if (adminSessionRestorePromise && !options.force) return adminSessionRestorePromise;
+    const source = options.source || 'session-restore';
+    // Staged timeouts: give real Supabase projects adequate time to respond.
+    const SESSION_TIMEOUT_MS = options.sessionTimeoutMs || 15000;
+    const USER_TIMEOUT_MS = options.userTimeoutMs || 15000;
+    const PROFILE_TIMEOUT_MS = options.profileTimeoutMs || 10000;
+
+    performanceState.authRestoreCalls += 1;
+    const finishAuthRestoreMetric = beginAdminOperation('auth-restore');
+    adminSessionRestoreState = 'restoring';
+    adminDebugLog('restore-start', { source, timeout_ms: SESSION_TIMEOUT_MS });
+    adminSessionRestorePromise = (async () => {
+      let result = null;
+      const finish = next => {
+        result = next;
+        lastAdminSessionRestoreResult = sanitizeAdminRestoreResult(next);
+        adminDebugLog('restore-finish', Object.assign({ source }, lastAdminSessionRestoreResult || {}));
+        return next;
+      };
+
+      try {
+        if (mockAdminEnabled && localStorage.getItem(MOCK_SESSION_KEY) === 'true') {
+          currentUser = { id: 'mock-user', email: MOCK_EMAIL };
+          adminProfile = { id: 'mock-user', email: MOCK_EMAIL, role: 'owner' };
+          return finish(makeAdminRestoreResult(true, 'mock_session', { user: currentUser, profile: adminProfile }));
+        }
+
+        if (!supabaseClient) {
+          resetAdminAuthState('Logged out');
+          return finish(makeAdminRestoreResult(false, 'no_client', { message: getMissingConfigMessage() }));
+        }
+
+        const sessionTimeoutError = new Error('getSession timed out');
+        let sessionResult = null;
+        try {
+          adminDebugLog('getSession-start', { source });
+          sessionResult = await withTimeout(
+            supabaseClient.auth.getSession(),
+            SESSION_TIMEOUT_MS,
+            { data: null, error: sessionTimeoutError }
+          );
+        } catch (error) {
+          if (isMissingAuthSessionError(error)) {
+            resetAdminAuthState('Logged out');
+            return finish(makeAdminRestoreResult(false, 'no_session', { error, code: 'no_session', message: 'No stored Supabase session was found.' }));
+          }
+          if (isRevokedOrInvalidAuthSessionError(error)) {
+            clearSupabaseAuthStorage(`${source}:get-session`, 'invalid-or-revoked-auth-session');
+            clearAdminModeIntent(`${source}:get-session`);
+            resetAdminAuthState('Logged out');
+            return finish(makeAdminRestoreResult(false, 'revoked_session', {
+              error,
+              clearedStorage: true,
+              clearedIntent: true,
+              message: 'Stored Supabase session was invalid and has been cleared.'
+            }));
+          }
+          if (isAuthTimeoutError(error)) {
+            resetAdminAuthState('Logged out');
+            return finish(makeAdminRestoreResult(false, 'auth_timeout', { error, message: 'Admin session restore timed out. Please retry or refresh.' }));
+          }
+          markConnectionFailed();
+          return finish(makeAdminRestoreResult(false, 'connection_failed', { error, message: 'Supabase session check failed.' }));
+        }
+
+        if (sessionResult && sessionResult.error) {
+          const error = sessionResult.error;
+          if (error === sessionTimeoutError || isAuthTimeoutError(error)) {
+            resetAdminAuthState('Logged out');
+            return finish(makeAdminRestoreResult(false, 'auth_timeout', { error, message: 'Admin session restore timed out. Please retry or refresh.' }));
+          }
+          if (isMissingAuthSessionError(error)) {
+            resetAdminAuthState('Logged out');
+            return finish(makeAdminRestoreResult(false, 'no_session', { error, code: 'no_session', message: 'No stored Supabase session was found.' }));
+          }
+          if (isRevokedOrInvalidAuthSessionError(error)) {
+            clearSupabaseAuthStorage(`${source}:get-session-result`, 'invalid-or-revoked-auth-session');
+            clearAdminModeIntent(`${source}:get-session-result`);
+            resetAdminAuthState('Logged out');
+            return finish(makeAdminRestoreResult(false, 'revoked_session', {
+              error,
+              clearedStorage: true,
+              clearedIntent: true,
+              message: 'Stored Supabase session was invalid and has been cleared.'
+            }));
+          }
+          markConnectionFailed();
+          return finish(makeAdminRestoreResult(false, 'connection_failed', { error, message: 'Supabase session check failed.' }));
+        }
+
+        const session = sessionResult && sessionResult.data ? sessionResult.data.session : null;
+        adminDebugLog('getSession-result', { has_session: Boolean(session), user_email: redactEmail(session?.user?.email || '') });
+        if (!session || !session.user) {
+          // Do NOT clear admin-mode intent here — this may be a transient no-session state
+          // during the brief window when Supabase is refreshing the stored token.
+          // Boot (or openAdminEntry) will clear intent if truly unauthenticated.
+          resetAdminAuthState('Logged out');
+          return finish(makeAdminRestoreResult(false, 'no_session', { code: 'no_session' }));
+        }
+
+        const userTimeoutError = new Error('getUser timed out');
+        let userData = null;
+        let userError = null;
+        try {
+          adminDebugLog('getUser-start', { source, user_email: redactEmail(session.user.email || '') });
+          const userResult = await withTimeout(
+            supabaseClient.auth.getUser(),
+            USER_TIMEOUT_MS,
+            { data: null, error: userTimeoutError }
+          );
+          userData = userResult && userResult.data;
+          userError = userResult && userResult.error;
+        } catch (error) {
+          userError = error;
+        }
+
+        if (userError || !userData || !userData.user) {
+          const error = userError || new Error('Auth session missing');
+          if (error === userTimeoutError || isAuthTimeoutError(error)) {
+            resetAdminAuthState('Logged out');
+            return finish(makeAdminRestoreResult(false, 'user_timeout', { error, message: 'Admin session restore timed out. Please retry or refresh.' }));
+          }
+          if (isMissingAuthSessionError(error)) {
+            clearAdminModeIntent(`${source}:get-user-missing-session`);
+            resetAdminAuthState('Logged out');
+            return finish(makeAdminRestoreResult(false, 'no_session', {
+              error,
+              clearedIntent: true,
+              code: 'no_session',
+              message: 'Supabase session was missing during user verification.'
+            }));
+          }
+          if (isRevokedOrInvalidAuthSessionError(error)) {
+            clearSupabaseAuthStorage(`${source}:get-user`, 'invalid-or-revoked-auth-session');
+            clearAdminModeIntent(`${source}:get-user`);
+            resetAdminAuthState('Logged out');
+            return finish(makeAdminRestoreResult(false, 'invalid_session', {
+              error,
+              clearedStorage: true,
+              clearedIntent: true,
+              message: 'Stored Supabase session was invalid and has been cleared.'
+            }));
+          }
+          markConnectionFailed();
+          return finish(makeAdminRestoreResult(false, 'connection_failed', { error, message: 'Supabase user verification failed.' }));
+        }
+        adminDebugLog('getUser-success', { source, user_email: redactEmail(userData.user.email || '') });
+
+        const profileTimeoutError = new Error('admin profile lookup timed out');
+        let profileResult = null;
+        try {
+          profileResult = await withTimeout(fetchAdminProfile(userData.user), PROFILE_TIMEOUT_MS, { timeout: true, error: profileTimeoutError });
+        } catch (error) {
+          profileResult = { error };
+        }
+
+        if (profileResult && profileResult.timeout) {
+          resetAdminAuthState('Logged out');
+          return finish(makeAdminRestoreResult(false, 'profile_timeout', { error: profileTimeoutError, message: 'Admin session restore timed out. Please retry or refresh.' }));
+        }
+        if (profileResult === false) {
+          resetAdminAuthState('Logged out');
+          return finish(makeAdminRestoreResult(false, 'profile_error', { message: 'Admin profile check failed.' }));
+        }
+
+        const profileError = profileResult && profileResult.error;
+        const profile = profileResult && profileResult.data;
+        if (profileError) {
+          if (isRevokedOrInvalidAuthSessionError(profileError)) {
+            clearSupabaseAuthStorage(`${source}:profile`, 'invalid-or-revoked-auth-session');
+            clearAdminModeIntent(`${source}:profile`);
+            resetAdminAuthState('Logged out');
+            return finish(makeAdminRestoreResult(false, 'invalid_session', {
+              error: profileError,
+              clearedStorage: true,
+              clearedIntent: true,
+              message: 'Stored Supabase session was invalid and has been cleared.'
+            }));
+          }
+          markConnectionFailed();
+          return finish(makeAdminRestoreResult(false, 'profile_error', { error: profileError, message: 'Admin profile check failed.' }));
+        }
+        if (!profile) {
+          clearAdminModeIntent(`${source}:missing-profile`);
+          try { await supabaseClient.auth.signOut(); } catch (_) {}
+          resetAdminAuthState('Logged out');
+          return finish(makeAdminRestoreResult(false, 'missing_profile', { user: userData.user, clearedIntent: true, message: 'No admin profile was found.' }));
+        }
+        if (!['owner', 'editor', 'viewer'].includes(profile.role)) {
+          clearAdminModeIntent(`${source}:invalid-role`);
+          try { await supabaseClient.auth.signOut(); } catch (_) {}
+          resetAdminAuthState('Logged out');
+          return finish(makeAdminRestoreResult(false, 'invalid_role', { user: userData.user, profile, clearedIntent: true, message: 'Admin profile role is not allowed.' }));
+        }
+
+        currentUser = userData.user;
+        adminProfile = profile;
+        supabaseState.failed = false;
+        supabaseState.ready = true;
+        supabaseState.label = `Supabase connected - ${profile.role}`;
+        return finish(makeAdminRestoreResult(true, 'active_session', { user: currentUser, profile: adminProfile }));
+      } catch (error) {
+        if (isRevokedOrInvalidAuthSessionError(error)) {
+          clearSupabaseAuthStorage(`${source}:unexpected-auth-error`, 'invalid-or-revoked-auth-session');
+          clearAdminModeIntent(`${source}:unexpected-auth-error`);
+          resetAdminAuthState('Logged out');
+          return finish(makeAdminRestoreResult(false, 'invalid_session', {
+            error,
+            clearedStorage: true,
+            clearedIntent: true,
+            message: 'Stored Supabase session was invalid and has been cleared.'
+          }));
+        }
+        if (isAuthTimeoutError(error)) {
+          resetAdminAuthState('Logged out');
+          return finish(makeAdminRestoreResult(false, 'auth_timeout', { error, message: 'Admin session restore timed out. Please retry or refresh.' }));
+        }
+        markConnectionFailed();
+        return finish(makeAdminRestoreResult(false, 'connection_failed', { error, message: 'Supabase session restore failed.' }));
+      } finally {
+        adminSessionRestoreState = result && result.ok ? 'restored' : 'failed';
+        adminSessionRestorePromise = null;
+        finishAuthRestoreMetric();
+      }
+    })();
+
+    return adminSessionRestorePromise;
+  }
+
+  async function hasActiveAdminSession(options = {}) {
+    const result = await restoreAdminSession(Object.assign({ source: 'has-active-session' }, options));
+    return Boolean(result && result.ok);
+  }
+
+  /*
+  async function hasActiveAdminSessionLegacy() {
     if (mockAdminEnabled && localStorage.getItem(MOCK_SESSION_KEY) === 'true') {
       currentUser = { id: 'mock-user', email: MOCK_EMAIL };
       adminProfile = { id: 'mock-user', email: MOCK_EMAIL, role: 'owner' };
       return true;
     }
     if (!supabaseClient) return false;
+    adminDebugLog('getSession-start');
     let sessionResult = null;
     try {
-      sessionResult = await supabaseClient.auth.getSession();
+      sessionResult = await withTimeout(supabaseClient.auth.getSession(), 5000, { data: null, error: new Error('getSession timed out') });
     } catch (error) {
       if (isRevokedOrInvalidAuthSessionError(error)) return handleAdminAuthSessionFailure(error, 'get-session');
+      adminDebugLog('getSession-error', { message: error?.message || String(error || '') });
       markConnectionFailed();
       return false;
     }
     if (sessionResult && sessionResult.error) {
       if (isRevokedOrInvalidAuthSessionError(sessionResult.error)) return handleAdminAuthSessionFailure(sessionResult.error, 'get-session-result');
+      adminDebugLog('getSession-error', { message: sessionResult.error.message || String(sessionResult.error || '') });
       markConnectionFailed();
       return false;
     }
     const session = sessionResult && sessionResult.data ? sessionResult.data.session : null;
+    adminDebugLog('getSession-result', { has_session: Boolean(session), user_email: redactEmail(session?.user?.email || '') });
     if (!session || !session.user) {
       resetAdminAuthState('Logged out');
       return false;
     }
     // Verify the session token is still valid server-side (catches stale/expired JWTs)
     try {
-      const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+      adminDebugLog('getUser-start', { user_email: redactEmail(session.user.email || '') });
+      const { data: userData, error: userError } = await withTimeout(supabaseClient.auth.getUser(), 5000, { data: null, error: new Error('getUser timed out') });
       if (userError || !userData || !userData.user) {
         if (cmsDebug) console.info('[GROWVA Admin] auth restore timeout or invalid user — clearing stale auth');
+        adminDebugLog('getUser-error', { message: userError?.message || 'No user returned' });
         return handleAdminAuthSessionFailure(userError || new Error('No user returned'), 'get-user-verify');
       }
+      adminDebugLog('getUser-success', { user_email: redactEmail(userData.user.email || '') });
     } catch (error) {
       if (isRevokedOrInvalidAuthSessionError(error)) return handleAdminAuthSessionFailure(error, 'get-user-verify');
+      adminDebugLog('getUser-error', { message: error?.message || String(error || '') });
       markConnectionFailed();
       return false;
     }
@@ -924,8 +2369,9 @@
       return false;
     }
   }
+  */
 
-  async function loadAdminProfile(user) {
+  async function fetchAdminProfile(user) {
     if (!supabaseClient || !user) return false;
     let data = null;
     let error = null;
@@ -939,15 +2385,92 @@
       if (isRevokedOrInvalidAuthSessionError(profileError)) return handleAdminAuthSessionFailure(profileError, 'profile-query');
       throw profileError;
     }
+    return { data, error };
+  }
+
+  async function loadAdminProfile(user) {
+    if (!supabaseClient || !user) return false;
+    adminDebugLog('admin-profile-start', { user_email: redactEmail(user.email || '') });
+    const profileResult = await fetchAdminProfile(user);
+    if (profileResult === false) return false;
+    const { data, error } = profileResult;
     if (error && isRevokedOrInvalidAuthSessionError(error)) return handleAdminAuthSessionFailure(error, 'profile-query-result');
     if (error || !data || !['owner', 'editor', 'viewer'].includes(data.role)) {
+      adminDebugLog('admin-profile-not-found', {
+        user_email: redactEmail(user.email || ''),
+        error: error?.message || null,
+        role: data?.role || null
+      });
+      if (!error) {
+        clearAdminModeIntent(data ? 'admin-profile-invalid-role' : 'admin-profile-missing');
+        try { await supabaseClient.auth.signOut(); } catch (_) {}
+      }
       resetAdminAuthState('Logged out');
       return false;
     }
     currentUser = user;
     adminProfile = data;
     supabaseState.label = `Supabase connected - ${data.role}`;
+    adminDebugLog('admin-profile-loaded', { role: data.role, profile_email: redactEmail(data.email || '') });
     return true;
+  }
+
+  // Shared completion function called from both handleLoginSubmit and onAuthStateChange(SIGNED_IN).
+  // Deduplicates concurrent calls so admin mode is entered exactly once per sign-in.
+  async function completeAdminLoginFromUser(user, source) {
+    if (!user) {
+      adminDebugLog('complete_admin_login_start', { source, skip: 'no_user' });
+      return { ok: false, reason: 'no_user' };
+    }
+    // If a completion is already running, wait for it — prevents double-entry.
+    if (adminLoginCompletionPromise) {
+      adminDebugLog('complete_admin_login_start', { source, skip: 'dedup_wait' });
+      return adminLoginCompletionPromise;
+    }
+    adminDebugLog('complete_admin_login_start', { source, user_email: redactEmail(user.email || '') });
+    adminLoginCompletionPromise = (async () => {
+      try {
+        // If already in admin mode with a valid profile, nothing more to do.
+        if (document.body.classList.contains('admin-mode') && adminProfile) {
+          adminDebugLog('complete_admin_login_entered', { source, skip: 'already_active', role: adminProfile.role });
+          return { ok: true, reason: 'already_active', profile: adminProfile };
+        }
+        let allowed = false;
+        try {
+          allowed = await withTimeout(loadAdminProfile(user), 10000, false);
+        } catch (profileErr) {
+          adminDebugLog('complete_admin_login_failed', { source, message: profileErr?.message || String(profileErr || '') });
+          setLoginError(`Admin profile error: ${profileErr?.message || 'unexpected error'}`);
+          return { ok: false, reason: 'profile_error', message: profileErr?.message };
+        }
+        if (!allowed) {
+          const message = currentUser === null
+            ? 'Login succeeded, but no admin profile was found in public.admin_profiles.'
+            : 'Login succeeded, but admin profile role is not allowed (must be owner, editor, or viewer).';
+          adminDebugLog('complete_admin_login_failed', { source, reason: 'no_profile', message });
+          setLoginError(message);
+          return { ok: false, reason: 'no_profile', message };
+        }
+        adminDebugLog('complete_admin_login_profile_found', { source, role: adminProfile ? adminProfile.role : null });
+        // Clear error, close modal if open, enter admin mode.
+        setLoginError('');
+        clearAdminEntryLoadingState();
+        if (modal && modal.classList.contains('is-open')) closeModal();
+        if (!document.body.classList.contains('admin-mode')) {
+          await enterAdminMode().catch(() => {});
+        }
+        setAdminModeIntent();
+        bootWantedAdminMode = false; // Clear recovery flag — admin mode is active.
+        adminDebugLog('complete_admin_login_entered', { source, role: adminProfile ? adminProfile.role : null });
+        return { ok: true, reason: 'completed', profile: adminProfile };
+      } catch (err) {
+        adminDebugLog('complete_admin_login_failed', { source, message: err?.message || String(err || '') });
+        return { ok: false, reason: 'unexpected_error', message: err?.message || String(err || '') };
+      } finally {
+        adminLoginCompletionPromise = null;
+      }
+    })();
+    return adminLoginCompletionPromise;
   }
 
   async function handleLoginSubmit(event) {
@@ -971,7 +2494,7 @@
         enterAdminMode();
         return;
       }
-      error.textContent = supabaseState.configured ? 'Supabase could not be initialized.' : 'Supabase is not configured yet.';
+      error.textContent = getMissingConfigMessage();
       error.classList.add('is-visible');
       return;
     }
@@ -979,14 +2502,19 @@
     const submit = $('[data-admin-login-form] button[type="submit"]', modal);
     submit.textContent = 'Signing in...';
     submit.disabled = true;
+    loginInProgress = true;
     let loginOpened = false;
     try {
       let data = null;
       let authError = null;
-      const SIGN_IN_TIMEOUT_MS = 8000;
-      const timeoutError = new Error('Authentication timed out. Please try again.');
+      // 25 s timeout: free-tier Supabase projects can take 15-20 s on first request
+      // after an idle period. 8 s was too aggressive and caused false timeouts.
+      const SIGN_IN_TIMEOUT_MS = 25000;
+      const timeoutError = new Error('Auth request timed out after 25s.');
       let signInResult = null;
+      adminDebugLog('login_submit_start', { email: redactEmail(email) });
       try {
+        adminDebugLog('signin_start', { email: redactEmail(email), timeout_ms: SIGN_IN_TIMEOUT_MS });
         signInResult = await withTimeout(
           supabaseClient.auth.signInWithPassword({ email, password }),
           SIGN_IN_TIMEOUT_MS,
@@ -997,35 +2525,71 @@
         authError = err;
         markConnectionFailed();
       }
+
+      const isTimeout = authError === timeoutError || isAuthTimeoutError(authError);
+
       if (authError || !data || !data.user) {
-        const isTimeout = authError === timeoutError || (authError && authError.message && authError.message.includes('timed out'));
-        if (isTimeout) {
-          if (cmsDebug) console.info('[GROWVA Admin] auth restore timeout');
-          setLoginError('Authentication timed out. Please try again.');
-        } else if (isRevokedOrInvalidAuthSessionError(authError)) {
-          clearSupabaseAuthStorage();
-          setLoginError('Session is invalid. Please try again.');
-        } else {
-          setLoginError('Could not sign in with those Supabase credentials.');
+        adminDebugLog('signIn-error', {
+          email: redactEmail(email),
+          isTimeout,
+          message: authError?.message || String(authError || ''),
+          name: authError?.name || null,
+          status: authError?.status || null
+        });
+
+        if (isRevokedOrInvalidAuthSessionError(authError)) {
+          clearSupabaseAuthStorage('sign-in-stale-session', 'invalid-or-revoked-auth-session');
+          clearAdminModeIntent('sign-in-stale-session');
+          setLoginError(classifyLoginError(authError, email));
+          return;
         }
+
+        if (isTimeout) {
+          // The 25 s client timeout fired, but the real Supabase request may still be
+          // in flight. Release loginInProgress so onAuthStateChange(SIGNED_IN) can call
+          // completeAdminLoginFromUser when the real response arrives.
+          adminDebugLog('signin_timeout_waiting_for_auth_state', { email: redactEmail(email) });
+          loginInProgress = false;
+          submit.textContent = 'Connecting...';
+          // Keep button disabled and show a waiting message for up to 15 more seconds.
+          setLoginError('Sign-in is taking longer than expected (Supabase may be starting up). Waiting...');
+          const AUTH_STATE_WAIT_MS = 15000;
+          const waitStep = 400;
+          let waited = 0;
+          while (!document.body.classList.contains('admin-mode') && waited < AUTH_STATE_WAIT_MS) {
+            await new Promise(resolve => setTimeout(resolve, waitStep));
+            waited += waitStep;
+          }
+          if (document.body.classList.contains('admin-mode')) {
+            // SIGNED_IN fired and completeAdminLoginFromUser succeeded during the wait.
+            loginOpened = true;
+            setLoginError('');
+          } else {
+            setLoginError(classifyLoginError(authError, email));
+          }
+          return;
+        }
+
+        setLoginError(classifyLoginError(authError, email));
         return;
       }
-      let allowed = false;
-      try {
-        allowed = await withTimeout(loadAdminProfile(data.user), 5000, false);
-      } catch (_) {
-        allowed = false;
+
+      adminDebugLog('signIn-success', { email: redactEmail(data.user.email || email), user_id: data.user.id });
+
+      // Release loginInProgress before completing so onAuthStateChange(SIGNED_IN) — which
+      // fires concurrently — can also call completeAdminLoginFromUser without being blocked.
+      loginInProgress = false;
+
+      // completeAdminLoginFromUser deduplicates: whether this call or the SIGNED_IN handler
+      // wins the race, admin mode is entered exactly once.
+      const completion = await completeAdminLoginFromUser(data.user, 'login-submit');
+      if (completion && completion.ok) {
+        loginOpened = true;
+      } else if (completion && completion.reason === 'already_active') {
+        loginOpened = true;
       }
-      if (!allowed) {
-        if (cmsDebug) console.info('[GROWVA Admin] profile missing');
-        try { await supabaseClient.auth.signOut(); } catch (_) {}
-        setLoginError('This account is not configured as a CMS admin.');
-        return;
-      }
-      loginOpened = true;
-      closeModal();
-      enterAdminMode();
     } finally {
+      loginInProgress = false;
       if (!loginOpened) {
         submit.textContent = 'Enter Admin Mode';
         submit.disabled = false;
@@ -1051,7 +2615,7 @@
     dashboardMessage = '';
     renderDashboard();
     setTimeout(bindMediaUploadAreaEvents, 0);
-    if (dashboardTab === 'media') setTimeout(bindMediaLibraryEvents, 0);
+    if (dashboardTab === 'media' || dashboardTab === 'media-library') setTimeout(bindMediaLibraryEvents, 0);
     if (dashboardTab === 'visual') setTimeout(bindVisualControlEvents, 0);
     if (dashboardTab === 'sections') setTimeout(bindSectionManagerEvents, 0);
     if (dashboardTab === 'builder') setTimeout(bindSectionBuilderEvents, 0);
@@ -1067,7 +2631,7 @@
   function switchDashboardTab(tab) {
     dashboardTab = tab || 'overview';
     renderDashboard();
-    if (dashboardTab === 'media') {
+    if (dashboardTab === 'media' || dashboardTab === 'media-library') {
       setTimeout(bindMediaUploadAreaEvents, 0);
       setTimeout(bindMediaLibraryEvents, 0);
     }
@@ -1116,6 +2680,8 @@
   async function refreshDashboardData() {
     await loadDraftEdits();
     await loadPublishedEdits();
+    // Re-apply draft values over published — loadPublishedEdits rewrites DOM with published state.
+    applyDraftRows();
     dashboardDraftRows = Object.values(draftRows);
     dashboardPublishedRows = Object.values(publishedRows);
     dashboardAuditRows = await loadAuditRows();
@@ -1135,7 +2701,7 @@
       const { data, error } = await supabaseClient
         .from('cms_audit_log')
         .select('action,page_path,edit_key,old_value,new_value,user_id,created_at')
-        .eq('page_path', pagePath)
+        .in('page_path', getPagePathAliases())
         .lt('created_at', cmsFreshReadCutoff());
       if (error || !Array.isArray(data)) return [];
       return data.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))).slice(0, 30);
@@ -1151,7 +2717,7 @@
       const { data, error } = await supabaseClient
         .from('cms_publish_log')
         .select('page_path,published_by,published_count,created_at')
-        .eq('page_path', pagePath)
+        .in('page_path', getPagePathAliases())
         .lt('created_at', cmsFreshReadCutoff());
       if (error || !Array.isArray(data)) return [];
       return data.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))).slice(0, 10);
@@ -1164,22 +2730,11 @@
     if (!dashboard || dashboard.hidden) return;
     const tabs = [
       ['overview', 'Overview'],
-      ['compare', 'Draft Compare'],
-      ['drafts', 'Current Page Drafts'],
-      ['published', 'Published Content'],
-      ['audit', 'Revision / Audit Log'],
-      ['session', 'Role & Session'],
-      ['health', 'System Health'],
-      ['media', 'Media Library'],
-      ['visual', 'Visual Control'],
-      ['sections', 'Section Manager'],
-      ['builder', 'Section Builder'],
-      ['leads', 'Leads'],
-      ['pipeline', 'Pipeline'],
-      ['tasks', 'Tasks'],
-      ['lead-insights', 'Lead Insights'],
-      ['notifications', 'Notifications'],
-      ['control-center', 'Control Center'],
+      ['pages', 'Pages'],
+      ['current-page', 'Current Page'],
+      ['media', 'Media'],
+      ['publish-center', 'Publish Center'],
+      ['advanced', 'Advanced'],
     ];
     $('[data-dashboard-tabs]', dashboard).innerHTML = tabs.map(([id, label]) => `
       <button type="button" role="tab" aria-selected="${dashboardTab === id ? 'true' : 'false'}" class="${dashboardTab === id ? 'is-active' : ''}" data-admin-action="dashboard-tab" data-dashboard-tab="${id}">${escapeHtml(label)}</button>
@@ -1191,13 +2746,18 @@
   }
 
   function renderDashboardTab() {
+    if (dashboardTab === 'pages') return renderPagesTab();
+    if (dashboardTab === 'current-page') return renderCurrentPageEditorTab();
+    if (dashboardTab === 'publish-center') return renderPublishCenterTab();
+    if (dashboardTab === 'advanced') return renderAdvancedTab();
     if (dashboardTab === 'compare') return renderDraftCompareTab();
     if (dashboardTab === 'drafts') return renderDraftRows();
     if (dashboardTab === 'published') return renderPublishedRows();
     if (dashboardTab === 'audit') return renderAuditRows();
     if (dashboardTab === 'session') return renderSessionTab();
     if (dashboardTab === 'health') return renderHealthTab();
-    if (dashboardTab === 'media') return renderMediaLibraryTab();
+    if (dashboardTab === 'media') return renderProductMediaTab();
+    if (dashboardTab === 'media-library') return renderMediaLibraryTab();
     if (dashboardTab === 'visual') return renderVisualControlTab();
     if (dashboardTab === 'sections') return renderSectionManagerTab();
     if (dashboardTab === 'builder') return renderSectionBuilderTab();
@@ -1245,6 +2805,388 @@
         <span>${escapeHtml(label)}</span>
         <strong>${escapeHtml(value)}</strong>
       </div>
+    `;
+  }
+
+  function getSitePageGroups() {
+    return [
+      {
+        label: 'Main pages',
+        pages: [
+          ['Home', 'index.html'],
+          ['Shopify', 'shopify.html'],
+          ['Services', 'services.html'],
+          ['Work', 'work.html'],
+          ['Process', 'process.html'],
+          ['About', 'about.html'],
+          ['Pricing', 'pricing.html'],
+          ['FAQ', 'faq.html'],
+          ['Contact', 'contact.html']
+        ]
+      },
+      {
+        label: 'Service pages',
+        pages: [
+          ['Premium Shopify Website Development', 'services/premium-shopify-website-development.html'],
+          ['Shopify CRO', 'services/shopify-cro.html'],
+          ['Shopify Store Optimization', 'services/shopify-store-optimization.html'],
+          ['Performance Optimization', 'services/performance-optimization.html'],
+          ['Custom Store Development', 'services/custom-store-development.html'],
+          ['Corporate Websites', 'services/corporate-websites.html'],
+          ['Portfolio Websites', 'services/portfolio-websites.html'],
+          ['Website Maintenance', 'services/website-maintenance.html'],
+          ['Brand Identity Design', 'services/brand-identity-design.html'],
+          ['Marketing Social Design', 'services/marketing-social-design.html'],
+          ['Packaging Design', 'services/packaging-design.html'],
+          ['Ecommerce Strategy', 'services/ecommerce-strategy.html'],
+          ['Growth Systems', 'services/growth-systems.html'],
+          ['Conversion Optimization', 'services/conversion-optimization.html'],
+          ['Amazon Account Setup', 'services/amazon-account-setup.html'],
+          ['Amazon Account Management', 'services/amazon-account-management.html'],
+          ['Amazon Listing Advertising Optimization', 'services/amazon-listing-advertising-optimization.html'],
+          ['Business Marketing Print', 'services/business-marketing-print.html'],
+          ['Large Format Retail Print', 'services/large-format-retail-print.html'],
+          ['Packaging Print Production', 'services/packaging-print-production.html']
+        ]
+      },
+      {
+        label: 'Work category pages',
+        pages: [
+          ['Shopify Stores', 'work/shopify-stores.html'],
+          ['Brand Identity', 'work/brand-identity.html'],
+          ['Packaging Design', 'work/packaging-design.html'],
+          ['Amazon Storefronts', 'work/amazon-storefronts.html'],
+          ['Websites', 'work/websites.html'],
+          ['Marketing & Print', 'work/marketing-print.html']
+        ]
+      },
+      {
+        label: 'Work project pages',
+        pages: [
+          ['Noor Perfumery Shopify', 'work/shopify-stores/noor-perfumery.html'],
+          ['Terra Grove Shopify', 'work/shopify-stores/terra-grove.html'],
+          ['Atelier Marbre Shopify', 'work/shopify-stores/atelier-marbre.html'],
+          ['Vella Cosmetics Shopify', 'work/shopify-stores/vella-cosmetics.html'],
+          ['Noor Perfumery Brand', 'work/brand-identity/noor-perfumery.html'],
+          ['Hasat Organics Brand', 'work/brand-identity/hasat-organics.html'],
+          ['Vella Cosmetics Brand', 'work/brand-identity/vella-cosmetics.html'],
+          ['Noor No.03 Packaging', 'work/packaging-design/noor-no03.html'],
+          ['Terra Grove Packaging', 'work/packaging-design/terra-grove.html'],
+          ['Atelier Marbre Packaging', 'work/packaging-design/atelier-marbre.html'],
+          ['Noor Perfumery Amazon', 'work/amazon-storefronts/noor-perfumery.html'],
+          ['Maison Luxe Amazon', 'work/amazon-storefronts/maison-luxe.html'],
+          ['Hasat Organics Amazon', 'work/amazon-storefronts/hasat-organics.html'],
+          ['Atelier Marbre Website', 'work/websites/atelier-marbre.html'],
+          ['Dune Studio Website', 'work/websites/dune-studio.html'],
+          ['Hasat Organics Website', 'work/websites/hasat-organics.html'],
+          ['Noor Holiday Marketing', 'work/marketing-print/noor-holiday.html'],
+          ['Terra Grove Marketing', 'work/marketing-print/terra-grove.html'],
+          ['Vella Campaign Marketing', 'work/marketing-print/vella-campaign.html']
+        ]
+      }
+    ];
+  }
+
+  function getSiteRootUrl() {
+    try {
+      const script = document.currentScript || $('script[src$="admin/admin.js"]');
+      if (script && script.src) return new URL(script.src.replace(/admin\/admin\.js(?:\?.*)?$/, ''), window.location.href);
+    } catch (_) {}
+    return new URL('./', window.location.href);
+  }
+
+  function navigateAdminPage(path) {
+    const cleanPath = String(path || 'index.html').replace(/^\/+/, '') || 'index.html';
+    if (currentUser && adminProfile) setAdminModeIntent();
+    const targetUrl = new URL(cleanPath, getSiteRootUrl());
+    setAdminNavigationHandoff('admin-dashboard-page-open', targetUrl.pathname || cleanPath);
+    window.location.href = targetUrl.href;
+  }
+
+  function getEditableKind(element) {
+    const type = element?.dataset?.editType || 'text';
+    if (type === 'image' || type === 'background-image' || element?.tagName === 'IMG') return 'Image';
+    if (element?.matches && element.matches('a[href]')) return 'Link';
+    if (type === 'button') return 'Button';
+    if (type === 'richtext') return 'Text';
+    return 'Text';
+  }
+
+  function getEditableLabel(element) {
+    if (!element) return 'Editable field';
+    const key = element.dataset.editKey || '';
+    const text = getEditableKind(element) === 'Image'
+      ? getImageInfoFromElement(element).url || key
+      : getEditableValue(element);
+    return getValuePreview(text || key.replace(/[_-]+/g, ' '), 72) || 'Editable field';
+  }
+
+  function getEditableStatus(key) {
+    if (draftRows[key]) return 'Draft';
+    if (publishedRows[key]) return 'Published';
+    return 'Hardcoded';
+  }
+
+  function getCurrentPageInventory() {
+    const elements = $all('[data-edit-key]').filter(el => !el.closest('[data-admin-ui]'));
+    const sections = getRegistry().sections || [];
+    const fields = elements.map(el => {
+      const key = el.dataset.editKey || '';
+      const kind = getEditableKind(el);
+      return {
+        key,
+        kind,
+        label: getEditableLabel(el),
+        sectionId: el.dataset.sectionId || el.closest('[data-section-id]')?.dataset.sectionId || '',
+        status: getEditableStatus(key),
+        element: el
+      };
+    });
+    return {
+      sections,
+      fields,
+      textFields: fields.filter(item => item.kind === 'Text'),
+      imageFields: fields.filter(item => item.kind === 'Image'),
+      linkFields: fields.filter(item => item.kind === 'Link' || item.kind === 'Button')
+    };
+  }
+
+  function getImageInfoFromElement(element) {
+    if (!element) return { url: '', alt: '', type: 'unknown', editable: false, reason: 'No element' };
+    const type = element.dataset.editType === 'background-image' ? 'background-image' : element.tagName === 'IMG' ? 'image' : element.dataset.editType || 'element';
+    const url = type === 'background-image'
+      ? (element.dataset.mediaCurrentUrl || element.style.backgroundImage.replace(/^url\(["']?|["']?\)$/g, ''))
+      : element.getAttribute('src') || '';
+    return {
+      key: element.dataset.editKey || '',
+      url,
+      alt: element.getAttribute ? (element.getAttribute('alt') || '') : '',
+      type,
+      editable: Boolean(element.dataset.editKey && (type === 'image' || type === 'background-image')),
+      reason: element.dataset.editKey ? (type === 'image' || type === 'background-image' ? 'Editable image field' : 'Editable element, but not an image field') : 'No CMS image edit key'
+    };
+  }
+
+  function getCurrentPageImages() {
+    const seen = new Set();
+    const rows = [];
+    $all('[data-edit-key]').forEach(el => {
+      const info = getImageInfoFromElement(el);
+      if (info.type === 'image' || info.type === 'background-image') {
+        seen.add(el);
+        rows.push(info);
+      }
+    });
+    $all('img').forEach(img => {
+      if (seen.has(img) || img.closest('[data-admin-ui]')) return;
+      rows.push(Object.assign(getImageInfoFromElement(img), { editable: false, reason: 'Image is visible but has no CMS image edit key' }));
+    });
+    $all('[style*="background-image"]').forEach(el => {
+      if (seen.has(el) || el.closest('[data-admin-ui]')) return;
+      rows.push(Object.assign(getImageInfoFromElement(el), { editable: false, reason: 'Inline background image has no CMS image edit key' }));
+    });
+    return rows;
+  }
+
+  function renderPagesTab() {
+    return `
+      <div class="gv-admin-product-head">
+        <div>
+          <span class="gv-admin-pill">Pages</span>
+          <h3>Choose a page to edit</h3>
+          <p>Opening a page from here preserves Admin Mode when your session is valid.</p>
+        </div>
+        <button class="gv-admin-action" type="button" data-admin-action="dashboard-tab" data-dashboard-tab="current-page">Edit current page</button>
+      </div>
+      <div class="gv-admin-page-groups">
+        ${getSitePageGroups().map(group => `
+          <section class="gv-admin-page-group">
+            <h4>${escapeHtml(group.label)}</h4>
+            <div class="gv-admin-page-list">
+              ${group.pages.map(([label, path]) => `
+                <button class="gv-admin-page-card${path === pagePath ? ' is-current' : ''}" type="button" data-admin-action="dashboard-page-open" data-page-path="${escapeHtml(path)}">
+                  <strong>${escapeHtml(label)}</strong>
+                  <span>${escapeHtml(path)}</span>
+                </button>
+              `).join('')}
+            </div>
+          </section>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function renderCurrentPageEditorTab() {
+    const inv = getCurrentPageInventory();
+    return `
+      <div class="gv-admin-product-head">
+        <div>
+          <span class="gv-admin-pill">Current Page Editor</span>
+          <h3>${escapeHtml(currentPageLabel())}</h3>
+          <p>Pick a field below, edit it in the inspector, then save a draft or publish.</p>
+        </div>
+        <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="publish-page">Publish page</button>
+      </div>
+      <div class="gv-admin-dashboard-grid gv-admin-dashboard-grid--compact">
+        ${renderMetricCard('Sections', inv.sections.length)}
+        ${renderMetricCard('Text fields', inv.textFields.length)}
+        ${renderMetricCard('Images', inv.imageFields.length)}
+        ${renderMetricCard('Buttons / links', inv.linkFields.length)}
+      </div>
+      ${renderCurrentPageSections(inv.sections)}
+      ${renderEditableGroup('Text fields', inv.textFields)}
+      ${renderEditableGroup('Images', inv.imageFields)}
+      ${renderEditableGroup('Buttons and links', inv.linkFields)}
+    `;
+  }
+
+  function renderCurrentPageSections(sections) {
+    return `
+      <section class="gv-admin-editor-group">
+        <h4>Sections</h4>
+        <div class="gv-admin-editor-list">
+          ${sections.map((section, index) => {
+            const sid = section.dataset.sectionId || `section-${index + 1}`;
+            const type = section.dataset.sectionType || 'section';
+            const label = section.querySelector('h1,h2,h3,.eyebrow,.section-eyebrow')?.textContent?.trim() || type;
+            return `
+              <article class="gv-admin-editor-row">
+                <div>
+                  <strong>${escapeHtml(getValuePreview(label, 80))}</strong>
+                  <span>${escapeHtml(type)} · ${escapeHtml(sid)}</span>
+                </div>
+                <button class="gv-admin-action" type="button" data-admin-action="scroll-section" data-section-target="${escapeHtml(sid)}">View</button>
+              </article>
+            `;
+          }).join('') || '<p class="gv-admin-empty">No section markers found.</p>'}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderEditableGroup(title, items) {
+    return `
+      <section class="gv-admin-editor-group">
+        <h4>${escapeHtml(title)}</h4>
+        <div class="gv-admin-editor-list">
+          ${items.map(item => `
+            <article class="gv-admin-editor-row">
+              <div>
+                <strong>${escapeHtml(item.label)}</strong>
+                <span>${escapeHtml(item.kind)} · ${escapeHtml(item.status)}${item.sectionId ? ' · ' + escapeHtml(item.sectionId) : ''}</span>
+                <details>
+                  <summary>Advanced details</summary>
+                  <code>${escapeHtml(item.key)}</code>
+                </details>
+              </div>
+              <button class="gv-admin-action" type="button" data-admin-action="dashboard-select-editable" data-edit-key="${escapeHtml(item.key)}">Edit</button>
+            </article>
+          `).join('') || '<p class="gv-admin-empty">No fields in this group.</p>'}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderProductMediaTab() {
+    const images = getCurrentPageImages();
+    const editable = images.filter(item => item.editable).length;
+    return `
+      <div class="gv-admin-product-head">
+        <div>
+          <span class="gv-admin-pill">Media</span>
+          <h3>Images on this page</h3>
+          <p>Editable images can be replaced from the inspector. Other images are listed with the reason they are not editable.</p>
+        </div>
+        <button class="gv-admin-action" type="button" data-admin-action="dashboard-tab" data-dashboard-tab="media-library">Open full media library</button>
+      </div>
+      <div class="gv-admin-dashboard-grid gv-admin-dashboard-grid--compact">
+        ${renderMetricCard('Image fields', images.length)}
+        ${renderMetricCard('Editable images', editable)}
+        ${renderMetricCard('Media library', mediaLibraryLoaded ? `${mediaAssets.length} assets` : 'Not loaded')}
+        ${renderMetricCard('Upload status', supabaseClient && currentUser ? 'Available for editors/owners' : 'Sign in required')}
+      </div>
+      <div class="gv-admin-editor-list">
+        ${images.map(item => `
+          <article class="gv-admin-editor-row gv-admin-editor-row--media">
+            <div class="gv-admin-media-mini">
+              ${item.url && isSafeImageUrl(item.url) ? `<img src="${escapeHtml(item.url)}" alt="" loading="lazy">` : '<span>No preview</span>'}
+            </div>
+            <div>
+              <strong>${escapeHtml(item.key || getValuePreview(item.url || item.reason, 70))}</strong>
+              <span>${escapeHtml(item.type)} · ${item.editable ? 'Editable' : 'Not editable'}</span>
+              <p>${escapeHtml(item.reason)}</p>
+            </div>
+            ${item.editable ? `<button class="gv-admin-action" type="button" data-admin-action="dashboard-select-editable" data-edit-key="${escapeHtml(item.key)}">Edit image</button>` : ''}
+          </article>
+        `).join('') || '<p class="gv-admin-empty">No images found on this page.</p>'}
+      </div>
+      <div class="gv-admin-divider"></div>
+      ${renderMediaLibraryTab()}
+    `;
+  }
+
+  function renderPublishCenterTab() {
+    return `
+      <div class="gv-admin-product-head">
+        <div>
+          <span class="gv-admin-pill">Publish Center</span>
+          <h3>Review and publish current-page changes</h3>
+          <p>Drafts are page-scoped. Publishing clears matching draft rows after successful publish.</p>
+        </div>
+        <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="publish-page">Publish all drafts</button>
+      </div>
+      <div class="gv-admin-dashboard-grid gv-admin-dashboard-grid--compact">
+        ${renderMetricCard('Drafts', dashboardDraftRows.length)}
+        ${renderMetricCard('Published overrides', dashboardPublishedRows.length)}
+        ${renderMetricCard('Recent publishes', dashboardPublishRows.length)}
+        ${renderMetricCard('Owner publish', canAdminPublish() ? 'Allowed' : 'Owner required')}
+      </div>
+      <h4>Drafts</h4>
+      ${renderDraftRows()}
+      <h4>Recent published rows</h4>
+      ${renderPublishedRows()}
+    `;
+  }
+
+  function renderAdvancedTab() {
+    const advanced = [
+      ['compare', 'Draft Compare'],
+      ['drafts', 'Draft Rows'],
+      ['published', 'Published Rows'],
+      ['audit', 'Audit Log'],
+      ['session', 'Role & Session'],
+      ['health', 'System Health'],
+      ['media-library', 'Media Library'],
+      ['visual', 'Visual Control'],
+      ['sections', 'Section Manager'],
+      ['builder', 'Section Builder'],
+      ['leads', 'Leads'],
+      ['pipeline', 'Pipeline'],
+      ['tasks', 'Tasks'],
+      ['lead-insights', 'Lead Insights'],
+      ['notifications', 'Notifications'],
+      ['control-center', 'Control Center']
+    ];
+    return `
+      <div class="gv-admin-product-head">
+        <div>
+          <span class="gv-admin-pill">Advanced</span>
+          <h3>Specialized tools</h3>
+          <p>The full CRM, media, visual designer, section builder, notifications, and diagnostics remain available here.</p>
+        </div>
+      </div>
+      <div class="gv-admin-advanced-grid">
+        ${advanced.map(([id, label]) => `
+          <button class="gv-admin-advanced-card" type="button" data-admin-action="dashboard-tab" data-dashboard-tab="${escapeHtml(id)}">
+            <strong>${escapeHtml(label)}</strong>
+            <span>Open module</span>
+          </button>
+        `).join('')}
+      </div>
+      <details class="gv-admin-debug-details">
+        <summary>Debug state</summary>
+        <pre>${escapeHtml(JSON.stringify(window.growvaAdminDebug ? window.growvaAdminDebug.getCmsState() : {}, null, 2))}</pre>
+      </details>
     `;
   }
 
@@ -2216,6 +4158,19 @@
     }, 1200);
   }
 
+  function selectDashboardEditable(key) {
+    const element = getElementByEditKey(key);
+    if (!element) {
+      dashboardMessage = 'This editable field is not present on the current page.';
+      renderDashboard();
+      return;
+    }
+    closeDashboard();
+    setMode('edit');
+    selectElement(element);
+    focusEditableByKey(key);
+  }
+
   function applyDashboardDraft(key) {
     const row = dashboardDraftRows.find(item => item.edit_key === key) || draftRows[key];
     if (!row) return;
@@ -2235,7 +4190,7 @@
       const { error } = await supabaseClient
         .from('cms_content')
         .delete()
-        .eq('page_path', pagePath)
+        .in('page_path', getPagePathAliases())
         .eq('edit_key', key)
         .eq('status', 'draft');
       if (error) {
@@ -2266,6 +4221,42 @@
     setMode('edit');
     selectElement(element);
     focusEditableByKey(key);
+  }
+
+  function publishSelectedField() {
+    if (!selectedElement) return;
+    const key = selectedElement.dataset.editKey || '';
+    const draft = draftRows[key];
+    if (!draft) {
+      statusMessage = 'No draft exists for this field yet. Save Draft first.';
+      renderInspector(selectedElement);
+      updateTopbar();
+      return;
+    }
+    pendingPublishRows = [draft];
+    pendingCustomPublishRows = [];
+    pendingVisualPublishCount = 0;
+    openPublishDialog();
+  }
+
+  function revertSelectedToPublished() {
+    if (!selectedElement) return;
+    const key = selectedElement.dataset.editKey || '';
+    const row = publishedRows[key];
+    if (!row || typeof row.value_text !== 'string') {
+      statusMessage = 'No published override exists for this field.';
+      renderInspector(selectedElement);
+      updateTopbar();
+      return;
+    }
+    setEditableValue(selectedElement, row.value_text);
+    const input = $('#gvAdminFieldValue', panel);
+    if (input) input.value = row.value_text;
+    inspectorDirty = true;
+    unsavedCount = 1;
+    statusMessage = 'Reverted in the editor. Save Draft to keep this change.';
+    renderInspector(selectedElement);
+    updateTopbar();
   }
 
   function comparePublishedRow(key) {
@@ -2316,6 +4307,7 @@
     event.stopPropagation();
 
     if (action === 'open-admin') openAdminEntry(actionElement, event);
+    if (action === 'toggle-more-menu') toggleTopbarMoreMenu(actionElement);
     if (action === 'close-modal') closeModal();
     if (action === 'mode-preview') setMode('preview');
     if (action === 'mode-edit') setMode('edit');
@@ -2323,12 +4315,28 @@
     if (action === 'logout') logout();
     if (action === 'close-panel') clearSelection();
     if (action === 'apply-temp') saveSelectedDraft();
+    if (action === 'publish-selected-field') publishSelectedField();
+    if (action === 'revert-to-published') revertSelectedToPublished();
     if (action === 'reset-field') resetSelectedField();
     if (action === 'scroll-section') scrollToSection(actionElement.dataset.sectionTarget);
     if (action === 'publish-page') publishCurrentPage();
     if (action === 'open-dashboard') openDashboard();
     if (action === 'close-dashboard') closeDashboard();
     if (action === 'dashboard-tab') switchDashboardTab(actionElement.dataset.dashboardTab);
+    if (action === 'dashboard-open-tab') {
+      dashboardTab = actionElement.dataset.dashboardTab || 'overview';
+      openDashboard();
+    }
+    if (action === 'dashboard-page-open') navigateAdminPage(actionElement.dataset.pagePath);
+    if (action === 'dashboard-select-editable') selectDashboardEditable(actionElement.dataset.editKey);
+    if (action === 'subfield-edit-save') {
+      statusMessage = 'Edit this field, then click Save Draft.';
+      selectDashboardEditable(actionElement.dataset.editKey);
+    }
+    if (action === 'subfield-publish-field') {
+      selectDashboardEditable(actionElement.dataset.editKey);
+      setTimeout(() => publishSelectedField(), 0);
+    }
     if (action === 'dashboard-focus') focusEditableByKey(actionElement.dataset.editKey);
     if (action === 'dashboard-apply-draft') applyDashboardDraft(actionElement.dataset.editKey);
     if (action === 'dashboard-delete-draft') deleteDashboardDraft(actionElement.dataset.editKey);
@@ -2351,7 +4359,15 @@
     if (action === 'image-save-draft') saveImageDraft();
     if (action === 'image-reset-draft') resetImageDraft();
     if (action === 'image-choose-media') { switchDashboardTab('media'); openDashboard(); }
-    if (action === 'image-upload-new') { const fi = $('#gvImageFileInput', panel); if (fi) fi.click(); }
+    if (action === 'image-upload-new') {
+      if (!canUseMediaUpload()) {
+        const note = $('[data-image-save-state]', panel);
+        if (note) note.textContent = getMediaUploadUnavailableMessage();
+        return;
+      }
+      const fi = $('#gvImageFileInput', panel);
+      if (fi) fi.click();
+    }
 
     // Phase 7 actions
     if (action === 'toggle-safe-mode') {
@@ -2620,6 +4636,7 @@
 
   function exitAdminMode() {
     if (inspectorDirty && !window.confirm('You have unsaved inspector changes. Exit Admin Mode anyway?')) return;
+    clearAdminModeIntent('exit-admin');
     inspectorDirty = false;
     unsavedCount = 0;
     clearSelection();
@@ -2659,6 +4676,7 @@
   async function logout() {
     if (mockAdminEnabled) localStorage.removeItem(MOCK_SESSION_KEY);
     if (supabaseClient) await supabaseClient.auth.signOut();
+    clearAdminModeIntent('logout');
     currentUser = null;
     adminProfile = null;
     supabaseState.label = supabaseState.ready ? 'Logged out' : supabaseState.label;
@@ -2711,6 +4729,23 @@
     if (liveStatus) liveStatus.textContent = statusMessage || '';
   }
 
+  function toggleTopbarMoreMenu(btn) {
+    const wrap = btn && btn.closest('.gv-admin-more-wrap');
+    if (!wrap) return;
+    const menu = wrap.querySelector('.gv-admin-more-menu');
+    if (!menu) return;
+    const open = !menu.hidden;
+    menu.hidden = open;
+    btn.setAttribute('aria-expanded', String(!open));
+    if (!open) {
+      // Close on next outside click
+      const close = e => {
+        if (!wrap.contains(e.target)) { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('click', close, true); }
+      };
+      setTimeout(() => document.addEventListener('click', close, true), 0);
+    }
+  }
+
   function renderPanelEmpty() {
     if (!panel) return;
     const registry = getRegistry();
@@ -2720,7 +4755,13 @@
     $('[data-admin-panel-title]', panel).textContent = 'Select an editable element';
     $('[data-admin-panel-body]', panel).innerHTML = `
       ${getRoleAccessBanner('inspector')}
-      <p class="gv-admin-empty">Switch to Edit Mode, then select any highlighted text, button, link label, card, or section field.</p>
+      <p class="gv-admin-empty">Select a section or field. Use Edit Mode for direct page picking, or open a focused dashboard view below.</p>
+      <div class="gv-admin-panel-actions gv-admin-panel-actions--stack">
+        <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="open-dashboard">Open Dashboard</button>
+        <button class="gv-admin-action" type="button" data-admin-action="dashboard-open-tab" data-dashboard-tab="current-page">Current Page</button>
+        <button class="gv-admin-action" type="button" data-admin-action="dashboard-open-tab" data-dashboard-tab="media">Media</button>
+        <button class="gv-admin-action" type="button" data-admin-action="dashboard-open-tab" data-dashboard-tab="publish-center">Publish Center</button>
+      </div>
       ${fileWarning}
       ${statusMessage ? `<div class="gv-admin-warning">${escapeHtml(statusMessage)}</div>` : ''}
       <div class="gv-admin-meta">
@@ -2739,13 +4780,15 @@
   function bindInspectorDirtyTracker(initialValue) {
     inspectorBaselineValue = initialValue || '';
     inspectorDirty = false;
-    const input = $('#gvAdminFieldValue', panel);
-    if (!input) return;
-    input.addEventListener('input', () => {
-      inspectorDirty = input.value !== inspectorBaselineValue;
+    const inputs = $all('#gvAdminFieldValue, #gvAdminHrefValue, #gvAdminTargetBlank, #gvAdminRelValue', panel);
+    if (!inputs.length) return;
+    const readCurrent = () => isLinkEditable(selectedElement) ? getLinkInspectorSignature() : (($('#gvAdminFieldValue', panel) || {}).value || '');
+    const markDirty = () => {
+      inspectorDirty = readCurrent() !== inspectorBaselineValue;
       unsavedCount = inspectorDirty ? 1 : 0;
       updateTopbar();
-    });
+    };
+    inputs.forEach(input => input.addEventListener(input.type === 'checkbox' ? 'change' : 'input', markDirty));
   }
 
   function selectElement(element) {
@@ -2771,6 +4814,153 @@
     return true;
   }
 
+  function getEditableSubfields(element) {
+    if (!element || !element.querySelectorAll) return [];
+    const seen = new Set();
+    return Array.from(element.querySelectorAll('[data-edit-key]'))
+      .filter(child => child !== element && !child.closest('[data-admin-ui]'))
+      .filter(child => {
+        const key = child.dataset.editKey || '';
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }
+
+  function shouldShowSubfieldInspector(element, type, subfields) {
+    if (type === 'card' || type === 'group' || type === 'section') return true;
+    const classText = `${element.className || ''} ${element.dataset.sectionType || ''}`.toLowerCase();
+    return /\b(card|tile|item|project|service|feature|pricing|case)\b/.test(classText);
+  }
+
+  function renderSubfieldInspectorHTML(element, subfields) {
+    const key = element.dataset.editKey || '';
+    const label = getEditableLabel(element);
+    if (!subfields.length) {
+      return `
+        <div class="gv-admin-field-status">
+          <span class="gv-admin-status-badge gv-admin-status-badge--default">Card / group</span>
+        </div>
+        <div class="gv-admin-meta">
+          <div>Selected: <code>${escapeHtml(label)}</code></div>
+          <div>Sub-fields: <code>0</code></div>
+          <details>
+            <summary>Advanced details</summary>
+            <code>${escapeHtml(key || 'no parent edit key')}</code>
+          </details>
+        </div>
+        <p class="gv-admin-empty">No separate editable fields found inside this card.</p>
+        <div class="gv-admin-panel-actions">
+          <button class="gv-admin-action" type="button" data-admin-action="open-dashboard">Open Dashboard</button>
+          <button class="gv-admin-action" type="button" data-admin-action="close-panel">Close</button>
+        </div>
+      `;
+    }
+    const rows = subfields.map(child => {
+      const childKey = child.dataset.editKey || '';
+      const status = getEditableStatus(childKey);
+      const type = getEditableKind(child);
+      const value = type === 'image'
+        ? getValuePreview(getImageInfoFromElement(child).url || '', 120)
+        : getValuePreview(getEditableValue(child), 120);
+      return `
+        <div class="gv-admin-editor-row">
+          <div>
+            <strong>${escapeHtml(getEditableLabel(child))}</strong>
+            <span>${escapeHtml(type)} · ${escapeHtml(status)}</span>
+            <p>${escapeHtml(value || 'Empty')}</p>
+            <details>
+              <summary>Advanced details</summary>
+              <code>${escapeHtml(childKey)}</code>
+            </details>
+          </div>
+          <div class="gv-admin-row-actions">
+            <button class="gv-admin-action" type="button" data-admin-action="dashboard-select-editable" data-edit-key="${escapeHtml(childKey)}">Edit</button>
+            <button class="gv-admin-action" type="button" data-admin-action="subfield-edit-save" data-edit-key="${escapeHtml(childKey)}">Save Draft</button>
+            <button class="gv-admin-action" type="button" data-admin-action="subfield-publish-field" data-edit-key="${escapeHtml(childKey)}" ${draftRows[childKey] ? '' : 'disabled'}>Publish Field</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    return `
+      <div class="gv-admin-field-status">
+        <span class="gv-admin-status-badge gv-admin-status-badge--default">Card / group</span>
+      </div>
+      <div class="gv-admin-meta">
+        <div>Selected: <code>${escapeHtml(label)}</code></div>
+        <div>Sub-fields: <code>${subfields.length}</code></div>
+        <details>
+          <summary>Advanced details</summary>
+          <code>${escapeHtml(key || 'no parent edit key')}</code>
+        </details>
+      </div>
+      <p class="gv-admin-note">Choose a field inside this card. Save Draft and Publish This Field will target only the selected sub-field.</p>
+      <div class="gv-admin-editor-group">
+        ${rows}
+      </div>
+    `;
+  }
+
+  function renderLinkInspector(element, tabsHtml) {
+    const key = element.dataset.editKey || '';
+    const type = element.dataset.editType || (element.matches('a[href]') ? 'link' : 'button');
+    const current = getLinkValue(element);
+    const draftRow = draftRows[key] || null;
+    const publishedRow = publishedRows[key] || null;
+    const draftJson = draftRow?.value_json || null;
+    const publishedJson = publishedRow?.value_json || null;
+    const statusBadge = draftRow
+      ? '<span class="gv-admin-status-badge gv-admin-status-badge--draft">&#9679; Draft (unpublished)</span>'
+      : publishedRow
+        ? '<span class="gv-admin-status-badge gv-admin-status-badge--live">&#10003; Live override</span>'
+        : '<span class="gv-admin-status-badge gv-admin-status-badge--default">&#8212; Using site default</span>';
+    $('[data-admin-panel-title]', panel).textContent = draftRow ? 'Editing link draft' : 'Editing link';
+    $('[data-admin-panel-body]', panel).innerHTML = tabsHtml + getRoleAccessBanner('inspector') + `
+      <div class="gv-admin-meta">
+        <div>Edit key: <code>${escapeHtml(key)}</code></div>
+        <div>Edit type: <code>${escapeHtml(type)}</code></div>
+        <div>Section: <code>${escapeHtml(element.dataset.sectionId || 'none')}</code></div>
+      </div>
+      <div class="gv-admin-field-status">
+        ${statusBadge}
+        <details class="gv-admin-value-details">
+          <summary>Show all values</summary>
+          <div class="gv-admin-value-stack">
+            <div><strong>Current label</strong><span>${escapeHtml(current.label || 'Empty')}</span></div>
+            <div><strong>Current href</strong><span>${escapeHtml(current.href || 'No href')}</span></div>
+            <div><strong>Published</strong><span>${escapeHtml(publishedJson ? JSON.stringify(publishedJson) : publishedRow?.value_text || 'No published override')}</span></div>
+            <div><strong>Draft</strong><span>${escapeHtml(draftJson ? JSON.stringify(draftJson) : draftRow?.value_text || 'No draft override')}</span></div>
+          </div>
+        </details>
+      </div>
+      <div class="gv-admin-field">
+        <label for="gvAdminFieldValue">Label text</label>
+        <input id="gvAdminFieldValue" type="text" value="${escapeHtml(current.label)}">
+      </div>
+      <div class="gv-admin-field">
+        <label for="gvAdminHrefValue">URL / href</label>
+        <input id="gvAdminHrefValue" type="text" value="${escapeHtml(current.href)}" placeholder="contact.html, #section, https://..., mailto:...">
+      </div>
+      <label class="gv-admin-check">
+        <input id="gvAdminTargetBlank" type="checkbox" ${current.target === '_blank' ? 'checked' : ''}>
+        <span>Open in new tab</span>
+      </label>
+      <div class="gv-admin-field">
+        <label for="gvAdminRelValue">Rel</label>
+        <input id="gvAdminRelValue" type="text" value="${escapeHtml(current.rel)}" placeholder="noopener noreferrer">
+      </div>
+      <p class="gv-admin-note" data-admin-save-state>${escapeHtml(statusMessage || 'Links allow http, https, mailto, tel, hash links, and relative paths. javascript: URLs are blocked.')}</p>
+      <div class="gv-admin-panel-actions">
+        <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="apply-temp">Save Draft</button>
+        <button class="gv-admin-action" type="button" data-admin-action="publish-selected-field" ${draftRow ? '' : 'disabled'}>Publish This Link/Button</button>
+        <button class="gv-admin-action" type="button" data-admin-action="reset-field" ${draftRow ? '' : 'disabled'}>Reset Draft</button>
+        <button class="gv-admin-action" type="button" data-admin-action="revert-to-published" ${publishedRow ? '' : 'disabled'}>Revert to Published</button>
+        <button class="gv-admin-action" type="button" data-admin-action="close-panel">Close</button>
+      </div>
+    `;
+    bindInspectorDirtyTracker(getLinkInspectorSignature());
+  }
+
   function renderInspector(element) {
     const customSection = element.closest('[data-custom-section="true"]');
     if (customSection) {
@@ -2786,7 +4976,9 @@
     const draftValue = draftRows[key] ? draftRows[key].value_text || '' : '';
     const publishedValue = publishedRows[key] ? publishedRows[key].value_text || '' : '';
     const originalValue = originalValues[key] || '';
+    const stateNote = statusMessage || (draftRows[key] ? 'This is a draft override. Publish this page to make it live for visitors.' : 'Text only. User-entered content is applied with textContent, not HTML.');
     const fieldTag = currentValue.length > 90 || type === 'card' || type === 'richtext' ? 'textarea' : 'input';
+    const subfields = getEditableSubfields(element);
     $('[data-admin-panel-title]', panel).textContent = draftRows[key] ? 'Editing draft override' : 'Editing field';
     const tabsHtml = `
       <div class="gv-inspector-tabs" role="tablist">
@@ -2795,6 +4987,15 @@
         <button type="button" role="tab" aria-selected="${inspectorTab === 'visual' ? 'true' : 'false'}" class="${inspectorTab === 'visual' ? 'is-active' : ''}" data-admin-action="inspector-tab" data-inspector-tab="visual">Visual</button>
       </div>
     `;
+    if (inspectorTab === 'content' && shouldShowSubfieldInspector(element, type, subfields)) {
+      $('[data-admin-panel-title]', panel).textContent = 'Choose a field inside this card';
+      $('[data-admin-panel-body]', panel).innerHTML = tabsHtml + getRoleAccessBanner('inspector') + renderSubfieldInspectorHTML(element, subfields);
+      return;
+    }
+    if (inspectorTab === 'content' && isLinkEditable(element)) {
+      renderLinkInspector(element, tabsHtml);
+      return;
+    }
     if (inspectorTab === 'style') {
       $('[data-admin-panel-body]', panel).innerHTML = tabsHtml + getRoleAccessBanner('inspector') + renderInspectorStyleTabHTML(element);
       setTimeout(bindInspectorStyleEvents, 0);
@@ -2812,10 +5013,22 @@
         <div>Section: <code>${escapeHtml(sectionId || 'none')}</code></div>
         <div>Draft override: <code>${draftRows[key] ? 'yes' : 'no'}</code></div>
       </div>
-      <div class="gv-admin-value-stack">
-        <div><strong>Published</strong><span>${escapeHtml(publishedValue || 'No published override')}</span></div>
-        <div><strong>Draft</strong><span>${escapeHtml(draftValue || 'No draft override')}</span></div>
-        <div><strong>Hardcoded</strong><span>${escapeHtml(originalValue || 'Unavailable')}</span></div>
+      <div class="gv-admin-field-status">
+        ${draftValue
+          ? `<span class="gv-admin-status-badge gv-admin-status-badge--draft">&#9679; Draft (unpublished)</span>`
+          : publishedValue
+            ? `<span class="gv-admin-status-badge gv-admin-status-badge--live">&#10003; Live override</span>`
+            : `<span class="gv-admin-status-badge gv-admin-status-badge--default">&#8212; Using site default</span>`
+        }
+        <details class="gv-admin-value-details">
+          <summary>Show all values</summary>
+          <div class="gv-admin-value-stack">
+            <div><strong>Current active</strong><span>${escapeHtml(currentValue || 'Empty')}</span></div>
+            <div><strong>Published</strong><span>${escapeHtml(publishedValue || 'No published override')}</span></div>
+            <div><strong>Draft</strong><span>${escapeHtml(draftValue || 'No draft override')}</span></div>
+            <div><strong>Hardcoded</strong><span>${escapeHtml(originalValue || 'Unavailable')}</span></div>
+          </div>
+        </details>
       </div>
       <div class="gv-admin-field">
         <label for="gvAdminFieldValue">Current text value</label>
@@ -2823,10 +5036,12 @@
           ? `<textarea id="gvAdminFieldValue" class="gv-admin-textarea">${escapeHtml(currentValue)}</textarea>`
           : `<input id="gvAdminFieldValue" type="text" value="${escapeHtml(currentValue)}">`}
       </div>
-      <p class="gv-admin-note" data-admin-save-state>Text only. User-entered content is applied with textContent, not HTML.</p>
+      <p class="gv-admin-note" data-admin-save-state>${escapeHtml(stateNote)}</p>
       <div class="gv-admin-panel-actions">
         <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="apply-temp">Save Draft</button>
-        <button class="gv-admin-action" type="button" data-admin-action="reset-field">Reset Field</button>
+        <button class="gv-admin-action" type="button" data-admin-action="publish-selected-field" ${draftRows[key] ? '' : 'disabled'}>Publish This Field</button>
+        <button class="gv-admin-action" type="button" data-admin-action="reset-field" ${draftRows[key] ? '' : 'disabled'}>Reset Draft</button>
+        <button class="gv-admin-action" type="button" data-admin-action="revert-to-published" ${publishedRows[key] ? '' : 'disabled'}>Revert to Published</button>
         <button class="gv-admin-action" type="button" data-admin-action="close-panel">Close</button>
       </div>
       <div class="gv-admin-divider"></div>
@@ -2855,16 +5070,97 @@
     `;
   }
 
+  function isLinkEditable(element) {
+    if (!element) return false;
+    const type = element.dataset.editType || '';
+    return type === 'link' || type === 'button' || (element.matches && element.matches('a[href]'));
+  }
+
+  function getLinkValue(element) {
+    if (!element) return { label: '', href: '', target: '', rel: '' };
+    const key = element.dataset.editKey || '';
+    const row = draftRows[key] || publishedRows[key] || null;
+    const json = row && row.value_json && typeof row.value_json === 'object' && !Array.isArray(row.value_json)
+      ? row.value_json
+      : {};
+    return {
+      label: sanitizeText(json.label || row?.value_text || getEditableValue(element)),
+      href: sanitizeText(json.href || element.getAttribute('href') || ''),
+      target: sanitizeText(json.target || element.getAttribute('target') || ''),
+      rel: sanitizeText(json.rel || element.getAttribute('rel') || '')
+    };
+  }
+
+  function applyLinkValueToElement(element, linkValue) {
+    if (!element || !linkValue) return;
+    const label = sanitizeText(linkValue.label || '');
+    if (label) setEditableValue(element, label);
+    if (element.matches && element.matches('a[href]')) {
+      const href = sanitizeText(linkValue.href || '');
+      if (href && isSafeHref(href)) element.setAttribute('href', href);
+      const target = sanitizeText(linkValue.target || '');
+      if (target === '_blank') element.setAttribute('target', '_blank');
+      else element.removeAttribute('target');
+      const rel = sanitizeText(linkValue.rel || '');
+      if (target === '_blank') element.setAttribute('rel', rel || 'noopener noreferrer');
+      else if (rel) element.setAttribute('rel', rel);
+      else element.removeAttribute('rel');
+    }
+  }
+
+  function readLinkInspectorValue() {
+    const labelInput = $('#gvAdminFieldValue', panel);
+    const hrefInput = $('#gvAdminHrefValue', panel);
+    const targetInput = $('#gvAdminTargetBlank', panel);
+    const relInput = $('#gvAdminRelValue', panel);
+    const href = sanitizeText(hrefInput ? hrefInput.value : '');
+    return {
+      label: sanitizeText(labelInput ? labelInput.value : ''),
+      href,
+      target: targetInput && targetInput.checked ? '_blank' : '',
+      rel: sanitizeText(relInput ? relInput.value : '')
+    };
+  }
+
+  function getLinkInspectorSignature() {
+    return JSON.stringify(readLinkInspectorValue());
+  }
+
   function getEditableValue(element) {
+    if (!element) return '';
+    if (element.dataset.cmsCleanValue !== undefined) return sanitizeText(element.dataset.cmsCleanValue);
+    if (hasAnimatedTextSplit(element)) return getSplitTextCleanValue(element);
+    // Mirror setEditableValue's write path exactly so read and write are always consistent.
+    // Using element.textContent would include text from child spans (icons, badges, etc.)
+    // and cause progressive concatenation on repeated saves.
+    const textNode = Array.from(element.childNodes).find(
+      node => node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()
+    );
+    if (textNode) return textNode.nodeValue.trim();
+
+    const textTarget = Array.from(element.children).find(child => {
+      if (child.classList.contains('faq-icon') || child.classList.contains('eyebrow-dot') || child.getAttribute('aria-hidden') === 'true') return false;
+      return child.textContent.trim();
+    });
+    if (textTarget && element.children.length <= 3) return textTarget.textContent.trim();
+
     return element.textContent.trim();
   }
 
   function setEditableValue(element, value) {
+    if (!element) return;
     const safeValue = sanitizeText(value);
-    if (!element.dataset.adminOriginalText) element.dataset.adminOriginalText = element.textContent.trim();
+    if (!element.dataset.adminOriginalText) element.dataset.adminOriginalText = hasAnimatedTextSplit(element) ? getSplitTextCleanValue(element) : element.textContent.trim();
+    element.dataset.cmsCleanValue = safeValue;
+    if (hasAnimatedTextSplit(element)) {
+      element.textContent = safeValue;
+      markCmsTextApplied(element, safeValue);
+      return;
+    }
     const textNode = Array.from(element.childNodes).find(node => node.nodeType === Node.TEXT_NODE && node.nodeValue.trim());
     if (textNode) {
       textNode.nodeValue = safeValue;
+      markCmsTextApplied(element, safeValue);
       return;
     }
     const textTarget = Array.from(element.children).find(child => {
@@ -2873,11 +5169,30 @@
     });
     if (textTarget && element.children.length <= 3) {
       textTarget.textContent = safeValue;
+      markCmsTextApplied(element, safeValue);
       return;
     }
     if (element.children.length === 0 || ['text', 'richtext', 'button', 'link'].includes(element.dataset.editType || 'text')) {
       element.textContent = safeValue;
+      markCmsTextApplied(element, safeValue);
     }
+  }
+
+  function hasAnimatedTextSplit(element) {
+    return Boolean(element && element.querySelector && element.querySelector('.word-clip, .word, .char, .line, [data-split], [data-split-text]'));
+  }
+
+  function getSplitTextCleanValue(element) {
+    if (!element) return '';
+    const clone = element.cloneNode(true);
+    clone.querySelectorAll('[aria-hidden="true"], .faq-icon, .eyebrow-dot').forEach(node => node.remove());
+    return sanitizeText(clone.textContent || '');
+  }
+
+  function markCmsTextApplied(element, value) {
+    if (!element) return;
+    element.dataset.cmsHydrated = 'true';
+    element.dataset.cmsCleanValue = sanitizeText(value);
   }
 
   function sanitizeText(value) {
@@ -2888,15 +5203,22 @@
     if (!row || !row.edit_key) return;
     const element = document.querySelector(`[data-edit-key="${cssEscape(row.edit_key)}"]`);
     if (!element) return;
-    if (typeof row.value_text === 'string') setEditableValue(element, row.value_text);
-    if (row.value_json && row.value_json.href && element.matches('a[href]') && isSafeHref(row.value_json.href)) {
-      element.setAttribute('href', row.value_json.href);
+    if (typeof row.value_text === 'string') {
+      const safeValue = sanitizeText(row.value_text);
+      const signature = `${row.status || ''}:${row.page_path || ''}:${row.updated_at || ''}:${safeValue}`;
+      if (element.dataset.cmsAppliedSignature === signature && getEditableValue(element) === safeValue) return;
+      setEditableValue(element, safeValue);
+      element.dataset.cmsAppliedSignature = signature;
+    }
+    const linkJson = row.value_json && typeof row.value_json === 'object' && !Array.isArray(row.value_json) ? row.value_json : null;
+    if (linkJson && (linkJson.href || linkJson.label) && isLinkEditable(element)) {
+      applyLinkValueToElement(element, linkJson);
     }
   }
 
   function isSafeHref(value) {
     const href = String(value || '').trim();
-    return href.startsWith('#') || href.startsWith('https://') || href.startsWith('/') || href.startsWith('./') || href.startsWith('../') || /^[a-z0-9/_-]+\.html(?:[#?].*)?$/i.test(href) || /^mailto:[^@\s]+@[^@\s]+\.[^@\s]+$/i.test(href);
+    return href.startsWith('#') || href.startsWith('https://') || href.startsWith('http://') || href.startsWith('/') || href.startsWith('./') || href.startsWith('../') || /^[a-z0-9/_-]+\.html(?:[#?].*)?$/i.test(href) || /^mailto:[^@\s]+@[^@\s]+\.[^@\s]+$/i.test(href) || /^tel:[+0-9().\-\s]+$/i.test(href);
   }
 
   async function saveSelectedDraft() {
@@ -2905,24 +5227,37 @@
     const input = $('#gvAdminFieldValue', panel);
     if (!input) return;
     saveInFlight = true;
+    performanceState.saveDraftCalls += 1;
+    const finishSaveMetric = beginAdminOperation('save-draft');
     const saveButton = $('[data-admin-action="apply-temp"]', panel);
     if (saveButton) saveButton.disabled = true;
     const finishSave = () => {
+      performanceState.lastSaveDuration = finishSaveMetric();
       saveInFlight = false;
       if (saveButton) saveButton.disabled = false;
     };
-    const value = sanitizeText(input.value);
+    const linkDraft = isLinkEditable(selectedElement) ? readLinkInspectorValue() : null;
+    if (linkDraft && linkDraft.href && !isSafeHref(linkDraft.href)) {
+      const note = $('[data-admin-save-state]', panel);
+      setSaveState(note, 'Save failed. Unsafe link URL. Use http, https, mailto, tel, hash links, or relative paths.');
+      finishSave();
+      return;
+    }
+    const value = linkDraft ? linkDraft.label : sanitizeText(input.value);
     const key = selectedElement.dataset.editKey;
     const note = $('[data-admin-save-state]', panel);
     setSaveState(note, 'Saving...');
     unsavedCount = 1;
     updateTopbar();
-    setEditableValue(selectedElement, value);
+    if (linkDraft) applyLinkValueToElement(selectedElement, linkDraft);
+    else setEditableValue(selectedElement, value);
 
     if (isMockAdminSession()) {
       mockDraft[key] = value;
       saveMockDraft();
-      draftRows[key] = makeLocalDraftRow(selectedElement, value);
+      draftRows[key] = makeLocalDraftRow(selectedElement, value, linkDraft);
+      lastAdminSaveResult = makeAdminOperationSuccess('Save Draft', 'cms_content', key, { mock: true });
+      lastAdminSaveError = null;
       unsavedCount = 0;
       setSaveState(note, 'Draft saved locally in mock mode.');
       updateTopbar();
@@ -2934,13 +5269,16 @@
 
     if (!supabaseClient || !currentUser || !adminProfile || !['owner', 'editor'].includes(adminProfile.role)) {
       unsavedCount = inspectorDirty ? 1 : 0;
-      setSaveState(note, adminProfile && adminProfile.role === 'viewer' ? 'Save failed. Viewers can inspect but cannot save drafts.' : 'Save failed. Supabase admin access is required.');
+      const accessError = new Error(adminProfile && adminProfile.role === 'viewer' ? 'Viewer role cannot save drafts.' : 'Supabase admin access is required.');
+      lastAdminSaveError = makeAdminOperationFailure('Save Draft', 'cms_content', key, accessError);
+      lastAdminSaveResult = null;
+      setSaveState(note, formatAdminOperationFailure(lastAdminSaveError));
       updateTopbar();
       finishSave();
       return;
     }
 
-    const payload = makeContentPayload(selectedElement, value, 'draft');
+    const payload = makeContentPayload(selectedElement, value, 'draft', linkDraft);
     let data = null;
     let error = null;
     try {
@@ -2957,16 +5295,21 @@
     if (error) {
       inspectorDirty = true;
       unsavedCount = 1;
-      const friendly = classifySupabaseError(error);
-      setSaveState(note, `Save failed: ${friendly}`);
-      if (cmsDebug) console.warn('[GROWVA CMS] save-draft-error', error);
+      lastAdminSaveError = makeAdminOperationFailure('Save Draft', 'cms_content', key, error);
+      lastAdminSaveResult = null;
+      setSaveState(note, formatAdminOperationFailure(lastAdminSaveError));
+      if (cmsDebug) console.warn('[GROWVA CMS] save-draft-error', lastAdminSaveError);
       updateTopbar();
       finishSave();
       return;
     }
     draftRows[key] = data || payload;
+    lastAdminSaveResult = makeAdminOperationSuccess('Save Draft', 'cms_content', key, { rowReturned: Boolean(data) });
+    lastAdminSaveError = null;
     await insertAuditLog('save_draft', key, originalValues[key] || '', value);
-    setSaveState(note, 'Draft saved.');
+    inspectorDirty = false;
+    setSaveState(note, `Draft saved for ${key}. Publish this page to make it live for visitors.`);
+    console.info('[GROWVA CMS] Draft saved', { editKey: key, pagePath });
     updateTopbar();
     if (dashboard && !dashboard.hidden) await refreshDashboardData();
     renderInspector(selectedElement);
@@ -2978,7 +5321,7 @@
     statusMessage = value;
   }
 
-  function makeLocalDraftRow(element, value) {
+  function makeLocalDraftRow(element, value, valueJson = null) {
     return {
       page_path: pagePath,
       page_id: getRegistry().pageId || '',
@@ -2987,11 +5330,12 @@
       section_id: element.dataset.sectionId || '',
       section_type: element.closest('[data-section-type]')?.dataset.sectionType || '',
       value_text: value,
+      value_json: valueJson,
       status: 'draft'
     };
   }
 
-  function makeContentPayload(element, value, status) {
+  function makeContentPayload(element, value, status, valueJson = null) {
     return {
       page_path: pagePath,
       page_id: getRegistry().pageId || '',
@@ -3000,7 +5344,7 @@
       section_id: element.dataset.sectionId || '',
       section_type: element.closest('[data-section-type]')?.dataset.sectionType || '',
       value_text: value,
-      value_json: null,
+      value_json: valueJson,
       status,
       updated_by: currentUser ? currentUser.id : null,
       updated_at: new Date().toISOString()
@@ -3037,7 +5381,7 @@
         const { error } = await supabaseClient
           .from('cms_content')
           .delete()
-          .eq('page_path', pagePath)
+          .in('page_path', getPagePathAliases())
           .eq('edit_key', key)
           .eq('status', 'draft');
         if (error) {
@@ -3076,27 +5420,56 @@
     else setEditableValue(selectedElement, originalValues[key] || selectedElement.dataset.adminOriginalText || '');
   }
 
-  async function loadPublishedEdits() {
+  async function loadPublishedEdits(options = {}) {
     if (!supabaseClient) return;
-    try {
-      const { data, error } = await supabaseClient
-        .from('cms_content')
-        .select('page_path,page_id,edit_key,edit_type,section_id,section_type,value_text,value_json,status,version,updated_at')
-        .eq('page_path', pagePath)
-        .eq('status', 'published')
-        .lt('created_at', cmsFreshReadCutoff());
-      if (error || !Array.isArray(data)) {
+    const force = Boolean(options.force);
+    const shouldApply = options.apply !== false;
+    if (!force && hydratedPagePaths.has(pagePath)) return;
+    if (publishedHydrationInProgress && publishedHydrationPromise && !force) return publishedHydrationPromise;
+
+    performanceState.hydrationCalls += 1;
+    const finishHydrationMetric = beginAdminOperation('hydration');
+    publishedHydrationInProgress = true;
+    publishedHydrationPromise = (async () => {
+      try {
+        const query = supabaseClient
+          .from('cms_content')
+          .select('page_path,page_id,edit_key,edit_type,section_id,section_type,value_text,value_json,status,version,created_at,updated_at')
+          .in('page_path', getPagePathAliases())
+          .eq('status', 'published')
+          .lt('created_at', cmsFreshReadCutoff());
+        const result = await withTimeout(query, 10000, { data: null, error: new Error('Published CMS hydration timed out'), timeout: true });
+        const data = result && result.data;
+        const error = result && result.error;
+        if (result && result.timeout) {
+          publishedRowsLoadedCount = Object.keys(publishedRows).length;
+          return;
+        }
+        if (error || !Array.isArray(data)) {
+          publishedRowsLoadedCount = 0;
+          if (error) markConnectionFailed();
+          return;
+        }
+        const sorted = sortRowsByPagePathPreference(data);
+        publishedRows = indexRows(sorted);
+        publishedRowsLoadedCount = Object.keys(publishedRows).length;
+        publishedEditsLoaded = true;
+        hydratedPagePaths.add(pagePath);
+        lastHydratedAt = Date.now();
+        if (shouldApply) {
+          Object.values(publishedRows).forEach(applyRowToElement);
+        }
+        console.info('[GROWVA CMS] Hydrated published content', { pagePath, count: publishedRowsLoadedCount });
+      } catch (error) {
         publishedRowsLoadedCount = 0;
-        if (error) markConnectionFailed();
-        return;
+        markConnectionFailed();
+      } finally {
+        publishedHydrationInProgress = false;
+        publishedHydrationPromise = null;
+        performanceState.lastHydrationDuration = finishHydrationMetric();
       }
-      publishedRows = indexRows(data);
-      publishedRowsLoadedCount = data.length;
-      data.forEach(applyRowToElement);
-    } catch (error) {
-      publishedRowsLoadedCount = 0;
-      markConnectionFailed();
-    }
+    })();
+    return publishedHydrationPromise;
   }
 
   async function loadDraftEdits() {
@@ -3114,7 +5487,7 @@
       const { data, error } = await supabaseClient
         .from('cms_content')
         .select('page_path,page_id,edit_key,edit_type,section_id,section_type,value_text,value_json,status,version,updated_at')
-        .eq('page_path', pagePath)
+        .in('page_path', getPagePathAliases())
         .eq('status', 'draft')
         .lt('created_at', cmsFreshReadCutoff());
       if (error || !Array.isArray(data)) {
@@ -3122,7 +5495,7 @@
         if (error) markConnectionFailed();
         return;
       }
-      draftRows = indexRows(data);
+      draftRows = indexRows(sortRowsByPagePathPreference(data));
       draftRowsLoadedCount = data.length;
     } catch (error) {
       draftRowsLoadedCount = 0;
@@ -3172,7 +5545,7 @@
 
   function indexRows(rows) {
     return rows.reduce((acc, row) => {
-      if (row && row.edit_key) acc[row.edit_key] = row;
+      if (row && row.edit_key && !acc[row.edit_key]) acc[row.edit_key] = row;
       return acc;
     }, {});
   }
@@ -3212,7 +5585,7 @@
       ({ data: drafts, error } = await supabaseClient
         .from('cms_content')
         .select('*')
-        .eq('page_path', pagePath)
+        .in('page_path', getPagePathAliases())
         .eq('status', 'draft')
         .lt('created_at', cmsFreshReadCutoff()));
     } catch (caught) {
@@ -3228,7 +5601,7 @@
       const { data: customData, error: customError } = await supabaseClient
         .from('cms_custom_sections')
         .select('*')
-        .eq('page_path', pagePath)
+        .in('page_path', getPagePathAliases())
         .eq('status', 'draft');
       if (customError) {
         statusMessage = getCustomSectionsTableMessage(customError);
@@ -3236,7 +5609,7 @@
         logCmsCustomDebug('custom-section-publish-load-failed', { error: getSupabaseErrorMessage(customError) });
         return;
       }
-      if (Array.isArray(customData)) customDrafts = customData.map(row => normalizeCustomSectionRow(row, 'draft')).filter(Boolean);
+      if (Array.isArray(customData)) customDrafts = sortRowsByPagePathPreference(customData).map(row => normalizeCustomSectionRow(row, 'draft')).filter(Boolean);
     } catch (caught) {
       customDrafts = Object.values(customSectionDrafts);
     }
@@ -3253,6 +5626,7 @@
 
   function openPublishDialog() {
     ensureRoot();
+    document.body.classList.add('admin-publish-dialog-open');
     const body = $('[data-publish-confirm-body]', publishDialog);
     const imageRows = pendingPublishRows.filter(r => r.edit_type === 'image' || r.edit_type === 'background-image');
     const textRows = pendingPublishRows.filter(r => r.edit_type !== 'image' && r.edit_type !== 'background-image');
@@ -3306,7 +5680,7 @@
             ${elementStyleCount ? `<span class="gv-admin-publish-detail">${vd18TotalProps} prop${vd18TotalProps !== 1 ? 's' : ''} &middot; Breakpoints: ${escapeHtml(vd18BpList)}</span>` : ''}
           </div>
         </div>
-        <div class="gv-admin-warning">Publishing affects only this page. Global token publish is separate.</div>
+        <div class="gv-admin-warning">Publishing affects only this page. After publish, these draft rows are cleared so the page has a clean published state.</div>
         ${elementStyleCount ? '<div class="gv-admin-warning gv-admin-warning--vd">Specificity note: published element styles use <code>html body [data-edit-key]</code> selectors. Verify overrides in browser if site selectors are more specific.</div>' : ''}
         ${getStaleDraftCount() > 0 ? `<div class="gv-admin-stale-warning">⚠ ${getStaleDraftCount()} draft(s) are older than 7 days. <button class="gv-admin-action gv-admin-action--sm" type="button" data-admin-action="dashboard-tab" data-dashboard-tab="compare">View Draft Compare</button></div>` : ''}
       </div>
@@ -3336,6 +5710,7 @@
 
   function closePublishDialog() {
     if (!publishDialog) return;
+    document.body.classList.remove('admin-publish-dialog-open');
     publishDialog.hidden = true;
     if (!publishInFlight) {
       pendingPublishRows = [];
@@ -3348,11 +5723,15 @@
     if (publishInFlight) return;
     if (!pendingPublishRows.length && !pendingCustomPublishRows.length && !pendingVisualPublishCount) {
       statusMessage = 'No draft changes to publish.';
+      lastAdminPublishResult = makeAdminOperationSuccess('Publish Current Page', 'cms_content', null, { count: 0, skipped: true, message: statusMessage });
+      lastAdminPublishError = null;
       closePublishDialog();
       renderPanelEmpty();
       return;
     }
     publishInFlight = true;
+    performanceState.publishCalls += 1;
+    const finishPublishMetric = beginAdminOperation('publish');
     const publishButton = adminRoot ? $('[data-admin-action="publish-page"]', adminRoot) : null;
     const confirmButton = publishDialog ? $('[data-admin-action="confirm-publish-page"]', publishDialog) : null;
     if (publishButton) {
@@ -3364,6 +5743,7 @@
       confirmButton.textContent = 'Publishing...';
     }
     const finishPublish = () => {
+      performanceState.lastPublishDuration = finishPublishMetric();
       publishInFlight = false;
       if (publishButton) {
         publishButton.disabled = false;
@@ -3377,10 +5757,24 @@
     if (isMockAdminSession()) {
       publishedRows = Object.assign({}, publishedRows, draftRows);
       pendingPublishRows.forEach(applyRowToElement);
+      pendingPublishRows.forEach(row => {
+        if (row.edit_key) {
+          delete draftRows[row.edit_key];
+          delete mockDraft[row.edit_key];
+        }
+      });
+      draftRowsLoadedCount = Object.keys(draftRows).length;
+      saveMockDraft();
       const customResult = await publishCustomSectionDrafts();
       if (pendingVisualPublishCount) await publishCurrentPageVisuals();
       renderCustomSections(getCustomSectionRowsForRender(false));
-      statusMessage = `Published ${pendingPublishRows.length} mock changes, ${customResult.count} custom sections, and ${pendingVisualPublishCount} visual changes.`;
+      statusMessage = `Published ${pendingPublishRows.length} mock changes, ${customResult.count} custom sections, and ${pendingVisualPublishCount} visual changes. Draft rows cleared.`;
+      lastAdminPublishResult = makeAdminOperationSuccess('Publish Current Page', 'cms_content', pendingPublishRows.map(row => row.edit_key), {
+        mock: true,
+        count: pendingPublishRows.length + customResult.count + pendingVisualPublishCount
+      });
+      lastAdminPublishError = null;
+      console.info('[GROWVA CMS] Publish completed', { pagePath, count: pendingPublishRows.length + customResult.count + pendingVisualPublishCount });
       closePublishDialog();
       renderPanelEmpty();
       if (dashboard && !dashboard.hidden) {
@@ -3394,14 +5788,17 @@
       return;
     }
     if (!supabaseClient || !currentUser || !adminProfile || adminProfile.role !== 'owner') {
-      statusMessage = 'Publish failed. Only owners can publish current-page drafts.';
+      const accessError = new Error('Only owners can publish current-page drafts.');
+      lastAdminPublishError = makeAdminOperationFailure('Publish Current Page', 'cms_content', pendingPublishRows.map(row => row.edit_key), accessError);
+      lastAdminPublishResult = null;
+      statusMessage = formatAdminOperationFailure(lastAdminPublishError);
       closePublishDialog();
       renderPanelEmpty();
       finishPublish();
       return;
     }
     const publishedPayload = pendingPublishRows.map(row => ({
-      page_path: row.page_path,
+      page_path: pagePath,
       page_id: row.page_id,
       edit_key: row.edit_key,
       edit_type: row.edit_type,
@@ -3426,17 +5823,40 @@
         publishError = caught;
       }
       if (publishError) {
-        statusMessage = `Publish failed: ${classifySupabaseError(publishError)}`;
-        if (cmsDebug) console.warn('[GROWVA CMS] publish-error', publishError);
+        lastAdminPublishError = makeAdminOperationFailure('Publish Current Page', 'cms_content', publishedPayload.map(row => row.edit_key), publishError);
+        lastAdminPublishResult = null;
+        statusMessage = formatAdminOperationFailure(lastAdminPublishError);
+        if (cmsDebug) console.warn('[GROWVA CMS] publish-error', lastAdminPublishError);
         renderPanelEmpty();
         finishPublish();
         return;
       }
     }
+    let draftCleanupError = null;
+    if (publishedPayload.length) {
+      const publishedKeys = publishedPayload.map(row => row.edit_key).filter(Boolean);
+      try {
+        const { error: deleteError } = await supabaseClient
+          .from('cms_content')
+          .delete()
+          .in('page_path', getPagePathAliases())
+          .eq('status', 'draft')
+          .in('edit_key', publishedKeys);
+        if (deleteError) draftCleanupError = deleteError;
+        else {
+          publishedKeys.forEach(key => { delete draftRows[key]; });
+          draftRowsLoadedCount = Object.keys(draftRows).length;
+        }
+      } catch (caught) {
+        draftCleanupError = caught;
+      }
+    }
     const customPublish = await publishCustomSectionDrafts();
     if (customPublish.error) {
-      statusMessage = `Publish failed on custom sections: ${classifySupabaseError(customPublish.error)}`;
-      if (cmsDebug) console.warn('[GROWVA CMS] custom-section-publish-error', customPublish.error);
+      lastAdminPublishError = makeAdminOperationFailure('Publish Custom Sections', 'cms_custom_sections', pendingCustomPublishRows.map(row => row.section_id || row.id), customPublish.error);
+      lastAdminPublishResult = null;
+      statusMessage = formatAdminOperationFailure(lastAdminPublishError);
+      if (cmsDebug) console.warn('[GROWVA CMS] custom-section-publish-error', lastAdminPublishError);
       renderPanelEmpty();
       finishPublish();
       return;
@@ -3452,10 +5872,18 @@
       // Publishing succeeded; log write is best-effort and also protected by RLS.
     }
     await insertAuditLog('publish_page', 'page', '', `Published ${publishedPayload.length} content changes, ${customPublish.count} custom sections, and ${pendingVisualPublishCount} visual changes on ${pagePath}`);
-    publishedRows = Object.assign({}, publishedRows, indexRows(published || publishedPayload));
+    const publishedResultRows = Array.isArray(published) && published.length ? published : publishedPayload;
+    publishedRows = Object.assign({}, publishedRows, indexRows(publishedResultRows));
+    publishedRowsLoadedCount = Object.keys(publishedRows).length;
     publishedPayload.forEach(applyRowToElement);
     renderCustomSections(getCustomSectionRowsForRender(false));
-    statusMessage = `Published ${publishedPayload.length} changes, ${customPublish.count} custom sections, and ${pendingVisualPublishCount} visual changes.`;
+    statusMessage = `Published ${publishedPayload.length} changes, ${customPublish.count} custom sections, and ${pendingVisualPublishCount} visual changes.${draftCleanupError ? ' Draft cleanup needs review.' : ' Draft rows cleared.'}`;
+    lastAdminPublishResult = makeAdminOperationSuccess('Publish Current Page', 'cms_content', publishedPayload.map(row => row.edit_key), {
+      count: publishedPayload.length + customPublish.count + pendingVisualPublishCount,
+      draftCleanup: draftCleanupError ? 'failed' : 'cleared'
+    });
+    lastAdminPublishError = draftCleanupError ? makeAdminOperationFailure('Delete Draft Cleanup', 'cms_content', publishedPayload.map(row => row.edit_key), draftCleanupError) : null;
+    console.info('[GROWVA CMS] Publish completed', { pagePath, count: publishedPayload.length + customPublish.count + pendingVisualPublishCount, draftCleanup: draftCleanupError ? 'failed' : 'cleared' });
     updateTopbar();
     closePublishDialog();
     renderPanelEmpty();
@@ -3730,7 +6158,7 @@
   }
 
   function renderMediaLibraryTab() {
-    const canUpload = adminProfile && ['owner', 'editor'].includes(adminProfile.role);
+    const canUpload = canUseMediaUpload();
     const fileWarning = isLocalFileMode()
       ? '<div class="gv-admin-warning">Media upload requires Live Server or a deployed URL. The <code>file://</code> protocol cannot reach Supabase Storage.</div>'
       : '';
@@ -3745,7 +6173,7 @@
         <p class="gv-admin-media-upload-hint">JPEG, PNG, WebP &mdash; max 5 MB &mdash; SVG disabled</p>
       </div>
       <div class="gv-admin-media-upload-status" data-media-upload-status hidden></div>
-    ` : '<div class="gv-admin-warning">Browsing only. Upload requires owner or editor role.</div>';
+    ` : `<div class="gv-admin-warning">${escapeHtml(getMediaUploadUnavailableMessage())}</div>`;
     return `
       <div class="gv-admin-media-library">
         ${fileWarning}
@@ -4135,6 +6563,10 @@
       : (element.getAttribute('src') || '');
     const currentAlt = element.getAttribute ? (element.getAttribute('alt') || '') : '';
     const previewUrl = draftVal.url || currentSrc || '';
+    const mediaUploadAvailable = canUseMediaUpload();
+    const mediaUploadStatus = mediaUploadAvailable
+      ? 'URL replacement, upload, and media-library selection are available for editable image fields.'
+      : getMediaUploadUnavailableMessage();
     $('[data-admin-panel-title]', panel).textContent = draftRow ? 'Editing image draft' : 'Editing image field';
     $('[data-admin-panel-body]', panel).innerHTML = `
       <div class="gv-admin-meta">
@@ -4149,6 +6581,7 @@
           : '<div class="gv-admin-image-placeholder">No image set</div>'}
       </div>
       <div class="gv-admin-value-stack">
+        <div><strong>Media/Image status</strong><span>${escapeHtml(mediaUploadStatus)}</span></div>
         <div><strong>Published URL</strong><span>${escapeHtml(publishedVal.url || 'No published override')}</span></div>
         <div><strong>Draft URL</strong><span>${escapeHtml(draftVal.url || 'No draft override')}</span></div>
       </div>
@@ -4157,18 +6590,19 @@
         <input id="gvImageUrl" type="text" value="${escapeHtml(draftVal.url || currentSrc || '')}" placeholder="https://&hellip;">
       </div>
       <div class="gv-admin-field">
-        <label for="gvImageAlt">Alt text</label>
-        <input id="gvImageAlt" type="text" value="${escapeHtml(draftVal.alt !== undefined ? draftVal.alt : currentAlt)}" placeholder="Describe the image">
+          <label for="gvImageAlt">Alt text</label>
+          <input id="gvImageAlt" type="text" value="${escapeHtml(draftVal.alt !== undefined ? draftVal.alt : currentAlt)}" placeholder="Describe the image">
       </div>
-      <input type="file" id="gvImageFileInput" accept="image/jpeg,image/png,image/webp" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;" data-admin-image-file-input>
+      ${mediaUploadAvailable ? '<input type="file" id="gvImageFileInput" accept="image/jpeg,image/png,image/webp" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;" data-admin-image-file-input>' : ''}
       <p class="gv-admin-note" data-image-save-state>Select from library or paste a URL, then Save Draft Image.</p>
       <div class="gv-admin-panel-actions" style="grid-template-columns:1fr 1fr;">
         <button class="gv-admin-action" type="button" data-admin-action="image-choose-media">Media Library</button>
-        <button class="gv-admin-action" type="button" data-admin-action="image-upload-new">Upload New</button>
+        <button class="gv-admin-action" type="button" data-admin-action="image-upload-new" ${mediaUploadAvailable ? '' : 'disabled aria-disabled="true" title="Upload not configured yet. Use image URL or Media Library."'}>${mediaUploadAvailable ? 'Upload New' : 'Upload not configured yet'}</button>
       </div>
       <div class="gv-admin-panel-actions">
         <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="image-save-draft">Save Draft</button>
-        <button class="gv-admin-action" type="button" data-admin-action="image-reset-draft">Reset</button>
+        <button class="gv-admin-action" type="button" data-admin-action="publish-selected-field" ${draftRow ? '' : 'disabled'}>Publish This Image</button>
+        <button class="gv-admin-action" type="button" data-admin-action="image-reset-draft" ${draftRow ? '' : 'disabled'}>Reset Draft</button>
         <button class="gv-admin-action" type="button" data-admin-action="close-panel">Close</button>
       </div>
       <div class="gv-admin-divider"></div>
@@ -4219,6 +6653,8 @@
 
   async function saveImageDraft() {
     if (!selectedElement) return;
+    performanceState.saveDraftCalls += 1;
+    const finishImageSaveMetric = beginAdminOperation('save-image-draft');
     const key = selectedElement.dataset.editKey;
     const type = selectedElement.dataset.editType || 'image';
     const urlInput = $('#gvImageUrl', panel);
@@ -4228,6 +6664,7 @@
     const alt = altInput ? altInput.value.trim() : '';
     if (url && !isSafeImageUrl(url)) {
       if (note) note.textContent = 'Invalid URL. Only Supabase storage, https://, or relative paths allowed.';
+      performanceState.lastSaveDuration = finishImageSaveMetric();
       return;
     }
     const valueJson = { url: url, alt: alt, media_asset_id: mediaSelectedAssetId || null, field: type === 'background-image' ? 'background-image' : 'src' };
@@ -4237,13 +6674,20 @@
       mockDraft[key] = url;
       saveMockDraft();
       draftRows[key] = { page_path: pagePath, page_id: getRegistry().pageId || '', edit_key: key, edit_type: type, section_id: selectedElement.dataset.sectionId || '', value_text: url, value_json: valueJson, status: 'draft' };
+      lastAdminSaveResult = makeAdminOperationSuccess('Save Image Draft', 'cms_content', key, { mock: true });
+      lastAdminSaveError = null;
       if (note) note.textContent = 'Image draft saved (mock mode).';
       logCmsMediaDebug('image-draft-save-mock', { key: key, url: url });
       renderImageInspector(selectedElement);
+      performanceState.lastSaveDuration = finishImageSaveMetric();
       return;
     }
     if (!supabaseClient || !currentUser || !adminProfile || !['owner', 'editor'].includes(adminProfile.role)) {
-      if (note) note.textContent = adminProfile && adminProfile.role === 'viewer' ? 'Viewers cannot save image drafts.' : 'Image draft save requires owner or editor role.';
+      const accessError = new Error(adminProfile && adminProfile.role === 'viewer' ? 'Viewer role cannot save image drafts.' : 'Image draft save requires owner or editor role.');
+      lastAdminSaveError = makeAdminOperationFailure('Save Image Draft', 'cms_content', key, accessError);
+      lastAdminSaveResult = null;
+      if (note) note.textContent = formatAdminOperationFailure(lastAdminSaveError);
+      performanceState.lastSaveDuration = finishImageSaveMetric();
       return;
     }
     const payload = {
@@ -4259,13 +6703,22 @@
       const res = await supabaseClient.from('cms_content').upsert(payload, { onConflict: 'page_path,edit_key,status' }).select().single();
       data = res.data; error = res.error;
     } catch (e) { error = e; }
-    if (error) { if (note) note.textContent = 'Image draft save failed. Check Supabase policies.'; return; }
+    if (error) {
+      lastAdminSaveError = makeAdminOperationFailure('Save Image Draft', 'cms_content', key, error);
+      lastAdminSaveResult = null;
+      if (note) note.textContent = formatAdminOperationFailure(lastAdminSaveError);
+      performanceState.lastSaveDuration = finishImageSaveMetric();
+      return;
+    }
     draftRows[key] = data || payload;
+    lastAdminSaveResult = makeAdminOperationSuccess('Save Image Draft', 'cms_content', key, { rowReturned: Boolean(data) });
+    lastAdminSaveError = null;
     await insertMediaAuditLog('image_draft_save', key, { url: url, alt: alt, media_asset_id: valueJson.media_asset_id });
     logCmsMediaDebug('image-draft-save-ok', { key: key, url: url });
     if (note) note.textContent = 'Image draft saved.';
     updateTopbar();
     renderImageInspector(selectedElement);
+    performanceState.lastSaveDuration = finishImageSaveMetric();
   }
 
   async function resetImageDraft() {
@@ -4281,7 +6734,7 @@
     }
     if (supabaseClient && currentUser && adminProfile && ['owner', 'editor'].includes(adminProfile.role)) {
       try {
-        const res = await supabaseClient.from('cms_content').delete().eq('page_path', pagePath).eq('edit_key', key).eq('status', 'draft');
+        const res = await supabaseClient.from('cms_content').delete().in('page_path', getPagePathAliases()).eq('edit_key', key).eq('status', 'draft');
         if (res.error) { if (note) note.textContent = 'Reset failed. Check Supabase policies.'; return; }
         await insertMediaAuditLog('image_reset', key, { previous_url: draftRows[key] ? draftRows[key].value_text || '' : '' });
       } catch (e) { if (note) note.textContent = 'Reset failed. Supabase connection error.'; return; }
@@ -4337,13 +6790,13 @@
       const { data, error } = await supabaseClient
         .from('cms_content')
         .select('edit_key,edit_type,value_text,value_json,status')
-        .eq('page_path', pagePath)
+        .in('page_path', getPagePathAliases())
         .eq('status', 'published')
         .in('edit_type', ['image', 'background-image'])
         .lt('created_at', cmsFreshReadCutoff());
       if (error || !Array.isArray(data)) return;
       let count = 0;
-      data.forEach(row => {
+      sortRowsByPagePathPreference(data).forEach(row => {
         const element = document.querySelector('[data-edit-key="' + cssEscape(row.edit_key) + '"]');
         if (!element) return;
         const val = getImageValueFromRow(row) || (row.value_text ? { url: row.value_text, alt: '' } : null);
@@ -4444,7 +6897,7 @@
         .lt('created_at', now);
       if (!data) return;
       const globalRows = data.filter(r => r.scope === 'global');
-      const pageRows = data.filter(r => r.scope === 'page' && r.page_path === pagePath);
+      const pageRows = sortRowsByPagePathPreference(data.filter(r => r.scope === 'page' && getPagePathAliases().includes(r.page_path)));
       [...globalRows, ...pageRows].forEach(r => applyTokenToRoot(r.token_key, r.value_json));
       designTokenPublished = {};
       data.forEach(r => { designTokenPublished[r.token_key] = r.value_json; });
@@ -4460,13 +6913,14 @@
         .from('cms_section_settings')
         .select('section_id,is_visible,order_index,style_json')
         .eq('status', 'published')
-        .eq('page_path', pagePath)
+        .in('page_path', getPagePathAliases())
         .lt('created_at', now);
       if (!data) return;
       sectionSettingsPublished = {};
-      data.forEach(r => { sectionSettingsPublished[r.section_id] = r; });
-      applySectionOrder(data);
-      data.forEach(r => {
+      const rows = sortRowsByPagePathPreference(data);
+      rows.forEach(r => { sectionSettingsPublished[r.section_id] = r; });
+      applySectionOrder(rows);
+      rows.forEach(r => {
         const el = $(`[data-section-id="${r.section_id}"]`);
         if (!el) return;
         el.style.display = r.is_visible === false ? 'none' : '';
@@ -4484,11 +6938,11 @@
         .from('cms_element_styles')
         .select('edit_key,style_json')
         .eq('status', 'published')
-        .eq('page_path', pagePath)
+        .in('page_path', getPagePathAliases())
         .lt('created_at', now);
       if (!data) return;
       elementStylesPublished = {};
-      data.forEach(r => {
+      sortRowsByPagePathPreference(data).forEach(r => {
         elementStylesPublished[r.edit_key] = r.style_json;
         // Phase 17: VD breakpoint rows are handled via CSS injection (see below).
         // Legacy-only rows (no breakpoint keys) still use inline application for
@@ -4878,7 +7332,7 @@
       const { data, error } = await supabaseClient
         .from('cms_custom_sections')
         .select('*')
-        .eq('page_path', pagePath)
+        .in('page_path', getPagePathAliases())
         .eq('status', 'published')
         .lt('created_at', cmsFreshReadCutoff());
       if (error || !Array.isArray(data)) {
@@ -4886,7 +7340,7 @@
         return;
       }
       customSectionPublished = {};
-      data.forEach(row => {
+      sortRowsByPagePathPreference(data).forEach(row => {
         const normalized = normalizeCustomSectionRow(row, 'published');
         if (normalized) customSectionPublished[normalized.section_id] = normalized;
         else logCmsCustomDebug('invalid-template-skipped', { templateId: row.template_id });
@@ -4917,7 +7371,7 @@
       const { data, error } = await supabaseClient
         .from('cms_custom_sections')
         .select('*')
-        .eq('page_path', pagePath)
+        .in('page_path', getPagePathAliases())
         .in('status', ['draft', 'published']);
       if (error || !Array.isArray(data)) {
         dashboardMessage = getCustomSectionsTableMessage(error);
@@ -4926,7 +7380,7 @@
       }
       customSectionDrafts = {};
       customSectionPublished = {};
-      data.forEach(row => {
+      sortRowsByPagePathPreference(data).forEach(row => {
         const normalized = normalizeCustomSectionRow(row, row.status);
         if (!normalized) {
           logCmsCustomDebug('invalid-template-skipped', { templateId: row.template_id });
@@ -5003,7 +7457,7 @@
     if (supabaseClient && currentUser) {
       await supabaseClient.from('cms_custom_sections')
         .delete()
-        .eq('page_path', pagePath)
+        .in('page_path', getPagePathAliases())
         .eq('section_id', sectionId)
         .eq('status', 'draft');
     }
@@ -5048,11 +7502,11 @@
         .from('cms_design_tokens')
         .select('token_key,value_json,scope,page_path,status')
         .in('status', ['draft', 'published'])
-        .or(`scope.eq.global,page_path.eq.${pagePath}`);
+        .or(`scope.eq.global,${getPagePathInFilter()}`);
       if (!data) return;
       designTokenDrafts = {};
       designTokenPublished = {};
-      data.forEach(r => {
+      sortRowsByPagePathPreference(data).forEach(r => {
         if (r.status === 'draft') designTokenDrafts[r.token_key] = r.value_json;
         else if (r.status === 'published') designTokenPublished[r.token_key] = r.value_json;
       });
@@ -5066,12 +7520,12 @@
       const { data } = await supabaseClient
         .from('cms_section_settings')
         .select('section_id,order_index,is_visible,style_json,status')
-        .eq('page_path', pagePath)
+        .in('page_path', getPagePathAliases())
         .in('status', ['draft', 'published']);
       if (!data) return;
       sectionSettingsDrafts = {};
       sectionSettingsPublished = {};
-      data.forEach(r => {
+      sortRowsByPagePathPreference(data).forEach(r => {
         if (r.status === 'draft') sectionSettingsDrafts[r.section_id] = r;
         else if (r.status === 'published') sectionSettingsPublished[r.section_id] = r;
       });
@@ -5084,12 +7538,12 @@
       const { data } = await supabaseClient
         .from('cms_element_styles')
         .select('edit_key,style_json,status')
-        .eq('page_path', pagePath)
+        .in('page_path', getPagePathAliases())
         .in('status', ['draft', 'published']);
       if (!data) return;
       elementStyleDrafts = {};
       elementStylesPublished = {};
-      data.forEach(r => {
+      sortRowsByPagePathPreference(data).forEach(r => {
         if (r.status === 'draft') elementStyleDrafts[r.edit_key] = r.style_json;
         else if (r.status === 'published') elementStylesPublished[r.edit_key] = r.style_json;
         // Phase 16: hydrate VD style store from breakpoint-format drafts
@@ -5252,7 +7706,7 @@
     await supabaseClient.from('cms_design_tokens')
       .delete()
       .eq('status', 'draft')
-      .or(`scope.eq.global,page_path.eq.${pagePath}`);
+      .or(`scope.eq.global,${getPagePathInFilter()}`);
     designTokenDrafts = {};
     unsavedVisualCount = 0;
     await applyPublishedDesignTokens();
@@ -5264,7 +7718,7 @@
     if (!supabaseClient || !currentUser) return;
     await supabaseClient.from('cms_section_settings')
       .delete()
-      .eq('page_path', pagePath)
+      .in('page_path', getPagePathAliases())
       .eq('section_id', sectionId)
       .eq('status', 'draft');
     delete sectionSettingsDrafts[sectionId];
@@ -5285,7 +7739,7 @@
     if (supabaseClient && currentUser) {
       await supabaseClient.from('cms_element_styles')
         .delete()
-        .eq('page_path', pagePath)
+        .in('page_path', getPagePathAliases())
         .eq('edit_key', key)
         .eq('status', 'draft');
     }
@@ -5496,13 +7950,14 @@
   }
 
   function renderBrandTokensPanel() {
+    // Keys match the actual CSS custom properties declared in css/style.css :root {}.
     const tokens = [
       { key: 'mint', label: 'Accent / Mint', type: 'color', scope: 'global' },
-      { key: 'bg', label: 'Background', type: 'color', scope: 'global' },
-      { key: 'surface', label: 'Surface', type: 'color', scope: 'global' },
-      { key: 'text', label: 'Text', type: 'color', scope: 'global' },
-      { key: 'muted', label: 'Muted Text', type: 'color', scope: 'global' },
-      { key: 'border', label: 'Border', type: 'color', scope: 'global' }
+      { key: 'black', label: 'Primary Dark', type: 'color', scope: 'global' },
+      { key: 'black-deep', label: 'Deep Background', type: 'color', scope: 'global' },
+      { key: 'ivory', label: 'Light Background', type: 'color', scope: 'global' },
+      { key: 'gray', label: 'Muted Text', type: 'color', scope: 'global' },
+      { key: 'line', label: 'Border / Divider', type: 'color', scope: 'global' }
     ];
     return `<div class="gv-admin-token-grid">${tokens.map(t => renderTokenColorRow(t)).join('')}</div>`;
   }
@@ -6010,12 +8465,20 @@
       ];
     }
 
+    const computedEl = el ? getComputedStyle(el) : null;
     const inputs = propGroups.map(sp => {
-      const val = styles[sp.prop] || '';
+      const drafted = styles[sp.prop] || '';
+      // Populate with computed value when no draft exists, so fields are never blank.
+      let fallback = '';
+      if (!drafted && computedEl) {
+        const cssProp = sp.prop.replace(/([A-Z])/g, c => '-' + c.toLowerCase());
+        fallback = computedEl.getPropertyValue(cssProp).trim();
+      }
+      const val = drafted || fallback;
       return `
         <div class="gv-admin-field">
           <label>${escapeHtml(sp.label)}</label>
-          <input type="text" data-style-prop="${sp.prop}" value="${escapeHtml(val)}" placeholder="${escapeHtml(sp.placeholder)}">
+          <input type="text" data-style-prop="${sp.prop}" value="${escapeHtml(val)}" placeholder="${escapeHtml(sp.placeholder || fallback)}">
         </div>`;
     }).join('');
 
@@ -6607,11 +9070,11 @@
     allEditable.forEach(el => {
       const key = el.dataset.editKey;
       if (!key) return;
-      const pubRow = dashboardPublishedRows.find(r => r.edit_key === key);
+      const pubRow = publishedRows[key] || dashboardPublishedRows.find(r => r.edit_key === key);
       if (pubRow && pubRow.value_text !== undefined) {
-        el.textContent = sanitizeText(pubRow.value_text);
+        setEditableValue(el, pubRow.value_text);
       } else if (originalValues[key] !== undefined) {
-        el.textContent = String(originalValues[key]);
+        setEditableValue(el, originalValues[key]);
       }
     });
   }
@@ -7666,7 +10129,7 @@
         await saveElementStyleDraftData(editKey, merged);
       } else if (draft) {
         await supabaseClient.from('cms_element_styles').delete()
-          .eq('page_path', pagePath)
+          .in('page_path', getPagePathAliases())
           .eq('edit_key', editKey)
           .eq('status', 'draft');
         delete elementStyleDrafts[editKey];
@@ -9529,8 +11992,17 @@
     bindEntryEvents();
     ensureRoot();
     captureOriginalValues();
+    installGrowvaAdminDebug();
     initSupabase();
     setupAuthStateListener();
+    adminDebugLog('boot-auth-pre-restore', {
+      currentPath: window.location.pathname || '/',
+      pagePath,
+      supabaseStorageKeysCount: getSupabaseAuthStorageKeysCount(),
+      adminModeIntent: hasAdminModeIntent(),
+      adminNavPending: hasAdminNavPending(),
+      lastNavigationHandoff: getLastNavigationHandoff()
+    });
 
     // Phase 18: inject published VD styles FIRST (minimises flash of unstyled content)
     await applyPublishedElementStyles();
@@ -9544,20 +12016,64 @@
     await loadPublishedCustomSections();
     await applyPublishedSectionSettings();
     logCmsDebug('boot');
-    let hasBootSession = false;
+    const navPending = consumeAdminNavPending();
+    const wantsAdminMode = hasAdminModeIntent() || navPending;
+    adminDebugLog('boot-admin-intent', {
+      currentPath: window.location.pathname || '/',
+      pagePath,
+      wantsAdminMode,
+      adminModeIntent: hasAdminModeIntent(),
+      navPending,
+      supabaseStorageKeysCount: getSupabaseAuthStorageKeysCount()
+    });
+    // Capture intent BEFORE restoreAdminSession can clear it, so auth-state events
+    // (TOKEN_REFRESHED / SIGNED_IN) that fire after a cold-start timeout can still
+    // recover admin mode without re-prompting the user.
+    bootWantedAdminMode = wantsAdminMode;
+    let restoreResult = makeAdminRestoreResult(false, 'not_requested');
     try {
-      hasBootSession = await withTimeout(hasActiveAdminSession(), 10000, false);
+      restoreResult = await restoreAdminSession({ source: 'boot' });
     } catch (error) {
-      hasBootSession = false;
+      restoreResult = makeAdminRestoreResult(false, 'connection_failed', { error, message: 'Supabase session restore failed.' });
+      lastAdminSessionRestoreResult = sanitizeAdminRestoreResult(restoreResult);
     }
-    if (hasBootSession) {
-      await loadPublishedEdits();
-      await applyPublishedImageEdits();
-      await applyPublishedDesignTokens();
-      await loadPublishedCustomSections();
-      await applyPublishedSectionSettings();
-      await applyPublishedElementStyles();
+    if (restoreResult && restoreResult.ok && wantsAdminMode) {
+      // Skip re-fetch if the first-pass hydration already ran successfully — avoids
+      // a second cold-start Supabase query chain that adds 30–90 s on free-tier wake-up.
+      if (!publishedEditsLoaded) {
+        await loadPublishedEdits();
+        await applyPublishedImageEdits();
+        await applyPublishedDesignTokens();
+        await loadPublishedCustomSections();
+        await applyPublishedSectionSettings();
+        await applyPublishedElementStyles();
+      }
       await enterAdminMode();
+      setAdminModeIntent();
+      bootWantedAdminMode = false; // Admin mode entered; no further recovery needed.
+    } else if (wantsAdminMode && restoreResult && !restoreResult.ok && ['missing_profile', 'invalid_role', 'invalid_session', 'revoked_session'].includes(restoreResult.reason)) {
+      // Definitively rejected (wrong role, revoked token) — clear intent.
+      clearAdminModeIntent(`boot:${restoreResult.reason}`);
+      bootWantedAdminMode = false;
+    } else if (wantsAdminMode && restoreResult && !restoreResult.ok && restoreResult.reason === 'no_session') {
+      // No session found — if we also have no pending boot want, clear intent.
+      // Keep bootWantedAdminMode alive so TOKEN_REFRESHED can still recover
+      // if this was a race with the SDK's own token refresh.
+      clearAdminModeIntent(`boot:${restoreResult.reason}`);
+      // bootWantedAdminMode stays true — TOKEN_REFRESHED handler will clear it
+      // after entering admin, or it expires naturally on next navigation.
+    }
+    // For auth_timeout / user_timeout / connection_failed: intent preserved,
+    // bootWantedAdminMode stays true so TOKEN_REFRESHED fires admin recovery.
+    if (window.growvaAdminDebug && typeof window.growvaAdminDebug.selfTest === 'function') {
+      const bootSelfTest = window.growvaAdminDebug.selfTest();
+      if (!bootSelfTest.ok) console.warn('[GROWVA Admin] Runtime self-test failed after boot.', bootSelfTest);
+    }
+    if (window.growvaAdminDebug && typeof window.growvaAdminDebug.verifyLoadedAdminFile === 'function') {
+      setTimeout(() => {
+        window.growvaAdminDebug.verifyLoadedAdminFile()
+          .catch(error => console.warn('[GROWVA Admin] Loaded admin.js verification failed.', error));
+      }, 0);
     }
   }
 

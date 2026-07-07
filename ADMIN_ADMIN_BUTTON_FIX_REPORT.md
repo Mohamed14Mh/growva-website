@@ -1,55 +1,63 @@
 # Admin Button Fix Report
 
-## Root Cause
+## Root cause
+Stale/revoked Supabase auth session state in browser storage could interrupt the ADMIN entry flow, while the admin shell was not mounted early enough for reliable open-admin diagnostics.
 
-The admin entry flow could be interrupted by a stale or revoked Supabase auth session stored in browser localStorage/sessionStorage. When Supabase session refresh failed, the session/profile check could throw or mark the connection as failed before the admin entry fallback opened the login modal. At the same time, the admin shell was not mounted early enough to make open-admin diagnostics reliable before a click.
-
-## Files Changed
-
+## Files changed
 - `admin/admin.js`
+- `admin/admin.css`
+- `js/script.js`
 - `ADMIN_ADMIN_BUTTON_FIX_REPORT.md`
+- `GROWVA_ADMIN_PRODUCTIZATION_RECOVERY_REPORT.md`
 
-## Exact Fix
+## Exact fix
+- Added defensive auth handling for revoked/invalid refresh token, `AuthApiError`, missing session, invalid JWT/session refresh, and profile-check auth failures.
+- Invalid stored Supabase auth state is treated as logged out, stale Supabase storage is cleared when safe, admin intent is cleared, and the login modal opens.
+- ADMIN entry loading state is cleared in `finally` so `[data-admin-action="open-admin"]` cannot remain stuck in `is-admin-loading`.
+- `ensureRoot()` self-mounts `.gv-admin-shell` with `data-admin-shell="true"` before ADMIN session checks.
+- The exact selector path `document.querySelector('[data-admin-action="open-admin"]').click()` now mounts/opens the admin UI without hanging.
+- Existing session-check timeout/fallback behavior remains in place.
 
-- Added defensive Supabase auth error classification for revoked refresh tokens, invalid refresh tokens, `AuthApiError`, missing auth sessions, JWT/session expiration, and session refresh failures.
-- Added safe cleanup for Supabase-owned browser auth storage keys only: keys containing `supabase` or starting with `sb-`.
-- Added a shared admin auth reset path that clears `currentUser` and `adminProfile`, keeps the configured Supabase client usable, updates the topbar, and treats the user as logged out.
-- Wrapped `getSession()` retries and `loadAdminProfile()` checks so stale auth failures return `false` instead of throwing uncaught errors.
-- Kept the admin entry session timeout fallback at 2500ms and added the same bounded check to boot auto-session detection.
-- Ensured admin entry buttons always clear `is-admin-loading` and `aria-busy` in the open-admin `finally` path.
-- Kept the admin shell self-mounting fix:
-  - `ensureRoot()` creates the root on boot.
-  - The root exposes `.gv-admin-shell` and `data-admin-shell`.
-  - The inspector exposes `data-admin-panel`.
-  - Clicking `[data-admin-action="open-admin"]` calls `ensureRoot()` before session checks.
+## QA result
+- Cleared stale Supabase storage before browser retest:
 
-## QA Result
+```js
+Object.keys(localStorage).filter(k => k.includes('supabase') || k.startsWith('sb-')).forEach(k => localStorage.removeItem(k));
+sessionStorage.clear();
+location.reload();
+```
 
-- Cleared stale browser auth state before retesting:
-  - `Object.keys(localStorage).filter(k => k.includes('supabase') || k.startsWith('sb-')).forEach(k => localStorage.removeItem(k));`
-  - `sessionStorage.clear();`
-  - `location.reload();`
 - Opened `http://localhost:5500/contact.html?utm_source=instagram&utm_medium=social&utm_campaign=test_campaign`.
-- Clicked the `ADMIN` button.
-- Result: admin login modal opened, admin shell was mounted, and the button did not hang in loading state.
-- Verified `document.querySelector('.gv-admin-shell, .admin-shell, [data-admin-shell], [data-admin-panel]')` returned an element.
-- Ran `document.querySelector('[data-admin-action=open-admin]').click()` from the browser context.
-- Result: admin UI remained/opened successfully with no hang and no loading state.
-- Browser console check: `0` errors, `0` warnings.
+- Clicked ADMIN while logged out.
+- Result: admin shell mounted, login modal opened, no ADMIN loading hang.
+- Ran:
 
-## Static Checks
+```js
+document.querySelector('.gv-admin-shell, .admin-shell, [data-admin-shell], [data-admin-panel]')
+```
 
-- `node --check admin/admin.js`: passed
-- `node --check js/script.js`: passed
-- `node --check js/content-registry.js`: passed
-- `git diff --stat`: `admin/admin.js | 158 +++++++++++++++++++++++++++++++++++++++++++++++++--------`
+Result: returned `<div class="gv-admin-root gv-admin-shell" data-admin-shell="true">`.
 
-## Safe To Commit
+- Ran:
 
-Yes. The fix is scoped to the admin entry/session handling in `admin/admin.js` plus this report.
+```js
+document.querySelector('[data-admin-action="open-admin"]').click()
+```
 
-Exact commit command:
+Result: admin UI opened login flow, no hang, no uncaught auth error in console.
 
+## Verification
+- `node --check admin/admin.js`: pass
+- `node --check js/script.js`: pass
+- `node --check js/content-registry.js`: pass
+- `git diff --check`: pass, with line-ending normalization warnings only
+
+## Safe to commit
+Safe to commit after reviewing the diff and excluding `supabase/.temp/linked-project.json` plus unrelated historical reports.
+
+## Exact commit command
 ```bash
-git add admin/admin.js ADMIN_ADMIN_BUTTON_FIX_REPORT.md && git commit -m "Fix admin entry stale auth handling"
+git add admin/admin.js admin/admin.css js/script.js ADMIN_ADMIN_BUTTON_FIX_REPORT.md GROWVA_ADMIN_PRODUCTIZATION_RECOVERY_REPORT.md
+git commit -m "Fix admin entry and productize CMS dashboard"
+git push
 ```

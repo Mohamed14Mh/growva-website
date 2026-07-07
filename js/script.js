@@ -1427,6 +1427,27 @@ document.addEventListener('DOMContentLoaded', () => {
       let gone = false;
       const go = () => {
         if (gone) return; gone = true;
+        try {
+          const adminIntent = document.body.classList.contains('admin-mode') || localStorage.getItem('growva_admin_mode_intent') === '1';
+          if (adminIntent) {
+            const supabaseStorageKeysCount = Object.keys(localStorage)
+              .filter(key => key.includes('supabase') || key.startsWith('sb-')).length +
+              Object.keys(sessionStorage)
+                .filter(key => key.includes('supabase') || key.startsWith('sb-')).length;
+            sessionStorage.setItem('growva_admin_nav_pending', '1');
+            sessionStorage.setItem('growva_admin_last_navigation_handoff', JSON.stringify({
+              source: 'public-page-transition',
+              fromUrl: window.location.href,
+              fromPath: window.location.pathname || '/',
+              toPath: href,
+              adminModeActive: document.body.classList.contains('admin-mode'),
+              adminModeIntent: localStorage.getItem('growva_admin_mode_intent') === '1',
+              supabaseStorageKeysCount,
+              at: new Date().toISOString()
+            }));
+            if (window.GROWVA_ADMIN_DEBUG) console.info('[GROWVA Admin Nav]', 'handoff-set', { href, supabaseStorageKeysCount });
+          }
+        } catch (_) {}
         sessionStorage.setItem('gv_nav', '1');
         window.location.href = href;
       };
