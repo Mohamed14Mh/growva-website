@@ -644,12 +644,23 @@
 
   function getPagePathAliases(path = pagePath) {
     const canonical = String(path || 'index.html').replace(/^\/+/, '') || 'index.html';
-    const aliases = new Set([canonical, `/${canonical}`]);
+    const aliases = new Set([canonical, `/${canonical}`, 'global']);
     if (canonical === 'index.html') {
       aliases.add('/');
       aliases.add('/index.html');
     }
     return Array.from(aliases).filter(Boolean);
+  }
+
+  // Elements shared across every page (header/footer logo, nav links, tagline, etc.)
+  // use an edit_key prefixed with "global." and are always stored under
+  // page_path "global" rather than the current page, so one edit applies site-wide.
+  function isGlobalEditKey(key) {
+    return String(key || '').indexOf('global.') === 0;
+  }
+
+  function resolveContentPagePath(key) {
+    return isGlobalEditKey(key) ? 'global' : pagePath;
   }
 
   function getPagePathInFilter(column = 'page_path') {
@@ -1810,6 +1821,7 @@
     panel.dataset.adminPanel = 'true';
     panel.setAttribute('aria-label', 'GROWVA admin inspector');
     panel.innerHTML = `
+      <button class="gv-admin-panel-collapse" type="button" aria-label="Collapse panel to see full page" data-admin-action="toggle-panel-collapse" title="Hide panel to see the full page">&raquo;</button>
       <div class="gv-admin-panel-head">
         <div>
           <span class="gv-admin-pill">Persistent CMS</span>
@@ -2607,6 +2619,7 @@
   async function openDashboard() {
     if (!adminProfile && !mockAdminEnabled) return;
     ensureRoot();
+    vdHideOverlay();
     dashboard.hidden = false;
     document.body.classList.add('admin-dashboard-open');
     dashboardMessage = 'Loading dashboard...';
@@ -4137,7 +4150,8 @@
 
   function getElementByEditKey(key) {
     if (!key) return null;
-    return document.querySelector(`[data-edit-key="${cssEscape(key)}"]`);
+    const matches = document.querySelectorAll(`[data-edit-key="${cssEscape(key)}"]`);
+    return Array.from(matches).find(el => !el.closest('[data-admin-ui]')) || null;
   }
 
   function focusEditableByKey(key) {
@@ -4314,6 +4328,11 @@
     if (action === 'exit-admin') exitAdminMode();
     if (action === 'logout') logout();
     if (action === 'close-panel') clearSelection();
+    if (action === 'toggle-panel-collapse') {
+      const collapsed = document.body.classList.toggle('admin-panel-collapsed');
+      actionElement.innerHTML = collapsed ? '&laquo;' : '&raquo;';
+      actionElement.title = collapsed ? 'Show panel' : 'Hide panel to see the full page';
+    }
     if (action === 'apply-temp') saveSelectedDraft();
     if (action === 'publish-selected-field') publishSelectedField();
     if (action === 'revert-to-published') revertSelectedToPublished();
@@ -4358,6 +4377,7 @@
     if (action === 'media-toggle-archived') { mediaShowArchived = !mediaShowArchived; renderDashboard(); setTimeout(bindMediaLibraryEvents, 0); }
     if (action === 'image-save-draft') saveImageDraft();
     if (action === 'image-reset-draft') resetImageDraft();
+    if (action === 'image-remove') removeImageDraft();
     if (action === 'image-choose-media') { switchDashboardTab('media'); openDashboard(); }
     if (action === 'image-upload-new') {
       if (!canUseMediaUpload()) {
@@ -4381,6 +4401,9 @@
     }
     if (action === 'inspector-tab') {
       inspectorTab = actionElement.dataset.inspectorTab || 'content';
+      if (selectedElement) {
+        if (inspectorTab === 'visual') vdSelect(selectedElement); else vdDeselect();
+      }
       if (customSectionEditorId && dashboard && !dashboard.hidden) {
         renderDashboard();
         setTimeout(bindSectionBuilderEvents, 0);
@@ -4795,7 +4818,10 @@
     if (selectedElement) selectedElement.classList.remove('gv-admin-selected');
     selectedElement = element;
     selectedElement.classList.add('gv-admin-selected');
-    vdSelect(element);
+    // The box-model overlay (dimensions/edit-key readout) is only relevant
+    // on the Visual tab; showing it for plain content/image/link editing
+    // clutters the page with technical detail non-technical owners don't need.
+    if (inspectorTab === 'visual') vdSelect(element); else vdDeselect();
     renderInspector(element);
   }
 
@@ -4828,6 +4854,7 @@
   }
 
   function shouldShowSubfieldInspector(element, type, subfields) {
+    if (!subfields || !subfields.length) return false;
     if (type === 'card' || type === 'group' || type === 'section') return true;
     const classText = `${element.className || ''} ${element.dataset.sectionType || ''}`.toLowerCase();
     return /\b(card|tile|item|project|service|feature|pricing|case)\b/.test(classText);
@@ -5172,6 +5199,7 @@
       markCmsTextApplied(element, safeValue);
       return;
     }
+    if (element.querySelector && element.querySelector('img, model-viewer, svg, canvas, video')) return;
     if (element.children.length === 0 || ['text', 'richtext', 'button', 'link'].includes(element.dataset.editType || 'text')) {
       element.textContent = safeValue;
       markCmsTextApplied(element, safeValue);
@@ -5201,18 +5229,26 @@
 
   function applyRowToElement(row) {
     if (!row || !row.edit_key) return;
-    const element = document.querySelector(`[data-edit-key="${cssEscape(row.edit_key)}"]`);
+    const element = getElementByEditKey(row.edit_key);
     if (!element) return;
+    const isImageRow = row.edit_type === 'image' || row.edit_type === 'background-image';
+    if (isImageRow) {
+      const imageValue = getImageValueFromRow(row);
+      if (imageValue) applyImageValueToElement(element, imageValue);
+      return;
+    }
+    const linkJson = row.value_json && typeof row.value_json === 'object' && !Array.isArray(row.value_json) ? row.value_json : null;
+    const isLinkRow = row.edit_type === 'link' && isLinkEditable(element);
+    if (isLinkRow) {
+      if (linkJson && (linkJson.href || linkJson.label)) applyLinkValueToElement(element, linkJson);
+      return;
+    }
     if (typeof row.value_text === 'string') {
       const safeValue = sanitizeText(row.value_text);
       const signature = `${row.status || ''}:${row.page_path || ''}:${row.updated_at || ''}:${safeValue}`;
       if (element.dataset.cmsAppliedSignature === signature && getEditableValue(element) === safeValue) return;
       setEditableValue(element, safeValue);
       element.dataset.cmsAppliedSignature = signature;
-    }
-    const linkJson = row.value_json && typeof row.value_json === 'object' && !Array.isArray(row.value_json) ? row.value_json : null;
-    if (linkJson && (linkJson.href || linkJson.label) && isLinkEditable(element)) {
-      applyLinkValueToElement(element, linkJson);
     }
   }
 
@@ -5323,7 +5359,7 @@
 
   function makeLocalDraftRow(element, value, valueJson = null) {
     return {
-      page_path: pagePath,
+      page_path: resolveContentPagePath(element.dataset.editKey || ''),
       page_id: getRegistry().pageId || '',
       edit_key: element.dataset.editKey || '',
       edit_type: element.dataset.editType || 'text',
@@ -5337,7 +5373,7 @@
 
   function makeContentPayload(element, value, status, valueJson = null) {
     return {
-      page_path: pagePath,
+      page_path: resolveContentPagePath(element.dataset.editKey || ''),
       page_id: getRegistry().pageId || '',
       edit_key: element.dataset.editKey || '',
       edit_type: element.dataset.editType || 'text',
@@ -5626,6 +5662,7 @@
 
   function openPublishDialog() {
     ensureRoot();
+    vdHideOverlay();
     document.body.classList.add('admin-publish-dialog-open');
     const body = $('[data-publish-confirm-body]', publishDialog);
     const imageRows = pendingPublishRows.filter(r => r.edit_type === 'image' || r.edit_type === 'background-image');
@@ -5798,7 +5835,7 @@
       return;
     }
     const publishedPayload = pendingPublishRows.map(row => ({
-      page_path: pagePath,
+      page_path: resolveContentPagePath(row.edit_key),
       page_id: row.page_id,
       edit_key: row.edit_key,
       edit_type: row.edit_type,
@@ -6558,8 +6595,10 @@
     const publishedRow = publishedRows[key];
     const draftVal = getImageValueFromRow(draftRow) || {};
     const publishedVal = getImageValueFromRow(publishedRow) || {};
+    const rawBackground = element.style.backgroundImage || '';
+    const backgroundIsUrl = /^url\(/.test(rawBackground.trim());
     const currentSrc = type === 'background-image'
-      ? (element.dataset.mediaCurrentUrl || element.style.backgroundImage.replace(/^url\(["']?|["']?\)$/g, ''))
+      ? (element.dataset.mediaCurrentUrl || (backgroundIsUrl ? rawBackground.replace(/^url\(["']?|["']?\)$/g, '') : ''))
       : (element.getAttribute('src') || '');
     const currentAlt = element.getAttribute ? (element.getAttribute('alt') || '') : '';
     const previewUrl = draftVal.url || currentSrc || '';
@@ -6602,6 +6641,7 @@
       <div class="gv-admin-panel-actions">
         <button class="gv-admin-action gv-admin-action--mint" type="button" data-admin-action="image-save-draft">Save Draft</button>
         <button class="gv-admin-action" type="button" data-admin-action="publish-selected-field" ${draftRow ? '' : 'disabled'}>Publish This Image</button>
+        <button class="gv-admin-action gv-admin-action--danger" type="button" data-admin-action="image-remove" ${(draftVal.url || currentSrc) ? '' : 'disabled'} title="Clear this image field back to empty">Remove Image</button>
         <button class="gv-admin-action" type="button" data-admin-action="image-reset-draft" ${draftRow ? '' : 'disabled'}>Reset Draft</button>
         <button class="gv-admin-action" type="button" data-admin-action="close-panel">Close</button>
       </div>
@@ -6651,6 +6691,16 @@
     }
   }
 
+  async function removeImageDraft() {
+    if (!selectedElement) return;
+    if (!window.confirm('Remove this image? It will go back to empty once you publish.')) return;
+    const urlInput = $('#gvImageUrl', panel);
+    const altInput = $('#gvImageAlt', panel);
+    if (urlInput) urlInput.value = '';
+    if (altInput) altInput.value = '';
+    await saveImageDraft();
+  }
+
   async function saveImageDraft() {
     if (!selectedElement) return;
     performanceState.saveDraftCalls += 1;
@@ -6673,7 +6723,7 @@
     if (isMockAdminSession()) {
       mockDraft[key] = url;
       saveMockDraft();
-      draftRows[key] = { page_path: pagePath, page_id: getRegistry().pageId || '', edit_key: key, edit_type: type, section_id: selectedElement.dataset.sectionId || '', value_text: url, value_json: valueJson, status: 'draft' };
+      draftRows[key] = { page_path: resolveContentPagePath(key), page_id: getRegistry().pageId || '', edit_key: key, edit_type: type, section_id: selectedElement.dataset.sectionId || '', value_text: url, value_json: valueJson, status: 'draft' };
       lastAdminSaveResult = makeAdminOperationSuccess('Save Image Draft', 'cms_content', key, { mock: true });
       lastAdminSaveError = null;
       if (note) note.textContent = 'Image draft saved (mock mode).';
@@ -6691,7 +6741,7 @@
       return;
     }
     const payload = {
-      page_path: pagePath, page_id: getRegistry().pageId || '',
+      page_path: resolveContentPagePath(key), page_id: getRegistry().pageId || '',
       edit_key: key, edit_type: type,
       section_id: selectedElement.dataset.sectionId || '',
       section_type: (selectedElement.closest('[data-section-type]') || {}).dataset && (selectedElement.closest('[data-section-type]')).dataset.sectionType || '',
@@ -6755,14 +6805,7 @@
     if (publishedVal && publishedVal.url && isSafeImageUrl(publishedVal.url)) {
       applyImageValueToElement(selectedElement, publishedVal);
     } else {
-      const origSrc = selectedElement.dataset.adminOriginalSrc || '';
-      const origAlt = selectedElement.dataset.adminOriginalAlt || '';
-      if (selectedElement.tagName === 'IMG') {
-        if (origSrc) selectedElement.setAttribute('src', origSrc);
-        selectedElement.setAttribute('alt', origAlt);
-      } else if (selectedElement.dataset.editType === 'background-image' && origSrc) {
-        selectedElement.style.backgroundImage = 'url("' + origSrc.replace(/"/g, '%22') + '")';
-      }
+      applyImageValueToElement(selectedElement, { url: '', alt: '' });
     }
   }
 
@@ -6773,14 +6816,16 @@
     const type = element.dataset.editType || 'image';
     if (url && !isSafeImageUrl(url)) return;
     if (type === 'background-image') {
-      if (!element.dataset.mediaCurrentUrl) element.dataset.mediaCurrentUrl = element.style.backgroundImage.replace(/^url\(["']?|["']?\)$/g, '');
-      if (url) element.style.backgroundImage = 'url("' + url.replace(/"/g, '%22') + '")';
+      if (element.dataset.adminOriginalBg === undefined) element.dataset.adminOriginalBg = element.style.backgroundImage || '';
+      element.style.backgroundImage = url ? 'url("' + url.replace(/"/g, '%22') + '")' : element.dataset.adminOriginalBg;
       element.dataset.mediaCurrentUrl = url;
     } else {
-      if (!element.dataset.adminOriginalSrc) element.dataset.adminOriginalSrc = element.getAttribute('src') || '';
-      if (!element.dataset.adminOriginalAlt) element.dataset.adminOriginalAlt = element.getAttribute('alt') || '';
+      if (element.dataset.adminOriginalSrc === undefined) element.dataset.adminOriginalSrc = element.getAttribute('src') || '';
+      if (element.dataset.adminOriginalAlt === undefined) element.dataset.adminOriginalAlt = element.getAttribute('alt') || '';
       if (url) element.setAttribute('src', url);
-      element.setAttribute('alt', alt);
+      else if (element.dataset.adminOriginalSrc) element.setAttribute('src', element.dataset.adminOriginalSrc);
+      else element.removeAttribute('src');
+      element.setAttribute('alt', alt || element.dataset.adminOriginalAlt || '');
     }
   }
 

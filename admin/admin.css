@@ -103,6 +103,11 @@ body.admin-mode [aria-disabled="true"]{
 .gv-admin-root input,
 .gv-admin-root textarea{font-family:inherit;}
 
+body.admin-mode .nav{
+  top:66px;
+  transition:top .2s ease;
+}
+
 .gv-admin-topbar{
   position:fixed;
   top:10px;
@@ -352,7 +357,7 @@ body.admin-mode [aria-disabled="true"]{
 
 .gv-admin-panel{
   position:fixed;
-  top:76px;
+  top:148px;
   right:12px;
   bottom:12px;
   z-index:10055;
@@ -373,6 +378,36 @@ body.admin-mode .gv-admin-panel{
   transform:translateX(0);
   opacity:1;
   pointer-events:auto;
+}
+body.admin-mode.admin-preview-mode .gv-admin-panel{
+  transform:translateX(calc(100% + 24px));
+  opacity:0;
+  pointer-events:none;
+}
+.gv-admin-panel-collapse{
+  position:absolute;
+  top:14px;
+  left:-14px;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  border:1px solid rgba(177,250,32,.35);
+  background:var(--gv-admin-panel,#141414);
+  color:#f6f6f6;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  font-size:14px;
+  line-height:1;
+  z-index:1;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);
+}
+body.admin-panel-collapsed .gv-admin-panel{
+  transform:translateX(calc(100% - 28px));
+}
+body.admin-panel-collapsed .gv-admin-panel-body,
+body.admin-panel-collapsed .gv-admin-panel-head > *:not(.gv-admin-panel-collapse){
+  visibility:hidden;
 }
 .gv-admin-panel-head{
   display:flex;
@@ -1862,7 +1897,7 @@ body.admin-visitor-preview [data-edit-key].gv-admin-selected {
   pointer-events: none;
   position: fixed;
   inset: 0;
-  z-index: 10090;
+  z-index: 9000;
 }
 .gv-vd-overlay.is-active {
   display: block;
@@ -1908,7 +1943,7 @@ body.admin-visitor-preview [data-edit-key].gv-admin-selected {
   padding: 2px 5px;
   white-space: nowrap;
   pointer-events: none;
-  z-index: 10091;
+  z-index: 9001;
   letter-spacing: 0;
   max-width: 320px;
   overflow: hidden;
@@ -1926,7 +1961,7 @@ body.admin-visitor-preview [data-edit-key].gv-admin-selected {
   padding: 4px 7px;
   white-space: nowrap;
   pointer-events: none;
-  z-index: 10091;
+  z-index: 9001;
   letter-spacing: 0;
   backdrop-filter: blur(4px);
 }
@@ -3897,7 +3932,7 @@ body.admin-mode .gv-admin-state {
 }
 
 body.admin-mode .gv-admin-panel {
-  top: 64px;
+  top: 148px;
   right: 10px;
   bottom: 10px;
   width: min(360px, calc(100vw - 20px));

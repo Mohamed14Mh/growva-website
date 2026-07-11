@@ -1513,7 +1513,9 @@ document.addEventListener('DOMContentLoaded', () => {
       '.why-card', '.service-compact-item', '.case-card',
       '.shopify-pillar', '.process-stage', '.pricing-card',
       '.value-card', '.faq-item', '.shopify-process-step',
-      '.latest-project-card'
+      '.latest-project-card',
+      '.testi-card', '.stat-item', '.value-item',
+      '.project-card-visual', '.work-cat-card'
     ].join(',');
     document.querySelectorAll(SEL).forEach(card => {
       card.classList.add('has-tilt');
@@ -1644,5 +1646,65 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   })();
+
+  /* ---------- 3D logo turntable ----------
+     Drives rotation manually via cameraOrbit rather than relying on
+     model-viewer's built-in auto-rotate, since the site's global THREE.js
+     (r128, used for hero canvases) conflicts with model-viewer's bundled
+     THREE.js and silently freezes the built-in auto-rotate loop.
+     Rotation on/off, direction, and speed are read from small CMS text
+     fields (global.settings.logo3d_*) so the owner can change them from
+     the admin panel without code changes. */
+  (function spinLogo3D() {
+    const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const DEFAULT_SPEED = 24;
+    let settings = { enabled: !reducedMotion, dir: 1, speed: DEFAULT_SPEED };
+    function readSettings() {
+      if (reducedMotion) { settings.enabled = false; return; }
+      const rotateEl = document.querySelector('[data-edit-key="global.settings.logo3d_rotate"]');
+      const dirEl = document.querySelector('[data-edit-key="global.settings.logo3d_direction"]');
+      const speedEl = document.querySelector('[data-edit-key="global.settings.logo3d_speed"]');
+      const rotateVal = (rotateEl && rotateEl.textContent.trim().toLowerCase()) || 'on';
+      const dirVal = (dirEl && dirEl.textContent.trim().toLowerCase()) || 'ltr';
+      const speedVal = parseFloat(speedEl && speedEl.textContent.trim());
+      settings.enabled = rotateVal !== 'off';
+      settings.dir = dirVal === 'rtl' ? -1 : 1;
+      settings.speed = Number.isFinite(speedVal) && speedVal >= 0 ? speedVal : DEFAULT_SPEED;
+    }
+    readSettings();
+    setInterval(readSettings, 1500);
+
+    let lastTime = null;
+    let angle = 0;
+    function tick(time) {
+      const models = document.querySelectorAll('model-viewer.logo-3d, model-viewer.footer-object-3d');
+      if (models.length && settings.enabled) {
+        if (lastTime !== null) angle = (angle + settings.dir * settings.speed * (time - lastTime) / 1000 + 360) % 360;
+        lastTime = time;
+        const orbit = angle + 'deg 75deg auto';
+        models.forEach(mv => { mv.cameraOrbit = orbit; });
+      } else {
+        lastTime = null;
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  })();
+
+  /* ---------- Clickable CMS cards (e.g. bento gallery tiles) ----------
+     Cards carry their link as a hidden sibling text field rather than
+     wrapping the tile in an <a>, since GSAP Flip (used for the bento
+     gallery's scroll-driven layout) computes positions from the tile's
+     direct grid placement and breaks if an extra wrapper element is
+     introduced. In admin edit mode, clicks are left alone so the CMS
+     can select the card for editing instead of navigating away. */
+  document.addEventListener('click', (event) => {
+    if (document.body.classList.contains('admin-edit-mode')) return;
+    const card = event.target.closest('[data-cms-clickable-card]');
+    if (!card) return;
+    const hrefField = card.querySelector('[data-edit-type="text"][data-edit-key$=".href"]');
+    const href = hrefField ? hrefField.textContent.trim() : '';
+    if (href && href !== '#') window.location.href = href;
+  });
 
 });
