@@ -1743,28 +1743,75 @@ document.addEventListener('DOMContentLoaded', () => {
       return c;
     }
 
-    // ---- Sparse drifting particles, colour-graded by depth — kept deliberately
-    // minimal (a handful of specks, not a dense field) per direction ----
-    const COUNT = 22;
+    // ---- Drifting particle field the camera flies through, colour-graded by depth ----
+    const COUNT = 700;
     const pPos = new Float32Array(COUNT * 3);
     const pCol = new Float32Array(COUNT * 3);
+    const positions = [];
     for (let i = 0; i < COUNT; i++) {
-      const x = (Math.random() - 0.5) * 50;
-      const y = (Math.random() - 0.5) * 34;
+      const x = (Math.random() - 0.5) * 44;
+      const y = (Math.random() - 0.5) * 44;
       const z = (Math.random() - 0.5) * DEPTH;
       pPos[i * 3] = x; pPos[i * 3 + 1] = y; pPos[i * 3 + 2] = z;
       const c = colorForDepth((z + HALF_DEPTH) / DEPTH);
       pCol[i * 3] = c.r; pCol[i * 3 + 1] = c.g; pCol[i * 3 + 2] = c.b;
+      positions.push(new THREE.Vector3(x, y, z));
     }
     const pGeo = new THREE.BufferGeometry();
     pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
     pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
     const pMat = new THREE.PointsMaterial({
-      size: 0.22, transparent: true, opacity: 0.55, vertexColors: true,
+      size: 0.13, transparent: true, opacity: 0.75, vertexColors: true,
       blending: THREE.AdditiveBlending, depthWrite: false
     });
     const particles = new THREE.Points(pGeo, pMat);
     scene.add(particles);
+
+    // ---- Constellation links between nearby particles (computed once) ----
+    const LINK_DIST = 5.5;
+    const linkPositions = [];
+    const linkColors = [];
+    outer:
+    for (let i = 0; i < positions.length; i++) {
+      for (let j = i + 1; j < positions.length; j++) {
+        if (positions[i].distanceTo(positions[j]) < LINK_DIST) {
+          linkPositions.push(positions[i].x, positions[i].y, positions[i].z, positions[j].x, positions[j].y, positions[j].z);
+          const c = colorForDepth(((positions[i].z + positions[j].z) / 2 + HALF_DEPTH) / DEPTH);
+          linkColors.push(c.r, c.g, c.b, c.r, c.g, c.b);
+          if (linkPositions.length / 6 > 260) break outer;
+        }
+      }
+    }
+    const lGeo = new THREE.BufferGeometry();
+    lGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(linkPositions), 3));
+    lGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(linkColors), 3));
+    const lMat = new THREE.LineBasicMaterial({
+      vertexColors: true, transparent: true, opacity: 0.16,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const links = new THREE.LineSegments(lGeo, lMat);
+    scene.add(links);
+
+    // ---- Restrained wireframe markers for scale/depth — spread across the
+    // full depth range ----
+    const shapes = [];
+    const shapeGeoms = [
+      () => new THREE.IcosahedronGeometry(3, 0),
+      () => new THREE.TorusGeometry(2.4, 0.4, 8, 28)
+    ];
+    const SHAPE_COUNT = 9;
+    for (let i = 0; i < SHAPE_COUNT; i++) {
+      const geo = shapeGeoms[i % shapeGeoms.length]();
+      const z = -HALF_DEPTH + ((i + 0.5) / SHAPE_COUNT) * DEPTH;
+      const color = colorForDepth((z + HALF_DEPTH) / DEPTH);
+      const mat = new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.13 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 22, z);
+      mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+      mesh.userData.spin = 0.3 + Math.random() * 0.4;
+      scene.add(mesh);
+      shapes.push(mesh);
+    }
 
     // ---- Orbit rings — thin nested rings drifting slowly around a few hub
     // points, suggesting system / movement / a connected brand ----
@@ -1874,26 +1921,23 @@ document.addEventListener('DOMContentLoaded', () => {
         box.getSize(size);
         const maxDim = Math.max(size.x, size.y, size.z) || 1;
         const scale = 9 / maxDim;
-        centerpiece.scale.setScalar(scale);
+        // The exported mesh reads as a true mirror image (reversed letter
+        // order AND each letter flipped) — a 180° rotation only swaps which
+        // face points at the camera and doesn't fix it, since this is a
+        // handedness/winding issue baked into the export, not an
+        // orientation one. Mirror the X axis to correct it.
+        centerpiece.scale.set(-scale, scale, scale);
         const center = new THREE.Vector3();
         box.getCenter(center);
-        centerpiece.position.set(6 - center.x * scale, -2 - center.y * scale, centerpieceZ - center.z * scale);
+        centerpiece.position.set(6 + center.x * scale, -2 - center.y * scale, centerpieceZ - center.z * scale);
         centerpiece.traverse(node => {
           if (node.isMesh) {
-            node.material = new THREE.MeshPhysicalMaterial({
-              color: 0x0c1009, roughness: 0.32, metalness: 0.3,
-              clearcoat: 0.85, clearcoatRoughness: 0.2,
-              emissive: 0x1a3305, emissiveIntensity: 0.55
-            });
+            node.material = new THREE.MeshBasicMaterial({ color: 0xB1FA20 });
           }
         });
         scene.add(centerpiece);
       });
     }
-    const centerpieceLight = new THREE.DirectionalLight(0xffffff, 0.9);
-    centerpieceLight.position.set(4, 6, 12);
-    scene.add(centerpieceLight);
-    scene.add(new THREE.AmbientLight(0x556644, 0.6));
 
     // ---- Camera choreography: a winding multi-beat flight tied to scroll ----
     // Travel distance is capped at 85% of HALF_DEPTH so the camera always
@@ -1928,6 +1972,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window._rafPaused || !visible) return;
       const t = clock.getElapsedTime();
       particles.rotation.y = t * 0.008;
+      links.rotation.y = particles.rotation.y;
+      shapes.forEach(s => { s.rotation.x += s.userData.spin * 0.004; s.rotation.y += s.userData.spin * 0.003; });
       if (centerpiece) {
         centerpiece.rotation.x = 0.1 + Math.sin(t * 0.15) * 0.05;
         centerpiece.rotation.y += 0.004;
