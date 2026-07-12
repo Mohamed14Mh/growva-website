@@ -347,69 +347,50 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
   }
 }
 
-/* ================= HERO (index only) ================= */
+/* ================= HERO (index only) =================
+   Transparent by design — the sitewide cinematicWebGL canvas (fixed,
+   behind everything) is what supplies the scene here now; the old
+   heroCanvas grid + spinning brand-object mesh were removed. */
 .hero-travel-scene{
   position:relative;
-  background:var(--black);
+  background:transparent;
   isolation:isolate;
 }
 .hero{
-  position:sticky;top:0;min-height:100vh;background:var(--black);color:var(--ivory);
+  position:sticky;top:0;min-height:100vh;background:transparent;color:var(--black);
   display:flex;flex-direction:column;justify-content:center;overflow:hidden;
   z-index:1;
 }
-#heroCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:.85;}
 .brand-object-canvas{
   display:block;
   width:100%;
   height:100%;
-}
-.hero-brand-object{
-  position:absolute;
-  left:clamp(540px,52vw,760px);
-  top:clamp(170px,24vh,270px);
-  width:clamp(130px,14vw,190px);
-  height:clamp(130px,14vw,190px);
-  z-index:2;
-  opacity:.94;
-  pointer-events:none;
-  mix-blend-mode:screen;
-  filter:drop-shadow(0 20px 60px rgba(177,250,32,.12));
-}
-.hero-vignette{
-  position:absolute;inset:0;
-  background:radial-gradient(ellipse at 50% 40%,transparent 0%,rgba(10,10,10,.55) 75%),
-             linear-gradient(180deg,rgba(10,10,10,.15) 0%,rgba(10,10,10,.75) 100%);
-  pointer-events:none;
 }
 .hero-content{
   position:relative;z-index:2;max-width:var(--container);margin:0 auto;padding:160px 40px 80px;width:100%;
 }
 .hero-title{font-family:var(--serif);font-weight:500;font-size:clamp(3.4rem,9vw,7.6rem);line-height:.98;letter-spacing:-.02em;margin-bottom:32px;}
 .hero-title .italic{font-style:italic;font-weight:400;color:var(--mint);}
-.hero-sub{font-size:1.15rem;color:rgba(246,246,246,.72);max-width:480px;line-height:1.55;margin-bottom:44px;font-weight:400;}
+.hero-sub{font-size:1.15rem;color:rgba(10,10,10,.72);max-width:480px;line-height:1.55;margin-bottom:44px;font-weight:400;}
 .hero .eyebrow{color:var(--mint);}
 .hero-actions{display:flex;gap:18px;flex-wrap:wrap;}
-.hero .btn-ghost{border-color:rgba(246,246,246,.3);color:var(--ivory);}
-.hero .btn-ghost::before{background:var(--mint);}
-.hero .btn-ghost:hover{color:var(--black-deep);border-color:var(--mint);}
 
 .hero-scroll{
   position:absolute;bottom:110px;left:40px;z-index:2;display:flex;align-items:center;gap:12px;
-  font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(246,246,246,.55);
+  font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(10,10,10,.55);
 }
-.hero-scroll-line{width:1px;height:46px;background:rgba(246,246,246,.2);position:relative;overflow:hidden;}
+.hero-scroll-line{width:1px;height:46px;background:rgba(10,10,10,.2);position:relative;overflow:hidden;}
 .hero-scroll-line i{position:absolute;top:-100%;left:0;width:100%;height:100%;background:var(--mint);animation:scrollLine 2s ease-in-out infinite;}
 @keyframes scrollLine{0%{top:-100%;} 50%{top:0;} 100%{top:100%;}}
 
 .marquee-strip{
-  position:relative;z-index:2;border-top:1px solid rgba(246,246,246,.14);
+  position:relative;z-index:2;border-top:1px solid rgba(10,10,10,.14);
   padding:26px 0;overflow:hidden;white-space:nowrap;
 }
 .marquee-track{display:inline-flex;gap:56px;animation:marquee 28s linear infinite;}
 .marquee-track span{
   font-family:var(--mono);font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;
-  color:rgba(246,246,246,.55);
+  color:rgba(10,10,10,.55);
 }
 @keyframes marquee{0%{transform:translateX(0);} 100%{transform:translateX(-50%);}}
 
@@ -1334,6 +1315,15 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .final-cta .btn-ghost{border-color:rgba(246,246,246,.3);color:var(--ivory);}
 .final-cta .btn-ghost::before{background:var(--mint);}
 .final-cta .btn-ghost:hover{color:var(--black-deep);border-color:var(--mint);}
+
+/* Homepage-only variant: transparent so the sitewide cinematicWebGL
+   canvas shows through, matching the rest of the homepage. Every other
+   page keeps the standard dark .final-cta above. */
+.final-cta.final-cta--light{background:transparent;color:var(--black);}
+.final-cta--light .final-sub{color:rgba(10,10,10,.65);}
+.final-cta--light .btn-ghost{border-color:rgba(10,10,10,.25);color:var(--black);}
+.final-cta--light .btn-ghost::before{background:var(--black);}
+.final-cta--light .btn-ghost:hover{color:var(--ivory);border-color:var(--black);}
 
 /* ================= FOOTER ================= */
 .footer{

@@ -1086,79 +1086,6 @@ document.addEventListener('DOMContentLoaded', () => {
     })();
   }
 
-  /* ================= THREE.js — Hero background (index only) ================= */
-  (function heroScene() {
-    const canvas = document.getElementById('heroCanvas');
-    if (!canvas || !window.THREE) return;
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    const scene  = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(50, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
-    camera.position.set(0, 3.4, 7.2);
-
-    function resize() {
-      const w = canvas.clientWidth, h = canvas.clientHeight;
-      renderer.setSize(w, h, false);
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-    }
-
-    const geo     = new THREE.PlaneGeometry(16, 16, 64, 64);
-    geo.rotateX(-Math.PI / 2.6);
-    const mat     = new THREE.MeshBasicMaterial({ color: 0xB1FA20, wireframe: true, transparent: true, opacity: 0.45 });
-    const terrain = new THREE.Mesh(geo, mat);
-    terrain.position.y = -1.6;
-    scene.add(terrain);
-
-    const pos  = geo.attributes.position;
-    const base = new Float32Array(pos.array.length);
-    base.set(pos.array);
-
-    const pCount = 260;
-    const pGeo   = new THREE.BufferGeometry();
-    const pPos   = new Float32Array(pCount * 3);
-    for (let i = 0; i < pCount; i++) {
-      pPos[i * 3]     = (Math.random() - 0.5) * 14;
-      pPos[i * 3 + 1] = Math.random() * 6 - 1;
-      pPos[i * 3 + 2] = (Math.random() - 0.5) * 14;
-    }
-    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-    const pMat     = new THREE.PointsMaterial({ color: 0xf6f6f6, size: 0.03, transparent: true, opacity: 0.5 });
-    const particles = new THREE.Points(pGeo, pMat);
-    scene.add(particles);
-
-    let targetX = 0, targetY = 0;
-    window.addEventListener('mousemove', e => {
-      targetX = e.clientX / window.innerWidth - 0.5;
-      targetY = e.clientY / window.innerHeight - 0.5;
-    });
-
-    const clock = new THREE.Clock();
-    let heroVisible = true;
-    const heroIO = new IntersectionObserver(e => { heroVisible = e[0].isIntersecting; }, { threshold: 0 });
-    heroIO.observe(canvas);
-
-    function animate() {
-      requestAnimationFrame(animate);
-      if (window._rafPaused || !heroVisible) return;
-      const t   = clock.getElapsedTime();
-      const arr = pos.array;
-      for (let i = 0; i < arr.length; i += 3) {
-        const x = base[i], z = base[i + 2];
-        arr[i + 1] = base[i + 1] + Math.sin(x * 0.5 + t * 0.6) * 0.35 + Math.cos(z * 0.5 + t * 0.4) * 0.35;
-      }
-      pos.needsUpdate = true;
-      particles.rotation.y = t * 0.02;
-      camera.position.x += (targetX * 1.6 - camera.position.x) * 0.02;
-      camera.position.y += (3.4 - targetY * 1.0 - camera.position.y) * 0.02;
-      camera.lookAt(0, 0, 0);
-      renderer.render(scene, camera);
-    }
-    resize();
-    window.addEventListener('resize', resize);
-    animate();
-  })();
-
   /* ================= THREE.js — CTA particle field (shared, lightweight) ================= */
   (function ctaScene() {
     const canvas = document.getElementById('ctaCanvas');
@@ -1816,85 +1743,157 @@ document.addEventListener('DOMContentLoaded', () => {
       return c;
     }
 
-    // ---- Drifting particle field the camera flies through, colour-graded by depth ----
-    const COUNT = 700;
+    // ---- Sparse drifting particles, colour-graded by depth — kept deliberately
+    // minimal (a handful of specks, not a dense field) per direction ----
+    const COUNT = 22;
     const pPos = new Float32Array(COUNT * 3);
     const pCol = new Float32Array(COUNT * 3);
-    const positions = [];
     for (let i = 0; i < COUNT; i++) {
-      const x = (Math.random() - 0.5) * 44;
-      const y = (Math.random() - 0.5) * 44;
+      const x = (Math.random() - 0.5) * 50;
+      const y = (Math.random() - 0.5) * 34;
       const z = (Math.random() - 0.5) * DEPTH;
       pPos[i * 3] = x; pPos[i * 3 + 1] = y; pPos[i * 3 + 2] = z;
       const c = colorForDepth((z + HALF_DEPTH) / DEPTH);
       pCol[i * 3] = c.r; pCol[i * 3 + 1] = c.g; pCol[i * 3 + 2] = c.b;
-      positions.push(new THREE.Vector3(x, y, z));
     }
     const pGeo = new THREE.BufferGeometry();
     pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
     pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
     const pMat = new THREE.PointsMaterial({
-      size: 0.13, transparent: true, opacity: 0.75, vertexColors: true,
+      size: 0.22, transparent: true, opacity: 0.55, vertexColors: true,
       blending: THREE.AdditiveBlending, depthWrite: false
     });
     const particles = new THREE.Points(pGeo, pMat);
     scene.add(particles);
 
-    // ---- Constellation links between nearby particles (computed once) ----
-    const LINK_DIST = 5.5;
-    const linkPositions = [];
-    const linkColors = [];
-    outer:
-    for (let i = 0; i < positions.length; i++) {
-      for (let j = i + 1; j < positions.length; j++) {
-        if (positions[i].distanceTo(positions[j]) < LINK_DIST) {
-          linkPositions.push(positions[i].x, positions[i].y, positions[i].z, positions[j].x, positions[j].y, positions[j].z);
-          const c = colorForDepth(((positions[i].z + positions[j].z) / 2 + HALF_DEPTH) / DEPTH);
-          linkColors.push(c.r, c.g, c.b, c.r, c.g, c.b);
-          if (linkPositions.length / 6 > 260) break outer;
-        }
-      }
-    }
-    const lGeo = new THREE.BufferGeometry();
-    lGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(linkPositions), 3));
-    lGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(linkColors), 3));
-    const lMat = new THREE.LineBasicMaterial({
-      vertexColors: true, transparent: true, opacity: 0.16,
-      blending: THREE.AdditiveBlending, depthWrite: false
-    });
-    const links = new THREE.LineSegments(lGeo, lMat);
-    scene.add(links);
-
-    // ---- Restrained wireframe markers for scale/depth — spread across the
-    // FULL depth range (including the back half the camera now reaches late
-    // in the page) so the scene never feels like it "runs out" ----
-    const shapes = [];
-    const shapeGeoms = [
-      () => new THREE.IcosahedronGeometry(3, 0),
-      () => new THREE.TorusGeometry(2.4, 0.4, 8, 28)
-    ];
-    const SHAPE_COUNT = 9;
-    for (let i = 0; i < SHAPE_COUNT; i++) {
-      const geo = shapeGeoms[i % shapeGeoms.length]();
-      const z = -HALF_DEPTH + ((i + 0.5) / SHAPE_COUNT) * DEPTH;
+    // ---- Orbit rings — thin nested rings drifting slowly around a few hub
+    // points, suggesting system / movement / a connected brand ----
+    const orbitHubs = [];
+    const ORBIT_HUB_COUNT = 4;
+    for (let i = 0; i < ORBIT_HUB_COUNT; i++) {
+      const z = -HALF_DEPTH + ((i + 0.15) / ORBIT_HUB_COUNT) * DEPTH;
       const color = colorForDepth((z + HALF_DEPTH) / DEPTH);
-      const mat = new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.13 });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 22, z);
-      mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
-      mesh.userData.spin = 0.3 + Math.random() * 0.4;
-      scene.add(mesh);
-      shapes.push(mesh);
+      const hub = new THREE.Group();
+      hub.position.set((Math.random() - 0.5) * 32, (Math.random() - 0.5) * 20, z);
+      const ringCount = 2;
+      const rings = [];
+      for (let r = 0; r < ringCount; r++) {
+        const radius = 2.6 + r * 1.1;
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(radius, 0.02, 8, 64),
+          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.16 - r * 0.03 })
+        );
+        ring.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.6;
+        ring.rotation.y = (Math.random() - 0.5) * 0.6;
+        ring.userData.spin = (r % 2 === 0 ? 1 : -1) * (0.15 + Math.random() * 0.15);
+        hub.add(ring);
+        rings.push(ring);
+      }
+      hub.userData.rings = rings;
+      scene.add(hub);
+      orbitHubs.push(hub);
     }
 
-    // A large centerpiece the camera swings close past at the midpoint of the journey
+    // ---- Tiny geometric micro-accents (+, ×, diamonds, small squares) —
+    // faint punctuation scattered through the depth, not a focal element ----
+    const microAccents = [];
+    const microMakers = [
+      color => { // plus
+        const g = new THREE.Group();
+        const barMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.3 });
+        const bar1 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.07, 0.07), barMat);
+        const bar2 = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.7, 0.07), barMat);
+        g.add(bar1, bar2);
+        return g;
+      },
+      color => { // ×
+        const g = new THREE.Group();
+        const barMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.3 });
+        const bar1 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.07, 0.07), barMat);
+        const bar2 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.07, 0.07), barMat);
+        bar1.rotation.z = Math.PI / 4;
+        bar2.rotation.z = -Math.PI / 4;
+        g.add(bar1, bar2);
+        return g;
+      },
+      color => { // diamond
+        const mesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.55, 0.55),
+          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, side: THREE.DoubleSide, wireframe: true })
+        );
+        mesh.rotation.z = Math.PI / 4;
+        return mesh;
+      },
+      color => { // small square
+        return new THREE.Mesh(
+          new THREE.PlaneGeometry(0.4, 0.4),
+          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, side: THREE.DoubleSide, wireframe: true })
+        );
+      }
+    ];
+    const MICRO_COUNT = 10;
+    for (let i = 0; i < MICRO_COUNT; i++) {
+      const z = -HALF_DEPTH + Math.random() * DEPTH;
+      const color = colorForDepth((z + HALF_DEPTH) / DEPTH);
+      const accent = microMakers[i % microMakers.length](color);
+      accent.position.set((Math.random() - 0.5) * 46, (Math.random() - 0.5) * 30, z);
+      accent.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+      accent.userData.spin = 0.15 + Math.random() * 0.2;
+      scene.add(accent);
+      microAccents.push(accent);
+    }
+
+    // ---- Product box wireframes — transparent 3D package outlines, a nod
+    // to the ecommerce/fulfilment side of the business ----
+    const productBoxes = [];
+    const PBOX_COUNT = 4;
+    for (let i = 0; i < PBOX_COUNT; i++) {
+      const z = -HALF_DEPTH + ((i + 0.6) / PBOX_COUNT) * DEPTH;
+      const color = colorForDepth((z + HALF_DEPTH) / DEPTH);
+      const size = 1.6 + Math.random() * 1.2;
+      const box = new THREE.Mesh(
+        new THREE.BoxGeometry(size, size * 1.15, size * 0.85),
+        new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.15 })
+      );
+      box.position.set((Math.random() - 0.5) * 34, (Math.random() - 0.5) * 22, z);
+      box.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+      box.userData.spin = 0.12 + Math.random() * 0.18;
+      scene.add(box);
+      productBoxes.push(box);
+    }
+
+    // A large branded centerpiece the camera swings close past at the
+    // midpoint of the journey — the real GROWVA 3D logo model.
     const centerpieceZ = -HALF_DEPTH * 0.35;
-    const centerpiece = new THREE.Mesh(
-      new THREE.TorusKnotGeometry(4.4, 0.9, 140, 16),
-      new THREE.MeshBasicMaterial({ color: 0xB1FA20, wireframe: true, transparent: true, opacity: 0.28 })
-    );
-    centerpiece.position.set(6, -2, centerpieceZ);
-    scene.add(centerpiece);
+    let centerpiece = null;
+    if (window.THREE.GLTFLoader) {
+      new THREE.GLTFLoader().load('assets/logo/growva-logo-full.glb', gltf => {
+        centerpiece = gltf.scene;
+        const box = new THREE.Box3().setFromObject(centerpiece);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        const maxDim = Math.max(size.x, size.y, size.z) || 1;
+        const scale = 9 / maxDim;
+        centerpiece.scale.setScalar(scale);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        centerpiece.position.set(6 - center.x * scale, -2 - center.y * scale, centerpieceZ - center.z * scale);
+        centerpiece.traverse(node => {
+          if (node.isMesh) {
+            node.material = new THREE.MeshPhysicalMaterial({
+              color: 0x0c1009, roughness: 0.32, metalness: 0.3,
+              clearcoat: 0.85, clearcoatRoughness: 0.2,
+              emissive: 0x1a3305, emissiveIntensity: 0.55
+            });
+          }
+        });
+        scene.add(centerpiece);
+      });
+    }
+    const centerpieceLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    centerpieceLight.position.set(4, 6, 12);
+    scene.add(centerpieceLight);
+    scene.add(new THREE.AmbientLight(0x556644, 0.6));
 
     // ---- Camera choreography: a winding multi-beat flight tied to scroll ----
     // Travel distance is capped at 85% of HALF_DEPTH so the camera always
@@ -1929,10 +1928,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window._rafPaused || !visible) return;
       const t = clock.getElapsedTime();
       particles.rotation.y = t * 0.008;
-      links.rotation.y = particles.rotation.y;
-      centerpiece.rotation.x += 0.0025;
-      centerpiece.rotation.y += 0.004;
-      shapes.forEach(s => { s.rotation.x += s.userData.spin * 0.004; s.rotation.y += s.userData.spin * 0.003; });
+      if (centerpiece) {
+        centerpiece.rotation.x = 0.1 + Math.sin(t * 0.15) * 0.05;
+        centerpiece.rotation.y += 0.004;
+      }
+      orbitHubs.forEach(hub => {
+        hub.rotation.y += 0.0015;
+        hub.userData.rings.forEach(ring => { ring.rotation.z += ring.userData.spin * 0.006; });
+      });
+      microAccents.forEach(a => { a.rotation.x += a.userData.spin * 0.004; a.rotation.y += a.userData.spin * 0.003; });
+      productBoxes.forEach(b => { b.rotation.x += b.userData.spin * 0.003; b.rotation.y += b.userData.spin * 0.0025; });
       camera.position.x += (cameraRig.x + mx * 1.6 - camera.position.x) * 0.045;
       camera.position.y += (cameraRig.y - my * 1.4 - camera.position.y) * 0.045;
       camera.position.z += (cameraRig.z - camera.position.z) * 0.08;
