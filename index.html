@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0a0a'/%3E%3Cpath d='M21 10a7 7 0 1 0 0 12v-5h-5' fill='none' stroke='%23B1FA20' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=202607133g">
-<link rel="stylesheet" href="admin/admin.css?v=202607133g">
+<link rel="stylesheet" href="css/style.css?v=202607133h">
+<link rel="stylesheet" href="admin/admin.css?v=202607133h">
 <script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 <script type="application/ld+json">
 {
@@ -39,6 +39,8 @@
 <body data-page-id="home">
 
 <canvas id="cinematicWebGL" class="cinematic-webgl" aria-hidden="true"></canvas>
+<div class="liquid-glow liquid-glow--a" id="liquidGlowA" aria-hidden="true"></div>
+<div class="liquid-glow liquid-glow--b" id="liquidGlowB" aria-hidden="true"></div>
 
 <div class="page-transition" id="pageTransition" aria-hidden="true"><div class="pt-line"></div></div>
 
@@ -535,7 +537,7 @@
   </section>
 
   <!-- ================= STATS ================= -->
-  <section class="section stats stats--light" data-page-id="home" data-section-id="home.stats_5" data-section-type="stats" data-section-order="5">
+  <section class="section stats" data-page-id="home" data-section-id="home.stats_5" data-section-type="stats" data-section-order="5">
     <div class="container stats-grid">
       <div class="stat-item reveal-up" data-edit-key="home.stat_item_1.image" data-edit-type="background-image">
         <span class="stat-num" data-count="120">0</span><span class="stat-plus">+</span>
@@ -657,7 +659,7 @@
   </section>
 
   <!-- ================= FINAL CTA ================= -->
-  <section class="section final-cta final-cta--light" data-page-id="home" data-section-id="home.final_cta_8" data-section-type="final_cta" data-section-order="8">
+  <section class="section final-cta" data-page-id="home" data-section-id="home.final_cta_8" data-section-type="final_cta" data-section-order="8">
     <div class="container final-cta-inner">
       <p class="eyebrow reveal-up" data-edit-key="home.final_cta_8.p.let_s_talk" data-edit-type="text" data-page-id="home" data-section-id="home.final_cta_8"><span class="eyebrow-dot"></span>Let's Talk</p>
       <h2 class="final-headline reveal-up" data-edit-key="home.final_cta_8.h2.ready_to_build_a_store_that_matches_the_brand" data-edit-type="text" data-page-id="home" data-section-id="home.final_cta_8">Ready to build a store<br>that matches the brand?</h2>
@@ -712,10 +714,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/darkroomengineering/lenis@1.1.13/dist/lenis.min.js"></script>
-<script src="js/script.js?v=202607133g"></script>
-<script src="js/content-registry.js?v=202607133g"></script>
+<script src="js/script.js?v=202607133h"></script>
+<script src="js/content-registry.js?v=202607133h"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="admin/supabase-config.js"></script>
-<script src="admin/admin.js?v=202607133g"></script>
+<script src="admin/admin.js?v=202607133h"></script>
 </body>
 </html>

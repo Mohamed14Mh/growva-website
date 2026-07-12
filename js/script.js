@@ -1719,14 +1719,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 260);
     camera.position.set(0, 0, 20);
 
-    // Atmospheric fog matching the page's own background colour (#f6f6f6) —
-    // shapes and particles at the depth extremes melt into the page instead
-    // of hard-clipping, which reads as real depth rather than a flat plane
-    // of wireframe drawings. (A full postprocessing bloom pass was tried
-    // here first, but bloom composites over an opaque black backdrop,
-    // which broke this scene's whole premise — a transparent canvas over a
-    // light page — so it was dropped in favour of this.)
-    scene.fog = new THREE.Fog(0xf6f6f6, 60, 205);
+    // Atmospheric fog matching the page's own background colour — shapes
+    // and particles at the depth extremes melt into the page instead of
+    // hard-clipping, which reads as real depth rather than a flat plane of
+    // wireframe drawings. (A full postprocessing bloom pass was tried here
+    // first, but bloom composites over an opaque black backdrop, which
+    // broke this scene's whole premise — a transparent canvas over the
+    // page — so it was dropped in favour of this.)
+    scene.fog = new THREE.Fog(0x050505, 60, 205);
 
     function resize() {
       const w = window.innerWidth, h = window.innerHeight;
@@ -1919,6 +1919,22 @@ document.addEventListener('DOMContentLoaded', () => {
     resize();
     window.addEventListener('resize', resize);
     animate();
+  })();
+
+  /* ---------- Liquid mint glow — two blobs drifting opposite ways as you
+     scroll the homepage: top-left glow travels right, bottom-right glow
+     travels left, tied to the same full-page scroll as the camera flight. */
+  (function initLiquidGlow() {
+    const a = document.getElementById('liquidGlowA');
+    const b = document.getElementById('liquidGlowB');
+    if (!a || !b || !window.gsap || !window.ScrollTrigger) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    gsap.timeline({
+      scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 0.8 }
+    })
+      .to(a, { x: '58vw', y: '12vh', ease: 'none' }, 0)
+      .to(b, { x: '-58vw', y: '-12vh', ease: 'none' }, 0);
   })();
 
 });

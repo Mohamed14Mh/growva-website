@@ -53,6 +53,31 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
   .cinematic-webgl{display:none;}
 }
 
+/* ---------- Liquid mint glow — two soft blurred blobs that drift across
+   the page horizontally as you scroll, brand mint colour, screen-blended
+   so only the glow itself is visible against the black homepage. ---------- */
+.liquid-glow{
+  position:fixed;
+  top:0;left:0;
+  width:64vw;height:64vw;
+  max-width:900px;max-height:900px;
+  border-radius:50%;
+  z-index:-1;
+  pointer-events:none;
+  mix-blend-mode:screen;
+  will-change:transform;
+  background:radial-gradient(circle,
+    rgba(177,250,32,.5) 0%,
+    rgba(177,250,32,.22) 38%,
+    rgba(177,250,32,0) 70%);
+  filter:blur(20px);
+}
+.liquid-glow--a{top:-38%;left:-32%;}
+.liquid-glow--b{top:auto;bottom:-38%;left:auto;right:-32%;}
+@media(prefers-reduced-motion:reduce),(max-width:700px){
+  .liquid-glow{display:none;}
+}
+
 /* ---------- Scroll progress ---------- */
 .scroll-progress{
   position:fixed;
@@ -1322,14 +1347,48 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .final-cta .btn-ghost::before{background:var(--mint);}
 .final-cta .btn-ghost:hover{color:var(--black-deep);border-color:var(--mint);}
 
-/* Homepage-only variant: transparent so the sitewide cinematicWebGL
-   canvas shows through, matching the rest of the homepage. Every other
-   page keeps the standard dark .final-cta above. */
-.final-cta.final-cta--light{background:transparent;color:var(--black);}
-.final-cta--light .final-sub{color:rgba(10,10,10,.65);}
-.final-cta--light .btn-ghost{border-color:rgba(10,10,10,.25);color:var(--black);}
-.final-cta--light .btn-ghost::before{background:var(--black);}
-.final-cta--light .btn-ghost:hover{color:var(--ivory);border-color:var(--black);}
+/* ================= HOME PAGE — full glossy black theme =================
+   The homepage runs dark end-to-end so the cinematicWebGL scene (particles,
+   constellation lines, the big centerpiece) reads clearly all the way down
+   the page. Every section here is transparent over body's black — no
+   section paints its own opaque fill — so the moving scene stays visible
+   behind the content everywhere. Scoped to [data-page-id="home"] only;
+   every other page keeps its normal light theme untouched. */
+body[data-page-id="home"]{
+  background:#050505;
+  color:var(--ivory);
+  --gray-dim: rgba(246,246,246,.5);
+  --gray: rgba(246,246,246,.68);
+  --line-soft: rgba(246,246,246,.1);
+}
+body[data-page-id="home"] .hero{color:var(--ivory);}
+body[data-page-id="home"] .hero-sub{color:rgba(246,246,246,.72);}
+body[data-page-id="home"] .hero-scroll{color:rgba(246,246,246,.55);}
+body[data-page-id="home"] .hero-scroll-line{background:rgba(246,246,246,.2);}
+body[data-page-id="home"] .marquee-strip{border-top-color:rgba(246,246,246,.14);}
+body[data-page-id="home"] .marquee-track span{color:rgba(246,246,246,.55);}
+
+body[data-page-id="home"] .why-lead p{color:var(--ivory);}
+body[data-page-id="home"] .why-card{background:rgba(255,255,255,.035);color:var(--ivory);}
+body[data-page-id="home"] .why-card:hover{background:rgba(255,255,255,.07);}
+
+body[data-page-id="home"] .service-compact-item{background:rgba(255,255,255,.035);}
+body[data-page-id="home"] .service-compact-item:hover{background:var(--mint);color:var(--black-deep);}
+
+body[data-page-id="home"] .stats{background:transparent;}
+
+body[data-page-id="home"] .testi-card{
+  background:rgba(255,255,255,.05);
+  border-color:rgba(255,255,255,.12);
+  box-shadow:0 20px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);
+}
+body[data-page-id="home"] .testi-card[data-media-current-url]:not([data-media-current-url=""]){background-color:rgba(0,0,0,.55);}
+
+body[data-page-id="home"] .final-cta{background:transparent;}
+
+body[data-page-id="home"] .btn-ghost{border-color:rgba(246,246,246,.3);color:var(--ivory);}
+body[data-page-id="home"] .btn-ghost::before{background:var(--mint);}
+body[data-page-id="home"] .btn-ghost:hover{color:var(--black-deep);border-color:var(--mint);}
 
 /* ================= FOOTER ================= */
 .footer{
