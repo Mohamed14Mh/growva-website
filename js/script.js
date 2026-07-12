@@ -1699,28 +1699,107 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /* ---------- Cinematic scroll-driven ambient background (homepage only) ---------- */
-  (function initCinematicBackground() {
-    const bg = document.getElementById('cinematicBg');
-    if (!bg || !window.gsap || !window.ScrollTrigger) return;
+  /* ---------- Cinematic scroll-driven WebGL background (homepage only) ----------
+     A real Three.js scene (reusing the site's own already-loaded THREE r128
+     global — a second bundled copy would trigger the same "multiple
+     instances" conflict that broke model-viewer's auto-rotate elsewhere in
+     this project) that sits fixed behind the whole page. It's only ever
+     visible through the page's transparent sections (the hero/stats/footer
+     already paint their own opaque backgrounds over it), and the camera
+     flies through a field of drifting brand-colored particles and wireframe
+     shapes as GSAP ScrollTrigger scrubs through the full page scroll — the
+     "flying through space as you scroll" effect used on cinematic sites. */
+  (function initCinematicWebGL() {
+    const canvas = document.getElementById('cinematicWebGL');
+    if (!canvas || !window.THREE || !window.gsap || !window.ScrollTrigger) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const orbs = bg.querySelectorAll('.cinematic-bg-orb');
-    if (!orbs.length) return;
 
-    const paths = [
-      { x: ['0vw', '10vw', '-6vw'], y: ['0vh', '30vh', '65vh'], s: [1, 1.15, 0.95] },
-      { x: ['0vw', '-12vw', '8vw'], y: ['0vh', '25vh', '55vh'], s: [1, 0.9, 1.1] },
-      { x: ['0vw', '8vw', '-10vw'], y: ['0vh', '-20vh', '-45vh'], s: [1, 1.08, 0.92] }
-    ];
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+    camera.position.set(0, 0, 20);
 
-    orbs.forEach((orb, i) => {
-      const path = paths[i % paths.length];
-      const tl = gsap.timeline({
-        scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 0.8 }
-      });
-      tl.to(orb, { '--orb-x': path.x[1], '--orb-y': path.y[1], '--orb-s': path.s[1], ease: 'none' }, 0)
-        .to(orb, { '--orb-x': path.x[2], '--orb-y': path.y[2], '--orb-s': path.s[2], ease: 'none' }, 0.5);
+    function resize() {
+      const w = window.innerWidth, h = window.innerHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+
+    // Drifting particle field the camera flies through
+    const COUNT = 420;
+    const pGeo = new THREE.BufferGeometry();
+    const pPos = new Float32Array(COUNT * 3);
+    const DEPTH = 160;
+    for (let i = 0; i < COUNT; i++) {
+      pPos[i * 3]     = (Math.random() - 0.5) * 40;
+      pPos[i * 3 + 1] = (Math.random() - 0.5) * 40;
+      pPos[i * 3 + 2] = (Math.random() - 0.5) * DEPTH;
+    }
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+    const pMat = new THREE.PointsMaterial({
+      color: 0xB1FA20, size: 0.11, transparent: true, opacity: 0.65,
+      blending: THREE.AdditiveBlending, depthWrite: false
     });
+    const particles = new THREE.Points(pGeo, pMat);
+    scene.add(particles);
+
+    // A handful of large soft wireframe shapes drifting slowly for depth/scale
+    const shapes = [];
+    const shapeGeoms = [
+      new THREE.IcosahedronGeometry(3.2, 0),
+      new THREE.TorusGeometry(2.6, 0.5, 8, 24),
+      new THREE.OctahedronGeometry(2.8, 0)
+    ];
+    for (let i = 0; i < 6; i++) {
+      const geo = shapeGeoms[i % shapeGeoms.length];
+      const mat = new THREE.MeshBasicMaterial({
+        color: i % 2 === 0 ? 0xB1FA20 : 0x50b964,
+        wireframe: true, transparent: true, opacity: 0.16
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set((Math.random() - 0.5) * 26, (Math.random() - 0.5) * 20, -i * (DEPTH / 6) - 6);
+      mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+      mesh.userData.spin = (Math.random() - 0.5) * 0.15;
+      scene.add(mesh);
+      shapes.push(mesh);
+    }
+
+    // Camera flies forward through the field as the whole page scrolls
+    const cameraRig = { z: 20, x: 0, y: 0, rotY: 0 };
+    gsap.to(cameraRig, {
+      z: 20 - DEPTH * 0.86,
+      rotY: 0.35,
+      ease: 'none',
+      scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 0.6 }
+    });
+
+    let mx = 0, my = 0;
+    window.addEventListener('mousemove', e => {
+      mx = e.clientX / window.innerWidth - 0.5;
+      my = e.clientY / window.innerHeight - 0.5;
+    });
+
+    let visible = !document.hidden;
+    document.addEventListener('visibilitychange', () => { visible = !document.hidden; });
+
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      if (window._rafPaused || !visible) return;
+      const t = clock.getElapsedTime();
+      particles.rotation.y = t * 0.01;
+      shapes.forEach(s => { s.rotation.x += s.userData.spin * 0.01; s.rotation.y += s.userData.spin * 0.008; });
+      camera.position.x += (cameraRig.x + mx * 1.4 - camera.position.x) * 0.04;
+      camera.position.y += (cameraRig.y - my * 1.2 - camera.position.y) * 0.04;
+      camera.position.z += (cameraRig.z - camera.position.z) * 0.08;
+      camera.rotation.y += (cameraRig.rotY - camera.rotation.y) * 0.04;
+      renderer.render(scene, camera);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    animate();
   })();
 
 });
