@@ -1390,6 +1390,13 @@ body[data-page-id="home"] .btn-ghost{border-color:rgba(246,246,246,.3);color:var
 body[data-page-id="home"] .btn-ghost::before{background:var(--mint);}
 body[data-page-id="home"] .btn-ghost:hover{color:var(--black-deep);border-color:var(--mint);}
 
+/* Nav + footer fully transparent on the homepage too — body's own black
+   is already behind them, so this just lets the glow/particles show
+   straight through instead of sitting behind a solid bar. */
+body[data-page-id="home"] .nav,
+body[data-page-id="home"] .nav.scrolled{background:transparent;border-bottom-color:transparent;}
+body[data-page-id="home"] .footer{background:transparent;}
+
 /* ================= FOOTER ================= */
 .footer{
   background:var(--black-deep);
