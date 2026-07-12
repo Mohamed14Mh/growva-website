@@ -934,14 +934,31 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.matchMedia('(max-width: 899px)').matches) return;
       if (!travelEl) return;
 
-      // Desktop hover lift while the deck is at rest (top of page, no scroll yet)
+      // Desktop hover lift + 3D cursor tilt while the deck is at rest (top of
+      // page, no scroll yet). These cards already carry an inline transform
+      // for their resting "fan" position (set above), which is what
+      // initTiltCards()'s plain CSS-variable tilt can never out-compete —
+      // an inline style always wins over a class rule, so that generic
+      // system's rotateX/rotateY silently never rendered here even though
+      // its sheen glow did. Driving the tilt through GSAP too (same as the
+      // fan position) lets both compose into one matrix instead of one
+      // clobbering the other.
       if (window.matchMedia('(hover: hover)').matches) {
         cards.forEach((card, i) => {
           card.addEventListener('mouseenter', () => {
             gsap.to(card, { y: fan[i].y - 6, scale: 1.02, duration: 0.25, ease: 'power2.out', overwrite: 'auto' });
           });
+          card.addEventListener('mousemove', e => {
+            const r = card.getBoundingClientRect();
+            const px = (e.clientX - r.left) / r.width - 0.5;
+            const py = (e.clientY - r.top) / r.height - 0.5;
+            gsap.to(card, {
+              rotationX: -py * 16, rotationY: px * 16, transformPerspective: 900,
+              duration: 0.5, ease: 'power2.out', overwrite: 'auto'
+            });
+          });
           card.addEventListener('mouseleave', () => {
-            gsap.to(card, { y: fan[i].y, scale: 1, duration: 0.5, ease: 'elastic.out(1, 0.4)', overwrite: 'auto' });
+            gsap.to(card, { y: fan[i].y, scale: 1, rotationX: 0, rotationY: 0, duration: 0.5, ease: 'elastic.out(1, 0.4)', overwrite: 'auto' });
           });
         });
       }
