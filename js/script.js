@@ -1608,10 +1608,18 @@ document.addEventListener('DOMContentLoaded', () => {
         onEnterBack: () => { dots.forEach(d => d.classList.remove('active')); dots[i]?.classList.add('active'); }
       });
       if (!reduced) {
+        // Opacity-only — these items also carry .has-tilt (CSS-driven hover
+        // tilt via custom properties on `transform`). Animating `y` here
+        // used to make GSAP decompose and take over the element's whole
+        // transform state (writing inline translate/rotate/scale/transform,
+        // which always beats a class rule), permanently flattening the
+        // hover tilt to a static perspective-only matrix the moment this
+        // one-time reveal ran. Staying opacity-only never touches
+        // transform, so it can't conflict.
         ch.querySelectorAll('.shopify-pillar,.shopify-process-step,.integration-item').forEach((item, j) => {
           gsap.fromTo(item,
-            { y: 26, opacity: 0 },
-            { y: 0,  opacity: 1, duration: 0.6, delay: j * 0.04,
+            { opacity: 0 },
+            { opacity: 1, duration: 0.6, delay: j * 0.04,
               ease: 'power2.out',
               scrollTrigger: { trigger: item, start: 'top 90%', once: true }
             }
