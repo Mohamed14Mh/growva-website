@@ -5494,6 +5494,11 @@
         lastHydratedAt = Date.now();
         if (shouldApply) {
           Object.values(publishedRows).forEach(applyRowToElement);
+          // Hydrated text/images can change layout height (longer copy,
+          // a real photo replacing a placeholder, etc.) — scroll-triggered
+          // animations set up before this point may have cached stale
+          // trigger boundaries, so refresh them once content has settled.
+          if (window.ScrollTrigger) requestAnimationFrame(() => window.ScrollTrigger.refresh());
         }
         console.info('[GROWVA CMS] Hydrated published content', { pagePath, count: publishedRowsLoadedCount });
       } catch (error) {

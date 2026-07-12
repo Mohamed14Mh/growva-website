@@ -898,7 +898,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    /* ---------- Hero stack-deck scroll scatter ---------- */
+    /* ---------- Hero stack-deck: one continuous journey, no fade handoff ---------- */
     (function heroStackDeck() {
       const deck     = document.getElementById('stackDeck');
       if (!deck) return;
@@ -906,18 +906,25 @@ document.addEventListener('DOMContentLoaded', () => {
       if (cards.length < 4) return;
       const travelEl = document.getElementById('cardTravel');
 
-      // Initial stacked fan — GSAP owns all transforms from here
-      gsap.set(cards[0], { rotation: -6,  x: -10, y:  6, zIndex: 4 });
-      gsap.set(cards[1], { rotation: -2,  x:  -4, y:  2, zIndex: 3 });
-      gsap.set(cards[2], { rotation:  2,  x:   4, y:  2, zIndex: 2 });
-      gsap.set(cards[3], { rotation:  6,  x:  10, y:  6, zIndex: 1 });
+      // Fan values for the resting "deck of cards" look
+      const fan = [
+        { rotation: -6, x: -10, y: 6 },
+        { rotation: -2, x: -4,  y: 2 },
+        { rotation: 2,  x: 4,   y: 2 },
+        { rotation: 6,  x: 10,  y: 6 }
+      ];
+      cards.forEach((card, i) => gsap.set(card, { ...fan[i], zIndex: 4 - i }));
+
+      const scatterTargets = [
+        { x: '-36vw', y:  '22vh', rotation: -14, scale: 0.78 },
+        { x: '-13vw', y: '-22vh', rotation:  11, scale: 0.8 },
+        { x:   '3vw', y: '-26vh', rotation:  -8, scale: 0.79 },
+        { x:   '4vw', y:  '20vh', rotation:  16, scale: 0.77 }
+      ];
 
       // Prefers-reduced-motion: static scattered positions, no pin, no travel
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        gsap.set(cards[0], { x: '-36vw', y: '22vh',  rotation: -14, scale: 0.62 });
-        gsap.set(cards[1], { x: '-13vw', y: '-22vh', rotation:  11, scale: 0.65 });
-        gsap.set(cards[2], { x:   '3vw', y: '-26vh', rotation:  -8, scale: 0.63 });
-        gsap.set(cards[3], { x:   '4vw', y:  '20vh', rotation:  16, scale: 0.61 });
+        cards.forEach((card, i) => gsap.set(card, scatterTargets[i]));
         return;
       }
 
@@ -925,40 +932,35 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.matchMedia('(max-width: 899px)').matches) return;
       if (!travelEl) return;
 
-      // Final scatter target scales (~62% of original)
-      const scatterScales = [0.62, 0.65, 0.63, 0.61];
-      const scatterRots   = [-14, 11, -8, 16];
-
-      // Scatter timeline — driven by the pin ScrollTrigger below
-      const tl = gsap.timeline();
-      tl.to('.hero-scroll', { opacity: 0, duration: 0.4 }, 0);
-      tl.to(cards[0], { x: '-36vw', y:  '22vh', rotation: -14, scale: scatterScales[0], ease: 'power2.out', duration: 7 }, 0);
-      tl.to(cards[1], { x: '-13vw', y: '-22vh', rotation:  11, scale: scatterScales[1], ease: 'power2.out', duration: 7 }, 0.14);
-      tl.to(cards[2], { x:   '3vw', y: '-26vh', rotation:  -8, scale: scatterScales[2], ease: 'power2.out', duration: 7 }, 0.28);
-      tl.to(cards[3], { x:   '4vw', y:  '20vh', rotation:  16, scale: scatterScales[3], ease: 'power2.out', duration: 7 }, 0.42);
-      // Hero text subtly recedes as cards take visual focus
-      tl.to(deck, { autoAlpha: 0, duration: 0.55, ease: 'none' }, 0.4);
-
-      // Desktop hover lift — yPercent doesn't conflict with scatter's absolute y
+      // Desktop hover lift while the deck is at rest (top of page, no scroll yet)
       if (window.matchMedia('(hover: hover)').matches) {
         cards.forEach((card, i) => {
           card.addEventListener('mouseenter', () => {
-            gsap.to(card, { yPercent: -2, scale: scatterScales[i] * 1.04,
-                            duration: 0.25, ease: 'power2.out', overwrite: 'auto' });
+            gsap.to(card, { y: fan[i].y - 6, scale: 1.02, duration: 0.25, ease: 'power2.out', overwrite: 'auto' });
           });
           card.addEventListener('mouseleave', () => {
-            gsap.to(card, { yPercent: 0, scale: scatterScales[i],
-                            duration: 0.5, ease: 'elastic.out(1, 0.4)', overwrite: 'auto' });
+            gsap.to(card, { y: fan[i].y, scale: 1, duration: 0.5, ease: 'elastic.out(1, 0.4)', overwrite: 'auto' });
           });
         });
       }
 
-      // Travel system — fixed-position cards drifting down at different speeds,
-      // then docking pixel-perfectly into the .landing-card grid further down the page.
+      gsap.to('.hero-scroll', {
+        opacity: 0, ease: 'none',
+        scrollTrigger: { trigger: travelEl, start: 'top bottom', end: '+=15%', scrub: true }
+      });
+
+      // Travel system — the SAME cards drift continuously from their resting
+      // spot all the way down to the .landing-card grid; nothing fades out
+      // and reappears elsewhere, so the motion never breaks.
       const travelTops  = ['-30vh', '-34vh', '-29vh', '0vh'];
       const travelEnds  = [0.6, 0.7, 0.64, 0.72];
-      const fadeInAt    = [0.12, 0.12, 0.12, 0.32];
       const extraRot    = [-3, 4, -2, 5];
+      // Scatter runs first (staggered per card), then drift picks up exactly
+      // where scatter left off, then land — no two phases overlap in time.
+      const scatterStart = [0.02, 0.04, 0.06, 0.08];
+      const scatterDur   = 0.18;
+      const driftEnd     = 0.66;
+      const landEnd      = 0.94;
 
       const landingCards = Array.from(document.querySelectorAll('.landing-card'));
       const hasLandingTargets = landingCards.length === cards.length;
@@ -970,14 +972,34 @@ document.addEventListener('DOMContentLoaded', () => {
           'stack-card--traveling',
           i % 2 === 0 ? 'travel-lane-left' : 'travel-lane-right'
         );
+        // cloneNode(true) copies the source card's inline transform (the
+        // resting fan offset) verbatim — strip it via plain DOM so the
+        // clone starts life un-managed by GSAP, and its rect below reflects
+        // its true, untransformed CSS position.
+        clone.style.transform = '';
         clone.style.setProperty('--travel-top', travelTops[i]);
         travelEl.appendChild(clone);
         return clone;
       });
 
-      // Measure each clone's natural (untransformed) rect against its landing
-      // slot's rect BEFORE any GSAP transform is applied, so the final leg of
-      // the journey can dock it pixel-perfectly onto the real grid card.
+      // Measure the clone's natural (untransformed) rect together with the
+      // resting deck card's current on-screen rect, and separately with the
+      // landing slot's rect — each pair measured at the same instant, so the
+      // deltas stay correct at any scroll position later (both sides of a
+      // viewport-relative measurement shift together with scrollY, so the
+      // difference cancels it out). This lets a clone start pixel-perfectly
+      // on top of the resting card and end pixel-perfectly on the landing
+      // card, with no visible seam at either end.
+      const startTargets = travelCards.map((clone, i) => {
+        const naturalRect = clone.getBoundingClientRect();
+        const deckRect = cards[i].getBoundingClientRect();
+        const startScale = deckRect.width / naturalRect.width;
+        return {
+          x: (deckRect.left - naturalRect.left) - (naturalRect.width / 2) * (1 - startScale),
+          y: (deckRect.top - naturalRect.top) - (naturalRect.height / 2) * (1 - startScale),
+          scale: startScale
+        };
+      });
       const landTargets = travelCards.map((clone, i) => {
         if (!hasLandingTargets) return null;
         const naturalRect = clone.getBoundingClientRect();
@@ -990,15 +1012,13 @@ document.addEventListener('DOMContentLoaded', () => {
         };
       });
 
-      gsap.set(travelCards, {
-        autoAlpha: 0,
-        scale: 0.58,
-        transformOrigin: '50% 50%',
-        pointerEvents: 'auto'
-      });
+      gsap.set(travelCards, { autoAlpha: 1, transformOrigin: '50% 50%', pointerEvents: 'auto' });
 
+      const travelTimelines = [];
       travelCards.forEach((card, i) => {
+        const start  = startTargets[i];
         const target = landTargets[i];
+        const scatterEnd = scatterStart[i] + scatterDur;
         const travelTl = gsap.timeline({
           scrollTrigger: {
             trigger: travelEl,
@@ -1008,46 +1028,59 @@ document.addEventListener('DOMContentLoaded', () => {
             invalidateOnRefresh: true
           }
         });
+        travelTimelines.push(travelTl);
 
-        travelTl.set(card, {
-          autoAlpha: 0,
-          y: () => window.innerHeight * 0.08,
-          rotation: scatterRots[i],
-          scale: 0.58
-        }, 0);
-        travelTl.to(card, { autoAlpha: 1, duration: 0.08, ease: 'none' }, fadeInAt[i]);
+        // Spawn pixel-perfectly over the resting deck card, already fully
+        // visible and clickable — the original deck disappears in the same
+        // breath (imperceptible, since the clone already covers it exactly).
+        travelTl.set(card, { x: start.x, y: start.y, rotation: fan[i].rotation, scale: start.scale }, 0);
+        if (i === 0) travelTl.to(deck, { autoAlpha: 0, duration: 0.01, ease: 'none' }, 0);
+
+        // Scatter out from the resting stack
+        travelTl.to(card, {
+          x: scatterTargets[i].x, y: scatterTargets[i].y,
+          rotation: scatterTargets[i].rotation, scale: scatterTargets[i].scale,
+          ease: 'power2.out', duration: scatterDur
+        }, scatterStart[i]);
+
+        // Drift down the page at a staggered rate, continuing seamlessly
+        // from wherever the scatter left the card.
         travelTl.to(card, {
           y: () => travelEl.offsetHeight * travelEnds[i],
-          rotation: scatterRots[i] + extraRot[i],
+          rotation: scatterTargets[i].rotation + extraRot[i],
           ease: 'none',
-          duration: 0.66
-        }, 0);
+          duration: driftEnd - scatterEnd
+        }, scatterEnd);
 
         if (target) {
           // Cinematic dock — the scattered card straightens out and glides
           // into its exact spot in the grid section below.
           travelTl.to(card, {
-            x: target.x,
-            y: target.y,
-            rotation: 0,
-            scale: target.scale,
-            ease: 'power3.inOut',
-            duration: 0.28
-          }, 0.66);
-          travelTl.to(card, { autoAlpha: 0, duration: 0.05, ease: 'power1.in' }, 0.95);
-          travelTl.to(landingCards[i], { autoAlpha: 1, duration: 0.05, ease: 'power1.in' }, 0.95);
+            x: target.x, y: target.y, rotation: 0, scale: target.scale,
+            ease: 'power3.inOut', duration: landEnd - driftEnd
+          }, driftEnd);
+          travelTl.to(card, { autoAlpha: 0, duration: 0.05, ease: 'power1.in' }, landEnd);
+          travelTl.to(landingCards[i], { autoAlpha: 1, duration: 0.05, ease: 'power1.in' }, landEnd);
         } else {
           travelTl.to(card, { autoAlpha: 0, duration: 0.15, ease: 'power1.in' }, 0.85);
         }
       });
-      ScrollTrigger.create({
-        animation        : tl,
-        trigger          : '.hero-travel-scene',
-        start            : 'top top',
-        end              : '+=100%',
-        scrub            : 1,
-        invalidateOnRefresh: true
+      // A scrub timeline sitting at progress 0 doesn't paint its frame-0
+      // state on its own — ScrollTrigger.refresh() recalculates positions
+      // but skips the actual repaint when progress doesn't numerically
+      // change. Force it explicitly, and redo it after every future
+      // refresh too (fonts/images/CMS hydration elsewhere in the app call
+      // ScrollTrigger.refresh() and would otherwise leave the deck-to-clone
+      // handoff unpainted again).
+      // Only re-force the render while progress is still exactly 0 — once
+      // the user has scrolled, ScrollTrigger paints changes correctly on
+      // its own, and forcing a render at time 0 later would wrongly snap
+      // an already-scrolled card back to its resting position.
+      const forceInitialPaint = () => travelTimelines.forEach(tl => {
+        if (tl.scrollTrigger && tl.scrollTrigger.progress === 0) tl.render(0, false, true);
       });
+      forceInitialPaint();
+      ScrollTrigger.addEventListener('refresh', forceInitialPaint);
     })();
   }
 

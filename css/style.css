@@ -1775,8 +1775,8 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   right:clamp(28px,6.5vw,96px);
   top:50%;
   transform:translateY(-50%);
-  width:250px;
-  height:330px;
+  width:284px;
+  height:374px;
   z-index:3;
   pointer-events:none; /* cards don't block hero interactions */
 }
@@ -1823,8 +1823,8 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .stack-card{
   position:absolute;
   top:0;left:0;
-  width:240px;
-  height:320px;
+  width:280px;
+  height:370px;
   border-radius:16px;
   background:linear-gradient(145deg,#1b1b1b 0%,#0a0a0a 100%);
   border:1px solid rgba(255,255,255,.08);
@@ -1861,7 +1861,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .sc-dot--green{background:#28C840;}
 
 .sc-product-img{
-  width:100%;height:128px;
+  width:100%;height:150px;
   border-radius:8px;
   background:
     radial-gradient(circle at 38% 34%,rgba(177,250,32,.6) 0%,transparent 55%),
@@ -1896,12 +1896,12 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   text-align:center;gap:14px;
 }
 .sc-brand-mark{
-  width:90px;height:90px;border-radius:50%;
+  width:105px;height:105px;border-radius:50%;
   background:#0e0e0e;
   border:1px solid rgba(177,250,32,.22);
   display:flex;align-items:center;justify-content:center;
 }
-.sc-brand-mark svg{width:70px;height:70px;}
+.sc-brand-mark svg{width:82px;height:82px;}
 .sc-brand-name{
   font-family:var(--serif);font-size:.88rem;font-weight:500;
   color:rgba(246,246,246,.85);
@@ -1919,39 +1919,39 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 }
 .sc-pkg-scene{
   position:relative;
-  width:132px;height:162px;
+  width:154px;height:189px;
   margin:0 auto;
 }
 .sc-pkg-front-face{
-  position:absolute;left:0;top:22px;
-  width:100px;height:140px;
+  position:absolute;left:0;top:26px;
+  width:117px;height:163px;
   background:linear-gradient(145deg,#1e1e1e,#0c0c0c);
   border:1px solid rgba(177,250,32,.22);
   display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:5px;
 }
 .sc-pkg-wordmark{
-  font-family:var(--serif);font-size:.76rem;font-weight:600;
+  font-family:var(--serif);font-size:.86rem;font-weight:600;
   color:rgba(246,246,246,.9);letter-spacing:.07em;
 }
 .sc-pkg-sub{
-  font-family:var(--mono);font-size:.54rem;
+  font-family:var(--mono);font-size:.6rem;
   color:rgba(177,250,32,.7);
   text-transform:uppercase;letter-spacing:.08em;
   text-align:center;
 }
 .sc-pkg-side-face{
-  position:absolute;top:30px;left:100px;
-  width:32px;height:132px;
+  position:absolute;top:35px;left:117px;
+  width:37px;height:154px;
   background:linear-gradient(180deg,#141414,#060606);
   border-right:1px solid rgba(177,250,32,.12);
   clip-path:polygon(0 0,100% 8px,100% calc(100% + 8px),0% 100%);
 }
 .sc-pkg-top-face{
   position:absolute;top:0;left:0;
-  width:132px;height:28px;
+  width:154px;height:33px;
   background:linear-gradient(90deg,#242424,#181818);
-  clip-path:polygon(0% 100%,32px 0%,132px 0%,100px 100%);
+  clip-path:polygon(0% 100%,37px 0%,154px 0%,117px 100%);
 }
 
 /* ---- Card 4: Growth (normal flow) ---- */
@@ -1963,7 +1963,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 }
 .sc-chart{
   display:flex;align-items:flex-end;gap:7px;
-  height:96px;width:100%;margin-bottom:16px;padding:0 2px;
+  height:112px;width:100%;margin-bottom:16px;padding:0 2px;
   flex:none;
 }
 .sc-bar{
@@ -2234,8 +2234,8 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 #cardTravel .stack-card{
   top:var(--travel-top, 14vh);
   left:auto;
-  width:clamp(160px,18vw,240px);
-  height:calc(clamp(160px,18vw,240px) * 1.333333);
+  width:clamp(200px,21vw,280px);
+  height:calc(clamp(200px,21vw,280px) * 1.32143);
   pointer-events:auto;
   transform-origin:center center;
 }
