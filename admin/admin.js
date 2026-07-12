@@ -7822,6 +7822,11 @@
       groups.get(parent).push({ section, index });
     });
     groups.forEach(group => {
+      // A lone section in its parent has nothing to reorder against — skip it.
+      // appendChild-ing it anyway would still move it past non-section siblings
+      // (e.g. the hero inside .hero-travel-scene sits before #cardTravel; a
+      // no-op "reorder" would wrongly shove it after that sibling).
+      if (group.length < 2) return;
       group
         .sort((a, b) => getSectionOrderValue(a.section, a.index) - getSectionOrderValue(b.section, b.index))
         .forEach(item => item.section.parentElement && item.section.parentElement.appendChild(item.section));

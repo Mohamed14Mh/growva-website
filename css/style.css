@@ -2000,6 +2000,35 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   .stack-badge{display:none;}
 }
 
+/* ================= Landing grid — where the traveling hero cards dock ================= */
+.landing-grid{padding-top:20px;}
+.landing-grid-cards{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:28px;
+  max-width:600px;
+  margin:0 auto;
+}
+.landing-grid .stack-card.landing-card{
+  position:relative;
+  top:auto;left:auto;right:auto;
+  width:100%;
+  height:auto;
+  aspect-ratio:240/320;
+  opacity:0;
+  visibility:hidden;
+  pointer-events:auto;
+}
+.landing-grid .stack-card.landing-card .card-cta-overlay{pointer-events:none;}
+
+@media(max-width:899px){
+  .landing-grid-cards{grid-template-columns:repeat(2,1fr);max-width:420px;gap:16px;}
+  .landing-grid .stack-card.landing-card{opacity:1;visibility:visible;}
+}
+@media(max-width:520px){
+  .landing-grid-cards{grid-template-columns:1fr;max-width:280px;}
+}
+
 /* ================= Reduced motion ================= */
 @media(prefers-reduced-motion:reduce){
   *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important;}
@@ -2007,6 +2036,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   .word-reveal .word{opacity:1 !important;transform:none !important;transition:none !important;}
   .brand-object-canvas{display:none !important;}
   .stack-badge,.stack-badge-dot{animation:none !important;}
+  .landing-grid .stack-card.landing-card{opacity:1 !important;visibility:visible !important;}
 }
 
 @media(max-width:600px){

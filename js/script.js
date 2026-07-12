@@ -953,11 +953,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
-      // Travel system — fixed-position cards drifting down at different speeds
+      // Travel system — fixed-position cards drifting down at different speeds,
+      // then docking pixel-perfectly into the .landing-card grid further down the page.
       const travelTops  = ['-30vh', '-34vh', '-29vh', '0vh'];
-      const travelEnds  = [0.64, 0.82, 0.72, 0.9];
+      const travelEnds  = [0.6, 0.7, 0.64, 0.72];
       const fadeInAt    = [0.12, 0.12, 0.12, 0.32];
       const extraRot    = [-3, 4, -2, 5];
+
+      const landingCards = Array.from(document.querySelectorAll('.landing-card'));
+      const hasLandingTargets = landingCards.length === cards.length;
+      if (hasLandingTargets) gsap.set(landingCards, { autoAlpha: 0 });
 
       const travelCards = cards.map((card, i) => {
         const clone = card.cloneNode(true);
@@ -970,6 +975,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return clone;
       });
 
+      // Measure each clone's natural (untransformed) rect against its landing
+      // slot's rect BEFORE any GSAP transform is applied, so the final leg of
+      // the journey can dock it pixel-perfectly onto the real grid card.
+      const landTargets = travelCards.map((clone, i) => {
+        if (!hasLandingTargets) return null;
+        const naturalRect = clone.getBoundingClientRect();
+        const landRect = landingCards[i].getBoundingClientRect();
+        const finalScale = landRect.width / naturalRect.width;
+        return {
+          x: (landRect.left - naturalRect.left) - (naturalRect.width / 2) * (1 - finalScale),
+          y: (landRect.top - naturalRect.top) - (naturalRect.height / 2) * (1 - finalScale),
+          scale: finalScale
+        };
+      });
+
       gsap.set(travelCards, {
         autoAlpha: 0,
         scale: 0.58,
@@ -978,6 +998,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       travelCards.forEach((card, i) => {
+        const target = landTargets[i];
         const travelTl = gsap.timeline({
           scrollTrigger: {
             trigger: travelEl,
@@ -999,9 +1020,25 @@ document.addEventListener('DOMContentLoaded', () => {
           y: () => travelEl.offsetHeight * travelEnds[i],
           rotation: scatterRots[i] + extraRot[i],
           ease: 'none',
-          duration: 1
+          duration: 0.66
         }, 0);
-        travelTl.to(card, { autoAlpha: 0, duration: 0.15, ease: 'power1.in' }, 0.85);
+
+        if (target) {
+          // Cinematic dock — the scattered card straightens out and glides
+          // into its exact spot in the grid section below.
+          travelTl.to(card, {
+            x: target.x,
+            y: target.y,
+            rotation: 0,
+            scale: target.scale,
+            ease: 'power3.inOut',
+            duration: 0.28
+          }, 0.66);
+          travelTl.to(card, { autoAlpha: 0, duration: 0.05, ease: 'power1.in' }, 0.95);
+          travelTl.to(landingCards[i], { autoAlpha: 1, duration: 0.05, ease: 'power1.in' }, 0.95);
+        } else {
+          travelTl.to(card, { autoAlpha: 0, duration: 0.15, ease: 'power1.in' }, 0.85);
+        }
       });
       ScrollTrigger.create({
         animation        : tl,
@@ -1793,23 +1830,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const links = new THREE.LineSegments(lGeo, lMat);
     scene.add(links);
 
-    // ---- Drifting wireframe shapes for scale/depth ----
+    // ---- A few restrained wireframe markers for scale/depth (kept deliberately
+    // sparse — two calm, related forms rather than a cluttered shape soup) ----
     const shapes = [];
     const shapeGeoms = [
-      () => new THREE.IcosahedronGeometry(3.2, 0),
-      () => new THREE.TorusGeometry(2.6, 0.5, 8, 24),
-      () => new THREE.OctahedronGeometry(2.8, 0),
-      () => new THREE.TorusKnotGeometry(2, 0.42, 90, 12)
+      () => new THREE.IcosahedronGeometry(3, 0),
+      () => new THREE.TorusGeometry(2.4, 0.4, 8, 28)
     ];
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 5; i++) {
       const geo = shapeGeoms[i % shapeGeoms.length]();
-      const z = -HALF_DEPTH + (i / 9) * DEPTH;
+      const z = -HALF_DEPTH + ((i + 0.5) / 5) * DEPTH;
       const color = colorForDepth((z + HALF_DEPTH) / DEPTH);
-      const mat = new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.18 });
+      const mat = new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.13 });
       const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set((Math.random() - 0.5) * 28, (Math.random() - 0.5) * 22, z);
+      mesh.position.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 22, z);
       mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
-      mesh.userData.spin = 0.35 + Math.random() * 0.5;
+      mesh.userData.spin = 0.3 + Math.random() * 0.4;
       scene.add(mesh);
       shapes.push(mesh);
     }
