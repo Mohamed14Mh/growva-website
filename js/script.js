@@ -280,6 +280,11 @@ document.addEventListener('DOMContentLoaded', () => {
       trigger.addEventListener('click', event => {
         event.preventDefault();
         clearTimers();
+        // The dropdown already opens on hover/focus for exploring sub-links;
+        // clicking the word itself should behave like a normal nav link and
+        // take you to that section's main page.
+        const target = trigger.dataset.activePage;
+        if (target) { window.location.href = target; return; }
         item.classList.contains('open') ? closeItem(item) : openItem(item);
       });
 
