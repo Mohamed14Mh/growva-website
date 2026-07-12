@@ -915,11 +915,13 @@ document.addEventListener('DOMContentLoaded', () => {
       ];
       cards.forEach((card, i) => gsap.set(card, { ...fan[i], zIndex: 4 - i }));
 
+      // Every card scatters outward AND downward — never upward — so the
+      // motion always reads as "coming down with the scroll."
       const scatterTargets = [
-        { x: '-36vw', y:  '22vh', rotation: -14, scale: 0.78 },
-        { x: '-13vw', y: '-22vh', rotation:  11, scale: 0.8 },
-        { x:   '3vw', y: '-26vh', rotation:  -8, scale: 0.79 },
-        { x:   '4vw', y:  '20vh', rotation:  16, scale: 0.77 }
+        { x: '-36vw', y: '16vh', rotation: -14, scale: 0.78 },
+        { x: '-13vw', y:  '9vh', rotation:  11, scale: 0.8 },
+        { x:   '3vw', y: '11vh', rotation:  -8, scale: 0.79 },
+        { x:   '4vw', y: '19vh', rotation:  16, scale: 0.77 }
       ];
 
       // Prefers-reduced-motion: static scattered positions, no pin, no travel
