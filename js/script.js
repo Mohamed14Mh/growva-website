@@ -1819,6 +1819,24 @@ document.addEventListener('DOMContentLoaded', () => {
       shapes.push(mesh);
     }
 
+    // A single large centerpiece the camera swings close past at the
+    // midpoint of the journey — the "big moment" from the very first
+    // version of this scene. Note: plain white/ivory was tried here first
+    // since the brand's small accent shapes read as pale/near-white, but
+    // white wireframe on this scene's light page background is nearly
+    // invisible (no contrast) — so it uses the same depth-tinted colour
+    // as everything else instead, just much larger and slightly bolder.
+    const centerpieceZ = -HALF_DEPTH * 0.35;
+    const centerpiece = new THREE.Mesh(
+      new THREE.TorusKnotGeometry(4.4, 0.9, 140, 16),
+      new THREE.MeshBasicMaterial({
+        color: colorForDepth((centerpieceZ + HALF_DEPTH) / DEPTH),
+        wireframe: true, transparent: true, opacity: 0.32
+      })
+    );
+    centerpiece.position.set(6, -2, centerpieceZ);
+    scene.add(centerpiece);
+
     // ---- Camera choreography: a winding multi-beat flight tied to scroll ----
     // Travel distance is capped at 85% of HALF_DEPTH so the camera always
     // stays inside the populated content — it used to overshoot past the
@@ -1854,6 +1872,8 @@ document.addEventListener('DOMContentLoaded', () => {
       particles.rotation.y = t * 0.008;
       links.rotation.y = particles.rotation.y;
       shapes.forEach(s => { s.rotation.x += s.userData.spin * 0.004; s.rotation.y += s.userData.spin * 0.003; });
+      centerpiece.rotation.x += 0.0025;
+      centerpiece.rotation.y += 0.004;
       camera.position.x += (cameraRig.x + mx * 1.6 - camera.position.x) * 0.045;
       camera.position.y += (cameraRig.y - my * 1.4 - camera.position.y) * 0.045;
       camera.position.z += (cameraRig.z - camera.position.z) * 0.08;
