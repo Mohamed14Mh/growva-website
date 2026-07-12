@@ -1799,7 +1799,7 @@ document.addEventListener('DOMContentLoaded', () => {
       camera.updateProjectionMatrix();
     }
 
-    const DEPTH = 200;
+    const DEPTH = 280;
     const HALF_DEPTH = DEPTH / 2;
 
     // Three colour "chapters" the journey passes through, front to back —
@@ -1817,7 +1817,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---- Drifting particle field the camera flies through, colour-graded by depth ----
-    const COUNT = 520;
+    const COUNT = 700;
     const pPos = new Float32Array(COUNT * 3);
     const pCol = new Float32Array(COUNT * 3);
     const positions = [];
@@ -1865,16 +1865,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const links = new THREE.LineSegments(lGeo, lMat);
     scene.add(links);
 
-    // ---- A few restrained wireframe markers for scale/depth (kept deliberately
-    // sparse — two calm, related forms rather than a cluttered shape soup) ----
+    // ---- Restrained wireframe markers for scale/depth — spread across the
+    // FULL depth range (including the back half the camera now reaches late
+    // in the page) so the scene never feels like it "runs out" ----
     const shapes = [];
     const shapeGeoms = [
       () => new THREE.IcosahedronGeometry(3, 0),
       () => new THREE.TorusGeometry(2.4, 0.4, 8, 28)
     ];
-    for (let i = 0; i < 5; i++) {
+    const SHAPE_COUNT = 9;
+    for (let i = 0; i < SHAPE_COUNT; i++) {
       const geo = shapeGeoms[i % shapeGeoms.length]();
-      const z = -HALF_DEPTH + ((i + 0.5) / 5) * DEPTH;
+      const z = -HALF_DEPTH + ((i + 0.5) / SHAPE_COUNT) * DEPTH;
       const color = colorForDepth((z + HALF_DEPTH) / DEPTH);
       const mat = new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.13 });
       const mesh = new THREE.Mesh(geo, mat);
@@ -1895,15 +1897,21 @@ document.addEventListener('DOMContentLoaded', () => {
     scene.add(centerpiece);
 
     // ---- Camera choreography: a winding multi-beat flight tied to scroll ----
+    // Travel distance is capped at 85% of HALF_DEPTH so the camera always
+    // stays inside the populated content — it used to overshoot past the
+    // back edge of the scene with ~35% of the page still left to scroll,
+    // which read as the background "running out" early.
+    const MAX_TRAVEL = HALF_DEPTH * 0.85;
     const cameraRig = { z: 20, x: 0, y: 0, rotY: 0, rotZ: 0, fov: 55 };
     const flightTl = gsap.timeline({
       scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 0.7 }
     });
     flightTl
       .to(cameraRig, { x: 4.5, y: 1.5, rotY: 0.12, rotZ: 0.02, ease: 'none' }, 0)
-      .to(cameraRig, { z: 20 - HALF_DEPTH * 0.7, x: 3.5, y: -1, rotY: -0.18, rotZ: -0.015, fov: 62, ease: 'none' }, 0.32)
-      .to(cameraRig, { z: 20 - HALF_DEPTH * 1.15, x: -5, y: 1.5, rotY: 0.22, rotZ: 0.02, fov: 55, ease: 'none' }, 0.62)
-      .to(cameraRig, { z: 20 - DEPTH * 0.92, x: 0, y: 0, rotY: 0, rotZ: 0, fov: 55, ease: 'none' }, 1);
+      .to(cameraRig, { z: 20 - MAX_TRAVEL * 0.42, x: 3.5, y: -1, rotY: -0.18, rotZ: -0.015, fov: 62, ease: 'none' }, 0.24)
+      .to(cameraRig, { z: 20 - MAX_TRAVEL * 0.62, x: -5, y: 1.5, rotY: 0.22, rotZ: 0.02, fov: 55, ease: 'none' }, 0.48)
+      .to(cameraRig, { z: 20 - MAX_TRAVEL * 0.8, x: 4, y: -1.5, rotY: -0.16, rotZ: -0.02, fov: 60, ease: 'none' }, 0.74)
+      .to(cameraRig, { z: 20 - MAX_TRAVEL, x: 0, y: 0, rotY: 0, rotZ: 0, fov: 55, ease: 'none' }, 1);
 
     let mx = 0, my = 0;
     window.addEventListener('mousemove', e => {
