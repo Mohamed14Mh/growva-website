@@ -182,77 +182,6 @@ document.addEventListener('DOMContentLoaded', () => {
     targets.forEach(target => wordIO.observe(target));
   })();
 
-  /* ---------- Custom cursor (magnetic upgrade) ---------- */
-  const dot  = document.getElementById('cursorDot');
-  const ring = document.getElementById('cursorRing');
-  if (dot && ring && window.matchMedia('(hover: hover)').matches) {
-    let mx = window.innerWidth / 2, my = window.innerHeight / 2;
-    let rx = mx, ry = my;
-    let magnetEl = null; // currently hovered [data-hover] element
-    const isAdminMode = () => document.body.classList.contains('admin-mode');
-    const isAdminTarget = target => Boolean(target && target.closest && target.closest('[data-admin-ui], [data-admin-action], [data-admin-entry], .gv-admin-root, .gv-admin, .admin-shell, .growva-admin, .admin-panel'));
-    const clearAdminCursorState = () => {
-      ring.classList.remove('hovered', 'has-label');
-      delete ring.dataset.label;
-      magnetEl = null;
-    };
-
-    window.addEventListener('mousemove', e => {
-      if (isAdminMode() || isAdminTarget(e.target)) {
-        clearAdminCursorState();
-        return;
-      }
-      mx = e.clientX; my = e.clientY;
-      dot.style.left = mx + 'px'; dot.style.top = my + 'px';
-    });
-
-    (function tick() {
-      if (!window._rafPaused) {
-        if (isAdminMode()) {
-          clearAdminCursorState();
-          requestAnimationFrame(tick);
-          return;
-        }
-        if (magnetEl) {
-          // Pull ring partway toward the element's center — the magnetic feel
-          const r = magnetEl.getBoundingClientRect();
-          const cx = r.left + r.width  / 2;
-          const cy = r.top  + r.height / 2;
-          const tx = cx * 0.5 + mx * 0.5;
-          const ty = cy * 0.5 + my * 0.5;
-          rx += (tx - rx) * 0.22;
-          ry += (ty - ry) * 0.22;
-        } else {
-          rx += (mx - rx) * 0.16;
-          ry += (my - ry) * 0.16;
-        }
-        ring.style.left = rx + 'px';
-        ring.style.top  = ry + 'px';
-      }
-      requestAnimationFrame(tick);
-    })();
-
-    document.querySelectorAll('[data-hover]').forEach(el => {
-      el.addEventListener('mouseenter', event => {
-        if (isAdminMode() || isAdminTarget(event.target)) return;
-        ring.classList.add('hovered');
-        magnetEl = el;
-      });
-      el.addEventListener('mouseleave', () => { ring.classList.remove('hovered'); magnetEl = null; });
-    });
-
-    document.querySelectorAll('[data-cursor-text]').forEach(el => {
-      el.addEventListener('mouseenter', event => {
-        if (isAdminMode() || isAdminTarget(event.target)) return;
-        ring.classList.add('has-label');
-        ring.dataset.label = el.dataset.cursorText || '';
-      });
-      el.addEventListener('mouseleave', () => {
-        ring.classList.remove('has-label');
-        delete ring.dataset.label;
-      });
-    });
-  }
 
   /* ---------- Nav scroll + burger ---------- */
   const nav = document.getElementById('nav');
@@ -1505,32 +1434,67 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   })();
 
-  /* ---------- 3-D tilt on card-like elements (sitewide) ---------- */
+  /* ---------- Premium spring-physics 3D tilt on card-like elements (sitewide) ----------
+     Every visible frame lerps the current rotation/scale toward a target,
+     which approximates a heavily-damped spring (similar to a framer-motion
+     spring with damping:30, stiffness:100, mass:2 — just above critical
+     damping, so it settles smoothly with no bounce/overshoot). This reads
+     as noticeably more "alive" than a plain CSS transition because the
+     motion keeps easing every frame instead of jumping straight into one
+     fixed-duration transition curve. */
   (function initTiltCards() {
-    if (!window.matchMedia('(hover: hover)').matches) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!window.matchMedia('(hover: hover)').matches) return;
     const SEL = [
       '.why-card', '.service-compact-item', '.case-card',
       '.shopify-pillar', '.process-stage', '.pricing-card',
       '.value-card', '.faq-item', '.shopify-process-step',
       '.latest-project-card',
       '.testi-card', '.stat-item', '.value-item',
-      '.project-card-visual', '.work-cat-card'
+      '.project-card', '.work-cat-card',
+      '.pgi', '.related-service-card', '.stack-card',
+      '.service-detail-item', '.integration-item'
     ].join(',');
+    const LERP = 0.14;
+    const SNAP_EPS = 0.02;
+
     document.querySelectorAll(SEL).forEach(card => {
-      card.classList.add('has-tilt');
+      card.classList.add('has-tilt', 'has-sheen');
+      const state = { rx: 0, ry: 0, s: 1, trx: 0, try_: 0, ts: 1, raf: null };
+
+      function tick() {
+        state.rx += (state.trx - state.rx) * LERP;
+        state.ry += (state.try_ - state.ry) * LERP;
+        state.s  += (state.ts  - state.s)  * LERP;
+        card.style.setProperty('--tilt-x', state.rx.toFixed(3) + 'deg');
+        card.style.setProperty('--tilt-y', state.ry.toFixed(3) + 'deg');
+        card.style.setProperty('--tilt-s', state.s.toFixed(4));
+        const settled = Math.abs(state.trx - state.rx) < SNAP_EPS &&
+                         Math.abs(state.try_ - state.ry) < SNAP_EPS &&
+                         Math.abs(state.ts - state.s) < 0.001;
+        if (!settled) { state.raf = requestAnimationFrame(tick); }
+        else { state.raf = null; }
+      }
+      function ensureLoop() { if (!state.raf) state.raf = requestAnimationFrame(tick); }
+
       card.addEventListener('mousemove', e => {
         if (document.body.classList.contains('admin-mode')) return;
         const r = card.getBoundingClientRect();
         const x = (e.clientX - r.left) / r.width  - 0.5;
         const y = (e.clientY - r.top)  / r.height - 0.5;
-        card.style.setProperty('--tilt-x', (-y * 11) + 'deg');
-        card.style.setProperty('--tilt-y', ( x * 11) + 'deg');
+        state.trx = -y * 22;
+        state.try_ = x * 22;
+        state.ts = 1.08;
+        card.style.setProperty('--sheen-x', ((x + 0.5) * 100) + '%');
+        card.style.setProperty('--sheen-y', ((y + 0.5) * 100) + '%');
+        card.style.setProperty('--sheen-o', '1');
+        ensureLoop();
       });
       card.addEventListener('mouseleave', () => {
         if (document.body.classList.contains('admin-mode')) return;
-        card.style.setProperty('--tilt-x', '0deg');
-        card.style.setProperty('--tilt-y', '0deg');
+        state.trx = 0; state.try_ = 0; state.ts = 1;
+        card.style.setProperty('--sheen-o', '0');
+        ensureLoop();
       });
     });
   })();
@@ -1706,5 +1670,52 @@ document.addEventListener('DOMContentLoaded', () => {
     const href = hrefField ? hrefField.textContent.trim() : '';
     if (href && href !== '#') window.location.href = href;
   });
+
+  /* ---------- Glass sheen on bento gallery tiles (no tilt) ----------
+     These tiles already have their own scroll-driven GSAP Flip transform,
+     so no rotation/scale is added here — only the cursor-tracked glow,
+     which lives on a separate ::after layer and never touches the
+     tile's own transform, so it can't fight Flip's positioning. */
+  if (window.matchMedia('(hover: hover)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelectorAll('.gallery__item').forEach(card => {
+      card.classList.add('has-sheen');
+      card.addEventListener('mousemove', e => {
+        if (document.body.classList.contains('admin-mode')) return;
+        const r = card.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width;
+        const y = (e.clientY - r.top) / r.height;
+        card.style.setProperty('--sheen-x', (x * 100) + '%');
+        card.style.setProperty('--sheen-y', (y * 100) + '%');
+        card.style.setProperty('--sheen-o', '1');
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.setProperty('--sheen-o', '0');
+      });
+    });
+  }
+
+  /* ---------- Cinematic scroll-driven ambient background (homepage only) ---------- */
+  (function initCinematicBackground() {
+    const bg = document.getElementById('cinematicBg');
+    if (!bg || !window.gsap || !window.ScrollTrigger) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const orbs = bg.querySelectorAll('.cinematic-bg-orb');
+    if (!orbs.length) return;
+
+    const paths = [
+      { x: ['0vw', '10vw', '-6vw'], y: ['0vh', '30vh', '65vh'], s: [1, 1.15, 0.95] },
+      { x: ['0vw', '-12vw', '8vw'], y: ['0vh', '25vh', '55vh'], s: [1, 0.9, 1.1] },
+      { x: ['0vw', '8vw', '-10vw'], y: ['0vh', '-20vh', '-45vh'], s: [1, 1.08, 0.92] }
+    ];
+
+    orbs.forEach((orb, i) => {
+      const path = paths[i % paths.length];
+      const tl = gsap.timeline({
+        scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 0.8 }
+      });
+      tl.to(orb, { '--orb-x': path.x[1], '--orb-y': path.y[1], '--orb-s': path.s[1], ease: 'none' }, 0)
+        .to(orb, { '--orb-x': path.x[2], '--orb-y': path.y[2], '--orb-s': path.s[2], ease: 'none' }, 0.5);
+    });
+  })();
 
 });

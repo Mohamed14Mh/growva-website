@@ -34,14 +34,52 @@ body{
   color:var(--black);
   font-family:var(--sans);
   overflow-x:hidden;
-  cursor:none;
 }
 img{max-width:100%;display:block;}
 a{color:inherit;text-decoration:none;}
-button{font-family:inherit;background:none;border:none;cursor:none;color:inherit;}
+button{font-family:inherit;background:none;border:none;cursor:pointer;color:inherit;}
 .container{max-width:var(--container);margin:0 auto;padding:0 40px;}
 
-@media(hover:none){body{cursor:auto;} button{cursor:pointer;}}
+/* ---------- Cinematic scroll-driven ambient background (homepage) ---------- */
+.cinematic-bg{
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  overflow:hidden;
+  pointer-events:none;
+}
+.cinematic-bg-orb{
+  position:absolute;
+  border-radius:50%;
+  filter:blur(4px);
+  opacity:.5;
+  will-change:transform;
+  transform:translate3d(var(--orb-x,0),var(--orb-y,0),0) scale(var(--orb-s,1));
+}
+.cinematic-bg-orb--1{
+  width:56vw;height:56vw;left:-18vw;top:-10vh;
+  background:radial-gradient(circle,rgba(177,250,32,.20) 0%,rgba(177,250,32,0) 68%);
+}
+.cinematic-bg-orb--2{
+  width:48vw;height:48vw;right:-14vw;top:32vh;
+  background:radial-gradient(circle,rgba(80,185,100,.16) 0%,rgba(80,185,100,0) 68%);
+}
+.cinematic-bg-orb--3{
+  width:60vw;height:60vw;left:22vw;top:120vh;
+  background:radial-gradient(circle,rgba(177,250,32,.14) 0%,rgba(177,250,32,0) 70%);
+}
+.cinematic-bg-grain{
+  position:absolute;inset:-10%;
+  opacity:.03;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode:overlay;
+}
+@media(max-width:700px){
+  .cinematic-bg-orb{filter:blur(2px);}
+}
+@media(prefers-reduced-motion:reduce){
+  .cinematic-bg-orb{transform:none !important;}
+}
 
 /* ---------- Scroll progress ---------- */
 .scroll-progress{
@@ -60,30 +98,6 @@ button{font-family:inherit;background:none;border:none;cursor:none;color:inherit
   transform-origin:left center;
   box-shadow:0 0 18px rgba(177,250,32,.45);
 }
-
-/* ---------- Custom cursor ---------- */
-.cursor-dot,.cursor-ring{
-  position:fixed;top:0;left:0;pointer-events:none;z-index:9999;
-  border-radius:50%;transform:translate(-50%,-50%);
-}
-.cursor-dot{width:6px;height:6px;background:var(--mint);transition:opacity .2s;}
-.cursor-ring{
-  width:36px;height:36px;border:1px solid rgba(17,17,17,.35);
-  transition:width .25s var(--ease),height .25s var(--ease),border-color .25s,background .25s,color .25s;
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:10px;font-weight:700;
-  letter-spacing:.08em;text-transform:uppercase;color:transparent;
-  text-align:center;line-height:1;white-space:nowrap;
-}
-.cursor-ring.hovered{width:64px;height:64px;background:var(--mint-soft);border-color:var(--mint);}
-.cursor-ring.has-label{
-  width:78px;height:78px;
-  background:rgba(177,250,32,.12);
-  border-color:var(--mint);
-  color:var(--mint);
-}
-.cursor-ring.has-label::after{content:attr(data-label);}
-@media(hover:none){.cursor-dot,.cursor-ring{display:none;}}
 
 /* ---------- Preloader ---------- */
 .preloader{
@@ -502,11 +516,22 @@ button{font-family:inherit;background:none;border:none;cursor:none;color:inherit
 /* ================= STATS ================= */
 .stats{background:var(--black);color:var(--ivory);padding:110px 0;}
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:40px;}
-.stat-item{border-left:1px solid rgba(246,246,246,.14);padding-left:24px;background-position:50% 50%;background-size:cover;}
+.stat-item{
+  border:1px solid rgba(246,246,246,.1);
+  padding:24px 22px;
+  border-radius:14px;
+  background:rgba(246,246,246,.04);
+  background-position:50% 50%;background-size:cover;
+  backdrop-filter:blur(14px) saturate(140%);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);
+  box-shadow:inset 0 1px 0 rgba(246,246,246,.08);
+  transition:background-color .3s,border-color .3s,transform .4s var(--ease);
+}
+.stat-item:hover{background-color:rgba(246,246,246,.07);border-color:rgba(177,250,32,.28);}
 .stat-num{font-family:var(--serif);font-size:clamp(2.4rem,5vw,4rem);font-weight:500;color:var(--mint);}
 .stat-plus{font-family:var(--serif);font-size:2rem;color:var(--mint);}
 .stat-item p{margin-top:10px;font-size:.88rem;color:rgba(246,246,246,.6);}
-.stat-item[data-media-current-url]:not([data-media-current-url=""]){padding:20px 20px 20px 24px;border-radius:6px;background-color:rgba(5,5,5,.62);background-blend-mode:darken;}
+.stat-item[data-media-current-url]:not([data-media-current-url=""]){background-color:rgba(5,5,5,.62);background-blend-mode:darken;}
 
 @media(max-width:800px){.stats-grid{grid-template-columns:1fr 1fr;row-gap:44px;}}
 
@@ -1266,8 +1291,15 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .testi-track{display:flex;gap:24px;width:max-content;animation:testiScroll 42s linear infinite;}
 .testi-track:hover{animation-play-state:paused;}
 .testi-card{
-  width:400px;flex-shrink:0;background:#fff;border:1px solid var(--line-soft);border-radius:4px;
+  width:400px;flex-shrink:0;
+  background:rgba(255,255,255,.55);
+  border:1px solid rgba(255,255,255,.5);
+  border-radius:14px;
   padding:36px 32px;background-position:50% 50%;background-size:cover;
+  backdrop-filter:blur(20px) saturate(160%);
+  -webkit-backdrop-filter:blur(20px) saturate(160%);
+  box-shadow:0 12px 40px rgba(17,17,17,.06),inset 0 1px 0 rgba(255,255,255,.7);
+  transition:transform .4s var(--ease),box-shadow .4s var(--ease);
 }
 .testi-card p{font-family:var(--serif);font-size:1.15rem;line-height:1.55;margin-bottom:20px;font-weight:400;}
 .testi-card span{font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-dim);}
@@ -2028,11 +2060,30 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   );
 }
 
-/* --- 3-D tilt card --- */
+/* --- 3-D tilt card ---
+   Rotation/scale are driven by JS every animation frame (a lerped
+   spring), so no CSS transition on transform here — one would fight
+   the per-frame updates and make the motion feel laggy/muted. */
 .has-tilt{
-  transform:perspective(900px) rotateX(var(--tilt-x,0deg)) rotateY(var(--tilt-y,0deg)) translateZ(0);
-  transition:transform .5s cubic-bezier(.16,.84,.44,1);
+  transform:perspective(900px) rotateX(var(--tilt-x,0deg)) rotateY(var(--tilt-y,0deg)) scale(var(--tilt-s,1)) translateZ(0);
   will-change:transform;
+  box-shadow:0 var(--tilt-shadow-y,4px) var(--tilt-shadow-blur,18px) rgba(10,10,10,var(--tilt-shadow-o,0));
+  transition:box-shadow .35s var(--ease);
+}
+.has-tilt:hover{--tilt-shadow-y:34px;--tilt-shadow-blur:64px;--tilt-shadow-o:.32;}
+
+/* --- Cursor-tracked glass sheen highlight --- */
+.has-sheen{position:relative;isolation:isolate;}
+.has-sheen::after{
+  content:"";
+  position:absolute;inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  z-index:2;
+  opacity:var(--sheen-o,0);
+  transition:opacity .4s var(--ease);
+  background:radial-gradient(circle at var(--sheen-x,50%) var(--sheen-y,50%),rgba(255,255,255,.35),rgba(255,255,255,0) 42%);
+  mix-blend-mode:overlay;
 }
 
 /* --- Magnetic buttons keep their spring reset --- */
