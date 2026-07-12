@@ -1761,7 +1761,7 @@ document.addEventListener('DOMContentLoaded', () => {
     pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
     pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
     const pMat = new THREE.PointsMaterial({
-      size: 0.13, transparent: true, opacity: 0.75, vertexColors: true,
+      size: 0.2, transparent: true, opacity: 0.88, vertexColors: true,
       blending: THREE.AdditiveBlending, depthWrite: false
     });
     const particles = new THREE.Points(pGeo, pMat);
@@ -1786,7 +1786,7 @@ document.addEventListener('DOMContentLoaded', () => {
     lGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(linkPositions), 3));
     lGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(linkColors), 3));
     const lMat = new THREE.LineBasicMaterial({
-      vertexColors: true, transparent: true, opacity: 0.16,
+      vertexColors: true, transparent: true, opacity: 0.34,
       blending: THREE.AdditiveBlending, depthWrite: false
     });
     const links = new THREE.LineSegments(lGeo, lMat);
@@ -1799,12 +1799,12 @@ document.addEventListener('DOMContentLoaded', () => {
       () => new THREE.IcosahedronGeometry(3, 0),
       () => new THREE.TorusGeometry(2.4, 0.4, 8, 28)
     ];
-    const SHAPE_COUNT = 9;
+    const SHAPE_COUNT = 12;
     for (let i = 0; i < SHAPE_COUNT; i++) {
       const geo = shapeGeoms[i % shapeGeoms.length]();
       const z = -HALF_DEPTH + ((i + 0.5) / SHAPE_COUNT) * DEPTH;
       const color = colorForDepth((z + HALF_DEPTH) / DEPTH);
-      const mat = new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.13 });
+      const mat = new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.3 });
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 22, z);
       mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
@@ -1816,7 +1816,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---- Orbit rings — thin nested rings drifting slowly around a few hub
     // points, suggesting system / movement / a connected brand ----
     const orbitHubs = [];
-    const ORBIT_HUB_COUNT = 4;
+    const ORBIT_HUB_COUNT = 5;
     for (let i = 0; i < ORBIT_HUB_COUNT; i++) {
       const z = -HALF_DEPTH + ((i + 0.15) / ORBIT_HUB_COUNT) * DEPTH;
       const color = colorForDepth((z + HALF_DEPTH) / DEPTH);
@@ -1827,8 +1827,8 @@ document.addEventListener('DOMContentLoaded', () => {
       for (let r = 0; r < ringCount; r++) {
         const radius = 2.6 + r * 1.1;
         const ring = new THREE.Mesh(
-          new THREE.TorusGeometry(radius, 0.02, 8, 64),
-          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.16 - r * 0.03 })
+          new THREE.TorusGeometry(radius, 0.045, 8, 64),
+          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.34 - r * 0.05 })
         );
         ring.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.6;
         ring.rotation.y = (Math.random() - 0.5) * 0.6;
@@ -1847,17 +1847,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const microMakers = [
       color => { // plus
         const g = new THREE.Group();
-        const barMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.3 });
-        const bar1 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.07, 0.07), barMat);
-        const bar2 = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.7, 0.07), barMat);
+        const barMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5 });
+        const bar1 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.11, 0.11), barMat);
+        const bar2 = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.8, 0.11), barMat);
         g.add(bar1, bar2);
         return g;
       },
       color => { // ×
         const g = new THREE.Group();
-        const barMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.3 });
-        const bar1 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.07, 0.07), barMat);
-        const bar2 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.07, 0.07), barMat);
+        const barMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5 });
+        const bar1 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.11, 0.11), barMat);
+        const bar2 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.11, 0.11), barMat);
         bar1.rotation.z = Math.PI / 4;
         bar2.rotation.z = -Math.PI / 4;
         g.add(bar1, bar2);
@@ -1865,20 +1865,20 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       color => { // diamond
         const mesh = new THREE.Mesh(
-          new THREE.PlaneGeometry(0.55, 0.55),
-          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, side: THREE.DoubleSide, wireframe: true })
+          new THREE.PlaneGeometry(0.65, 0.65),
+          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.42, side: THREE.DoubleSide, wireframe: true })
         );
         mesh.rotation.z = Math.PI / 4;
         return mesh;
       },
       color => { // small square
         return new THREE.Mesh(
-          new THREE.PlaneGeometry(0.4, 0.4),
-          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, side: THREE.DoubleSide, wireframe: true })
+          new THREE.PlaneGeometry(0.5, 0.5),
+          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.42, side: THREE.DoubleSide, wireframe: true })
         );
       }
     ];
-    const MICRO_COUNT = 10;
+    const MICRO_COUNT = 14;
     for (let i = 0; i < MICRO_COUNT; i++) {
       const z = -HALF_DEPTH + Math.random() * DEPTH;
       const color = colorForDepth((z + HALF_DEPTH) / DEPTH);
@@ -1893,14 +1893,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---- Product box wireframes — transparent 3D package outlines, a nod
     // to the ecommerce/fulfilment side of the business ----
     const productBoxes = [];
-    const PBOX_COUNT = 4;
+    const PBOX_COUNT = 6;
     for (let i = 0; i < PBOX_COUNT; i++) {
       const z = -HALF_DEPTH + ((i + 0.6) / PBOX_COUNT) * DEPTH;
       const color = colorForDepth((z + HALF_DEPTH) / DEPTH);
       const size = 1.6 + Math.random() * 1.2;
       const box = new THREE.Mesh(
         new THREE.BoxGeometry(size, size * 1.15, size * 0.85),
-        new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.15 })
+        new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.32 })
       );
       box.position.set((Math.random() - 0.5) * 34, (Math.random() - 0.5) * 22, z);
       box.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
@@ -1930,9 +1930,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const center = new THREE.Vector3();
         box.getCenter(center);
         centerpiece.position.set(6 + center.x * scale, -2 - center.y * scale, centerpieceZ - center.z * scale);
+        // Preserve the model's real two-tone design (dark body + mint-green
+        // accent, per its two source materials) instead of flattening
+        // everything to one solid colour — the white body tint is swapped
+        // for dark since it would vanish against this scene's light pages.
         centerpiece.traverse(node => {
-          if (node.isMesh) {
-            node.material = new THREE.MeshBasicMaterial({ color: 0xB1FA20 });
+          if (node.isMesh && node.material) {
+            const c = node.material.color;
+            const isAccent = c && c.g > 0.5 && c.r < 0.7 && c.b < 0.3;
+            node.material = new THREE.MeshBasicMaterial({ color: isAccent ? 0xB1FA20 : 0x141414 });
           }
         });
         scene.add(centerpiece);
