@@ -1837,6 +1837,29 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   will-change:transform,opacity;
 }
 
+/* ---- Optional photo layer (Brand Identity / Packaging / Growth cards) ----
+   Transparent by default so the drawn icon/mockup shows as before; once an
+   admin sets a real image, it covers the card and the decorative art
+   (.sc-photo-hide) steps aside. */
+.sc-card-photo{
+  position:absolute;inset:0;
+  background-position:50% 50%;
+  background-repeat:no-repeat;
+  border-radius:inherit;
+  pointer-events:none;
+}
+.sc-card-photo[data-media-current-url]:not([data-media-current-url=""]){
+  background-size:cover;
+}
+.sc-card-photo[data-media-current-url]:not([data-media-current-url=""])::after{
+  content:"";
+  position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(0,0,0,.42) 0%,rgba(0,0,0,.5) 45%,rgba(0,0,0,.78) 100%);
+}
+.stack-card:has(> .sc-card-photo[data-media-current-url]:not([data-media-current-url=""])) .sc-photo-hide{
+  display:none;
+}
+
 /* shared bottom label on all cards */
 .sc-card-label{
   position:absolute;
@@ -1903,6 +1926,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 }
 .sc-brand-mark svg{width:82px;height:82px;}
 .sc-brand-name{
+  position:relative; /* stack above the absolutely-positioned .sc-card-photo */
   font-family:var(--serif);font-size:.88rem;font-weight:500;
   color:rgba(246,246,246,.85);
 }
@@ -1957,6 +1981,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 /* ---- Card 4: Growth (normal flow) ---- */
 .sc-card-growth{display:flex;flex-direction:column;}
 .sc-growth-eyebrow{
+  position:relative; /* stack above the absolutely-positioned .sc-card-photo */
   font-family:var(--mono);font-size:.68rem;
   text-transform:uppercase;letter-spacing:.1em;
   color:var(--mint);margin-bottom:14px;
@@ -1973,6 +1998,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   border-radius:3px 3px 0 0;
 }
 .sc-stat-block{
+  position:relative; /* stack above the absolutely-positioned .sc-card-photo */
   display:flex;flex-direction:column;gap:3px;
   border-top:1px solid rgba(255,255,255,.08);
   padding-top:12px;
@@ -2004,9 +2030,9 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .landing-grid{padding-top:20px;}
 .landing-grid-cards{
   display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:28px;
-  max-width:600px;
+  grid-template-columns:repeat(4,1fr);
+  gap:24px;
+  max-width:1180px;
   margin:0 auto;
 }
 .landing-grid .stack-card.landing-card{
@@ -2021,8 +2047,10 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 }
 .landing-grid .stack-card.landing-card .card-cta-overlay{pointer-events:none;}
 
+@media(max-width:1099px){
+  .landing-grid-cards{grid-template-columns:repeat(2,1fr);max-width:420px;gap:20px;}
+}
 @media(max-width:899px){
-  .landing-grid-cards{grid-template-columns:repeat(2,1fr);max-width:420px;gap:16px;}
   .landing-grid .stack-card.landing-card{opacity:1;visibility:visible;}
 }
 @media(max-width:520px){
