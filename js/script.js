@@ -1792,157 +1792,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const links = new THREE.LineSegments(lGeo, lMat);
     scene.add(links);
 
-    // ---- Restrained wireframe markers for scale/depth — spread across the
-    // full depth range ----
+    // ---- A few calm wireframe markers for scale/depth — kept deliberately
+    // sparse and well-spaced. Earlier rounds kept layering on more shape
+    // types (orbit rings, micro-accents, product boxes, a 3D logo model)
+    // until the scene read as cluttered noise instead of a designed system.
+    // Back to one restrained family of shapes, spread with real gaps. ----
     const shapes = [];
     const shapeGeoms = [
-      () => new THREE.IcosahedronGeometry(3, 0),
-      () => new THREE.TorusGeometry(2.4, 0.4, 8, 28)
+      () => new THREE.IcosahedronGeometry(3.2, 0),
+      () => new THREE.TorusGeometry(2.6, 0.35, 8, 28)
     ];
-    const SHAPE_COUNT = 12;
+    const SHAPE_COUNT = 7;
     for (let i = 0; i < SHAPE_COUNT; i++) {
       const geo = shapeGeoms[i % shapeGeoms.length]();
       const z = -HALF_DEPTH + ((i + 0.5) / SHAPE_COUNT) * DEPTH;
       const color = colorForDepth((z + HALF_DEPTH) / DEPTH);
-      const mat = new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.3 });
+      const mat = new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.26 });
       const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 22, z);
+      // Alternate left/right so consecutive shapes don't land near the
+      // same spot as the camera passes through in sequence.
+      const side = i % 2 === 0 ? -1 : 1;
+      mesh.position.set(side * (10 + Math.random() * 12), (Math.random() - 0.5) * 20, z);
       mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
       mesh.userData.spin = 0.3 + Math.random() * 0.4;
       scene.add(mesh);
       shapes.push(mesh);
-    }
-
-    // ---- Orbit rings — thin nested rings drifting slowly around a few hub
-    // points, suggesting system / movement / a connected brand ----
-    const orbitHubs = [];
-    const ORBIT_HUB_COUNT = 5;
-    for (let i = 0; i < ORBIT_HUB_COUNT; i++) {
-      const z = -HALF_DEPTH + ((i + 0.15) / ORBIT_HUB_COUNT) * DEPTH;
-      const color = colorForDepth((z + HALF_DEPTH) / DEPTH);
-      const hub = new THREE.Group();
-      hub.position.set((Math.random() - 0.5) * 32, (Math.random() - 0.5) * 20, z);
-      const ringCount = 2;
-      const rings = [];
-      for (let r = 0; r < ringCount; r++) {
-        const radius = 2.6 + r * 1.1;
-        const ring = new THREE.Mesh(
-          new THREE.TorusGeometry(radius, 0.045, 8, 64),
-          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.34 - r * 0.05 })
-        );
-        ring.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.6;
-        ring.rotation.y = (Math.random() - 0.5) * 0.6;
-        ring.userData.spin = (r % 2 === 0 ? 1 : -1) * (0.15 + Math.random() * 0.15);
-        hub.add(ring);
-        rings.push(ring);
-      }
-      hub.userData.rings = rings;
-      scene.add(hub);
-      orbitHubs.push(hub);
-    }
-
-    // ---- Tiny geometric micro-accents (+, ×, diamonds, small squares) —
-    // faint punctuation scattered through the depth, not a focal element ----
-    const microAccents = [];
-    const microMakers = [
-      color => { // plus
-        const g = new THREE.Group();
-        const barMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5 });
-        const bar1 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.11, 0.11), barMat);
-        const bar2 = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.8, 0.11), barMat);
-        g.add(bar1, bar2);
-        return g;
-      },
-      color => { // ×
-        const g = new THREE.Group();
-        const barMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5 });
-        const bar1 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.11, 0.11), barMat);
-        const bar2 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.11, 0.11), barMat);
-        bar1.rotation.z = Math.PI / 4;
-        bar2.rotation.z = -Math.PI / 4;
-        g.add(bar1, bar2);
-        return g;
-      },
-      color => { // diamond
-        const mesh = new THREE.Mesh(
-          new THREE.PlaneGeometry(0.65, 0.65),
-          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.42, side: THREE.DoubleSide, wireframe: true })
-        );
-        mesh.rotation.z = Math.PI / 4;
-        return mesh;
-      },
-      color => { // small square
-        return new THREE.Mesh(
-          new THREE.PlaneGeometry(0.5, 0.5),
-          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.42, side: THREE.DoubleSide, wireframe: true })
-        );
-      }
-    ];
-    const MICRO_COUNT = 14;
-    for (let i = 0; i < MICRO_COUNT; i++) {
-      const z = -HALF_DEPTH + Math.random() * DEPTH;
-      const color = colorForDepth((z + HALF_DEPTH) / DEPTH);
-      const accent = microMakers[i % microMakers.length](color);
-      accent.position.set((Math.random() - 0.5) * 46, (Math.random() - 0.5) * 30, z);
-      accent.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-      accent.userData.spin = 0.15 + Math.random() * 0.2;
-      scene.add(accent);
-      microAccents.push(accent);
-    }
-
-    // ---- Product box wireframes — transparent 3D package outlines, a nod
-    // to the ecommerce/fulfilment side of the business ----
-    const productBoxes = [];
-    const PBOX_COUNT = 6;
-    for (let i = 0; i < PBOX_COUNT; i++) {
-      const z = -HALF_DEPTH + ((i + 0.6) / PBOX_COUNT) * DEPTH;
-      const color = colorForDepth((z + HALF_DEPTH) / DEPTH);
-      const size = 1.6 + Math.random() * 1.2;
-      const box = new THREE.Mesh(
-        new THREE.BoxGeometry(size, size * 1.15, size * 0.85),
-        new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.32 })
-      );
-      box.position.set((Math.random() - 0.5) * 34, (Math.random() - 0.5) * 22, z);
-      box.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
-      box.userData.spin = 0.12 + Math.random() * 0.18;
-      scene.add(box);
-      productBoxes.push(box);
-    }
-
-    // A large branded centerpiece the camera swings close past at the
-    // midpoint of the journey — the real GROWVA 3D logo model.
-    const centerpieceZ = -HALF_DEPTH * 0.35;
-    let centerpiece = null;
-    if (window.THREE.GLTFLoader) {
-      new THREE.GLTFLoader().load('assets/logo/growva-logo-full.glb', gltf => {
-        centerpiece = gltf.scene;
-        const box = new THREE.Box3().setFromObject(centerpiece);
-        const size = new THREE.Vector3();
-        box.getSize(size);
-        const maxDim = Math.max(size.x, size.y, size.z) || 1;
-        const scale = 9 / maxDim;
-        // The exported mesh reads as a true mirror image (reversed letter
-        // order AND each letter flipped) — a 180° rotation only swaps which
-        // face points at the camera and doesn't fix it, since this is a
-        // handedness/winding issue baked into the export, not an
-        // orientation one. Mirror the X axis to correct it.
-        centerpiece.scale.set(-scale, scale, scale);
-        const center = new THREE.Vector3();
-        box.getCenter(center);
-        centerpiece.position.set(6 + center.x * scale, -2 - center.y * scale, centerpieceZ - center.z * scale);
-        // Preserve the model's real two-tone design (dark body + mint-green
-        // accent, per its two source materials) instead of flattening
-        // everything to one solid colour — the white body tint is swapped
-        // for dark since it would vanish against this scene's light pages.
-        centerpiece.traverse(node => {
-          if (node.isMesh && node.material) {
-            const c = node.material.color;
-            const isAccent = c && c.g > 0.5 && c.r < 0.7 && c.b < 0.3;
-            node.material = new THREE.MeshBasicMaterial({ color: isAccent ? 0xB1FA20 : 0x141414 });
-          }
-        });
-        scene.add(centerpiece);
-      });
     }
 
     // ---- Camera choreography: a winding multi-beat flight tied to scroll ----
@@ -1980,16 +1854,6 @@ document.addEventListener('DOMContentLoaded', () => {
       particles.rotation.y = t * 0.008;
       links.rotation.y = particles.rotation.y;
       shapes.forEach(s => { s.rotation.x += s.userData.spin * 0.004; s.rotation.y += s.userData.spin * 0.003; });
-      if (centerpiece) {
-        centerpiece.rotation.x = 0.1 + Math.sin(t * 0.15) * 0.05;
-        centerpiece.rotation.y += 0.004;
-      }
-      orbitHubs.forEach(hub => {
-        hub.rotation.y += 0.0015;
-        hub.userData.rings.forEach(ring => { ring.rotation.z += ring.userData.spin * 0.006; });
-      });
-      microAccents.forEach(a => { a.rotation.x += a.userData.spin * 0.004; a.rotation.y += a.userData.spin * 0.003; });
-      productBoxes.forEach(b => { b.rotation.x += b.userData.spin * 0.003; b.rotation.y += b.userData.spin * 0.0025; });
       camera.position.x += (cameraRig.x + mx * 1.6 - camera.position.x) * 0.045;
       camera.position.y += (cameraRig.y - my * 1.4 - camera.position.y) * 0.045;
       camera.position.z += (cameraRig.z - camera.position.z) * 0.08;
