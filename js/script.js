@@ -1719,6 +1719,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 260);
     camera.position.set(0, 0, 20);
 
+    // Atmospheric fog matching the page's own background colour (#f6f6f6) —
+    // shapes and particles at the depth extremes melt into the page instead
+    // of hard-clipping, which reads as real depth rather than a flat plane
+    // of wireframe drawings. (A full postprocessing bloom pass was tried
+    // here first, but bloom composites over an opaque black backdrop,
+    // which broke this scene's whole premise — a transparent canvas over a
+    // light page — so it was dropped in favour of this.)
+    scene.fog = new THREE.Fog(0xf6f6f6, 60, 205);
+
     function resize() {
       const w = window.innerWidth, h = window.innerHeight;
       renderer.setSize(w, h, false);
@@ -1743,6 +1752,23 @@ document.addEventListener('DOMContentLoaded', () => {
       return c;
     }
 
+    // Soft round falloff so particles read as glowing dust motes instead of
+    // hard flat squares — generated on a tiny canvas, no external asset.
+    function makeGlowSprite() {
+      const size = 64;
+      const c = document.createElement('canvas');
+      c.width = c.height = size;
+      const ctx = c.getContext('2d');
+      const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+      grad.addColorStop(0, 'rgba(255,255,255,1)');
+      grad.addColorStop(0.35, 'rgba(255,255,255,0.55)');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, size, size);
+      return new THREE.CanvasTexture(c);
+    }
+    const glowSprite = makeGlowSprite();
+
     // ---- Drifting particle field the camera flies through, colour-graded by depth ----
     const COUNT = 700;
     const pPos = new Float32Array(COUNT * 3);
@@ -1761,7 +1787,7 @@ document.addEventListener('DOMContentLoaded', () => {
     pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
     pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
     const pMat = new THREE.PointsMaterial({
-      size: 0.2, transparent: true, opacity: 0.88, vertexColors: true,
+      size: 0.5, map: glowSprite, transparent: true, opacity: 0.88, vertexColors: true,
       blending: THREE.AdditiveBlending, depthWrite: false
     });
     const particles = new THREE.Points(pGeo, pMat);
@@ -1871,6 +1897,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const t = clock.getElapsedTime();
       particles.rotation.y = t * 0.008;
       links.rotation.y = particles.rotation.y;
+      // Gentle breathing pulse on opacity — makes the field feel alive
+      // rather than a static painted layer, without adding any new shapes.
+      pMat.opacity = 0.8 + Math.sin(t * 0.6) * 0.08;
+      lMat.opacity = 0.3 + Math.sin(t * 0.6 + 1.1) * 0.06;
       shapes.forEach(s => { s.rotation.x += s.userData.spin * 0.004; s.rotation.y += s.userData.spin * 0.003; });
       centerpiece.rotation.x += 0.0025;
       centerpiece.rotation.y += 0.004;
