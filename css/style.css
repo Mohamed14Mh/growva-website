@@ -2095,6 +2095,11 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 
 /* --- Cursor-tracked glass sheen highlight --- */
 .has-sheen{position:relative;isolation:isolate;}
+/* .stack-card must stay absolutely positioned (it's deck-stacked inside
+   .stack-deck / #cardTravel) — .has-sheen's position:relative would otherwise
+   collapse the deck into a plain vertical list. absolute already establishes
+   its own positioning context, so the sheen ::after overlay still works. */
+.stack-card.has-sheen{position:absolute;}
 .has-sheen::after{
   content:"";
   position:absolute;inset:0;
