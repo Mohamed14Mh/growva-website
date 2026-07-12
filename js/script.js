@@ -1738,12 +1738,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const DEPTH = 280;
     const HALF_DEPTH = DEPTH / 2;
 
-    // Three colour "chapters" the journey passes through, front to back —
-    // brand mint, a cooler teal, then a warm amber accent for variety.
+    // Brand palette only — mint up front fading to white further back.
+    // Black (the page/fog colour) handles the rest of the depth fade, so
+    // there's no need for a third drawn colour.
     const CHAPTER_COLORS = [
       new THREE.Color(0xB1FA20),
-      new THREE.Color(0x39d7c0),
-      new THREE.Color(0xffb84d)
+      new THREE.Color(0xffffff)
     ];
     function colorForDepth(zNorm) { // zNorm: 0 (front) .. 1 (back)
       const scaled = zNorm * (CHAPTER_COLORS.length - 1);
