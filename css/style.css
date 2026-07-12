@@ -1025,7 +1025,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .case-card.reverse{direction:rtl;}
 .case-card.reverse > *{direction:ltr;}
 .case-visual{aspect-ratio:4/5;position:relative;overflow:hidden;border-radius:2px;}
-.case-visual-inner{position:absolute;inset:0;transition:transform .8s var(--ease);}
+.case-visual-inner{position:absolute;inset:0;background-size:cover;background-position:50% 50%;transition:transform .8s var(--ease);}
 .case-card:hover .case-visual-inner{transform:scale(1.05);}
 .case-visual-1 .case-visual-inner{background:
   radial-gradient(circle at 30% 20%,rgba(177,250,32,.45),transparent 60%),
@@ -1053,6 +1053,13 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   background:var(--black);box-shadow:0 22px 55px rgba(10,10,10,.12);
   isolation:isolate;
 }
+/* Legibility scrim — sits above whatever fills the visual (gradient or an
+   uploaded photo) and below the title/badge text, so real photos never
+   wash out the white title text the way a bright photo otherwise could. */
+.latest-project-visual::before{
+  content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(to top,rgba(0,0,0,.6),transparent 55%);
+}
 .latest-project-visual .case-visual-inner{
   transition:transform .8s var(--ease),filter .35s var(--ease);
 }
@@ -1065,8 +1072,13 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
     radial-gradient(circle at 74% 28%,rgba(177,250,32,.22),transparent 42%),
     radial-gradient(circle at 18% 80%,rgba(246,246,246,.11),transparent 44%),
     linear-gradient(155deg,#121212 0%,#050505 68%,#020202 100%);
+  background-size:cover;background-position:50% 50%;
 }
+/* Once a real photo is uploaded onto the brand card, the wordmark graphic
+   steps aside rather than sitting on top of someone's photo. */
+.latest-project-visual--brand[data-media-current-url]:not([data-media-current-url=""]) .photo-hide{display:none;}
 .latest-project-wordmark{
+  position:relative;z-index:2;
   font-family:var(--serif);font-size:clamp(2.8rem,6vw,6.2rem);font-weight:600;
   letter-spacing:-.03em;color:var(--ivory);line-height:1;
 }
@@ -2187,6 +2199,16 @@ body[data-page-id="home"] .footer{background:transparent;}
   transition:box-shadow .35s var(--ease);
 }
 .has-tilt:hover{--tilt-shadow-y:34px;--tilt-shadow-blur:64px;--tilt-shadow-o:.32;}
+/* Cards that also use the scroll-reveal fade (.reveal-up/.reveal-up.in) set
+   their own `transform` for the slide-up entrance, at equal-or-higher CSS
+   specificity than .has-tilt — so once revealed, the hover tilt above was
+   silently overridden back to a flat identity matrix and never visibly
+   rotated (only the sheen glow, a separate property, still showed). Bump
+   specificity here so the tilt formula always wins once both classes meet. */
+.has-tilt.reveal-up,
+.has-tilt.reveal-up.in{
+  transform:perspective(900px) rotateX(var(--tilt-x,0deg)) rotateY(var(--tilt-y,0deg)) scale(var(--tilt-s,1)) translateZ(0);
+}
 
 /* --- Cursor-tracked glass sheen highlight --- */
 .has-sheen{position:relative;isolation:isolate;}
