@@ -2640,3 +2640,21 @@ body{
 .related-service-card:focus-visible{background:rgba(255,255,255,.1);}
 .case-line strong{color:var(--ivory);}
 .work-filter-btn{color:var(--ivory);}
+
+/* The bento intro galleries (about/contact/faq/pricing/process/services/
+   shopify) sit in a full-viewport-height wrapper with its own solid black
+   fill — each tile already paints its own opaque dark gradient card, so
+   the wrapper's fill only ever showed in the gaps/margins around the
+   grid. Making just the wrapper transparent lets the cinematicWebGL scene
+   read through those gaps like everywhere else, without touching how any
+   individual tile looks. */
+.gallery-wrap{background:transparent;}
+.bento-gallery-wrap{background:transparent;}
+
+/* Same story for the two inner-page hero variants (41 and 20 pages
+   respectively) — both already render their own small transparent
+   pageHeroCanvas particle effect scoped to just the hero, so a
+   transparent section background layers the main scene behind that
+   local effect instead of blocking it outright. */
+.page-hero{background:transparent;}
+.service-page-hero{background:transparent;}

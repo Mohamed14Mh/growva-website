@@ -1184,8 +1184,18 @@ document.addEventListener('DOMContentLoaded', () => {
     animate();
   })();
 
-  /* ================= THREE.js — Inner page hero particle (lightweight) ================= */
+  /* ================= THREE.js — Inner page hero particle (lightweight) =================
+     Retired: every page now also runs the much richer cinematicWebGL scene
+     behind everything (see initCinematicWebGL below), which makes this
+     small effect redundant — and each page was already carrying up to 6
+     other WebGL contexts (2 model-viewer logos in the nav, 2 more in the
+     footer, this canvas, plus cinematicWebGL itself), which was enough to
+     make some browsers refuse to allocate any more and silently fail to
+     load the nav/footer logos entirely. Left the canvas element itself in
+     the markup (harmless, unused) rather than touching 60+ page-hero
+     sections just to remove an empty <canvas>. */
   (function pageHeroScene() {
+    return;
     const canvas = document.getElementById('pageHeroCanvas');
     if (!canvas || !window.THREE) return;
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -1244,6 +1254,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { passive: true });
 
     canvases.forEach(canvas => {
+      // This canvas is only a fallback for when the sibling model-viewer
+      // logo has no src (see the matching CSS rule that hides it in that
+      // case) — the model-viewer's own real src is set on every page, so
+      // this almost always renders invisibly. Skip creating yet another
+      // WebGL context for a hidden fallback that never actually shows.
+      const modelViewerSibling = canvas.previousElementSibling;
+      if (modelViewerSibling && modelViewerSibling.tagName === 'MODEL-VIEWER' &&
+          modelViewerSibling.getAttribute('src')) {
+        return;
+      }
       const variant = canvas.dataset.brandObject || 'footer';
       const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, variant === 'footer' ? 1.4 : 1.75));
