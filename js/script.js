@@ -1696,7 +1696,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('model-viewer.logo-wordmark-3d').forEach(mv => {
       const state = { angle: 0 };
       let tween = null;
-      const applyOrbit = () => { mv.cameraOrbit = state.angle + 'deg 90deg 25m'; };
+      const applyOrbit = () => { mv.cameraOrbit = state.angle + 'deg 90deg 9.5m'; };
       mv.addEventListener('mouseenter', () => {
         if (tween) tween.kill();
         tween = gsap.to(state, {
