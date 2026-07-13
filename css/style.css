@@ -254,8 +254,8 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
    JS spins it a full turn and eases it back to rest on mouseleave (see
    spinWordmarkOnHover() in script.js). Deliberately excluded from the
    icon's own continuous auto-rotate loop/selector. */
-.logo-wordmark-3d{width:190px;height:48px;flex-shrink:0;--poster-color:transparent;pointer-events:auto;}
-@media(max-width:600px){.logo-wordmark-3d{width:148px;height:38px;}}
+.logo-wordmark-3d{width:220px;height:56px;flex-shrink:0;--poster-color:transparent;pointer-events:auto;}
+@media(max-width:600px){.logo-wordmark-3d{width:168px;height:42px;}}
 
 .nav-links{display:flex;align-items:center;gap:28px;}
 .nav-link{
