@@ -248,7 +248,7 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
 .logo-img{height:34px;width:auto;display:block;flex-shrink:0;}
 .logo-3d{width:38px;height:38px;flex-shrink:0;--poster-color:transparent;pointer-events:none;}
-.logo-text{font-family:var(--sans);font-weight:800;font-size:1.28rem;letter-spacing:.02em;color:var(--ivory);}
+.logo-text{font-family:'Bodoni Moda',serif;font-weight:400;font-size:1.5rem;letter-spacing:.05em;color:var(--ivory);font-variation-settings:'opsz' 96;}
 .logo-dot{color:var(--mint);}
 
 .nav-links{display:flex;align-items:center;gap:28px;}
