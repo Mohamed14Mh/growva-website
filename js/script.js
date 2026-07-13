@@ -1894,19 +1894,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // sparse and well-spaced. Earlier rounds kept layering on more shape
     // types (orbit rings, micro-accents, product boxes, a 3D logo model)
     // until the scene read as cluttered noise instead of a designed system.
-    // Back to one restrained family of shapes, spread with real gaps. ----
+    // Still one restrained family of shapes, just a bit more varied within
+    // it — a faceted "gem" (two stacked low-poly cones) added for a premium
+    // feel, alongside the existing Platonic-solid variety. ----
+    function makeGemMesh(mat) {
+      const group = new THREE.Group();
+      const crown = new THREE.Mesh(new THREE.ConeGeometry(2.0, 2.6, 7), mat);
+      const pavilion = new THREE.Mesh(new THREE.ConeGeometry(2.0, 1.6, 7), mat);
+      crown.position.y = 1.3;
+      pavilion.position.y = -0.8;
+      pavilion.rotation.x = Math.PI;
+      group.add(crown, pavilion);
+      return group;
+    }
     const shapes = [];
-    const shapeGeoms = [
-      () => new THREE.IcosahedronGeometry(3.2, 0),
-      () => new THREE.TorusGeometry(2.6, 0.35, 8, 28)
+    const shapeFactories = [
+      mat => new THREE.Mesh(new THREE.IcosahedronGeometry(3.2, 0), mat),
+      mat => new THREE.Mesh(new THREE.TorusGeometry(2.6, 0.35, 8, 28), mat),
+      mat => new THREE.Mesh(new THREE.OctahedronGeometry(3.0, 0), mat),
+      mat => new THREE.Mesh(new THREE.DodecahedronGeometry(2.8, 0), mat),
+      mat => makeGemMesh(mat)
     ];
-    const SHAPE_COUNT = 7;
+    const SHAPE_COUNT = 9;
     for (let i = 0; i < SHAPE_COUNT; i++) {
-      const geo = shapeGeoms[i % shapeGeoms.length]();
       const z = -HALF_DEPTH + ((i + 0.5) / SHAPE_COUNT) * DEPTH;
       const color = colorForDepth((z + HALF_DEPTH) / DEPTH);
       const mat = new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.26 });
-      const mesh = new THREE.Mesh(geo, mat);
+      const mesh = shapeFactories[i % shapeFactories.length](mat);
       // Alternate left/right so consecutive shapes don't land near the
       // same spot as the camera passes through in sequence.
       const side = i % 2 === 0 ? -1 : 1;
@@ -1916,6 +1930,48 @@ document.addEventListener('DOMContentLoaded', () => {
       scene.add(mesh);
       shapes.push(mesh);
     }
+
+    // ---- Stars near the end of the journey — a handful of bright sparkle
+    // marks clustered in the depth range the camera only reaches near the
+    // bottom of the page, so scrolling the whole way down reveals a quiet
+    // "arrival" moment instead of the field looking identical throughout. ----
+    function makeStarSprite() {
+      const size = 64;
+      const c = document.createElement('canvas');
+      c.width = c.height = size;
+      const ctx = c.getContext('2d');
+      ctx.translate(size / 2, size / 2);
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      const spikes = 4, outerR = size * 0.48, innerR = size * 0.13;
+      for (let i = 0; i < spikes * 2; i++) {
+        const r = i % 2 === 0 ? outerR : innerR;
+        const a = (i / (spikes * 2)) * Math.PI * 2;
+        ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+      }
+      ctx.closePath();
+      ctx.fill();
+      return new THREE.CanvasTexture(c);
+    }
+    const STAR_COUNT = 70;
+    const starPos = new Float32Array(STAR_COUNT * 3);
+    const starCol = new Float32Array(STAR_COUNT * 3);
+    for (let i = 0; i < STAR_COUNT; i++) {
+      const x = (Math.random() - 0.5) * 50;
+      const y = (Math.random() - 0.5) * 50;
+      const z = -HALF_DEPTH + Math.random() * HALF_DEPTH * 0.4;
+      starPos[i * 3] = x; starPos[i * 3 + 1] = y; starPos[i * 3 + 2] = z;
+      const c = colorForDepth((z + HALF_DEPTH) / DEPTH);
+      starCol[i * 3] = c.r; starCol[i * 3 + 1] = c.g; starCol[i * 3 + 2] = c.b;
+    }
+    const starGeo = new THREE.BufferGeometry();
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    starGeo.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
+    const endStars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+      size: 1.6, map: makeStarSprite(), transparent: true, opacity: 0.95, vertexColors: true,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    }));
+    scene.add(endStars);
 
     // A single large centerpiece the camera swings close past at the
     // midpoint of the journey — the "big moment" from the very first
@@ -1969,6 +2025,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const t = clock.getElapsedTime();
       particles.rotation.y = t * 0.008;
       links.rotation.y = particles.rotation.y;
+      endStars.rotation.y = particles.rotation.y;
       // Gentle breathing pulse on opacity — makes the field feel alive
       // rather than a static painted layer, without adding any new shapes.
       pMat.opacity = 0.8 + Math.sin(t * 0.6) * 0.08;
