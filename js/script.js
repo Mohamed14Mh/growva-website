@@ -46,6 +46,17 @@ document.addEventListener('DOMContentLoaded', () => {
       finished = true;
       if (countEl) countEl.textContent = '100%';
       setTimeout(() => preloader.classList.add('done'), 260);
+      // Nav/hero entrance reveals were firing (and finishing) the instant
+      // the page loaded — while the opaque preloader was still covering
+      // the screen — so by the time it slid away there was nothing left
+      // to animate; the page just "appeared." Firing this partway through
+      // the preloader's own slide-up instead means the reveal is already
+      // moving by the time the cover clears, reading as one continuous
+      // motion instead of two disconnected steps.
+      setTimeout(() => {
+        window._introDone = true;
+        document.dispatchEvent(new CustomEvent('gv:introready'));
+      }, 260 + 400);
     };
 
     function tickLoader(now) {
@@ -64,6 +75,17 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { loaded = true; }, 1800);
     setTimeout(finish, 3200);
     requestAnimationFrame(tickLoader);
+  }
+  // If there's no preloader on this page at all, there's nothing to wait on.
+  if (!preloader) window._introDone = true;
+
+  /* Shared gate so the various scroll-reveal systems below don't fire (and
+     finish) while still hidden behind the preloader — see the comment at
+     finish() above. Anything already in view waits for 'gv:introready';
+     anything the user scrolls to later just runs immediately as before. */
+  function whenIntroReady(cb) {
+    if (window._introDone) cb();
+    else document.addEventListener('gv:introready', cb, { once: true });
   }
 
   /* ---------- Scroll progress ---------- */
@@ -175,8 +197,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const wordIO = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         if (!entry.isIntersecting) return;
-        entry.target.classList.add('in');
         wordIO.unobserve(entry.target);
+        whenIntroReady(() => entry.target.classList.add('in'));
       });
     }, { threshold: 0.25, rootMargin: '0px 0px -80px 0px' });
     targets.forEach(target => wordIO.observe(target));
@@ -189,6 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('scroll', () => {
       nav.classList.toggle('scrolled', window.scrollY > 40);
     });
+    whenIntroReady(() => nav.classList.add('in'));
   }
   const burger    = document.getElementById('navBurger');
   const navMobile = document.getElementById('navMobile');
@@ -373,13 +396,21 @@ document.addEventListener('DOMContentLoaded', () => {
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
   /* ---------- Reveal on scroll ---------- */
+  // Stagger index for card grids — see the .stats-grid/.why-cards/etc rule
+  // in style.css that reads this back as a transition-delay multiplier.
+  document.querySelectorAll(
+    '.stats-grid, .services-compact-grid, .why-cards, .landing-grid-cards, .latest-project-grid'
+  ).forEach(grid => {
+    Array.from(grid.children).forEach((card, i) => card.style.setProperty('--card-index', i));
+  });
+
   const revealEls = document.querySelectorAll('.reveal-up, .reveal-line');
   if (revealEls.length) {
     const io = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          entry.target.classList.add('in');
           io.unobserve(entry.target);
+          whenIntroReady(() => entry.target.classList.add('in'));
         }
       });
     }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });

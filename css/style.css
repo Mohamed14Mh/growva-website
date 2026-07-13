@@ -172,8 +172,20 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
 .section-head{max-width:720px;margin-bottom:70px;}
 
 /* ---------- Reveal animations ---------- */
-.reveal-up{opacity:0;transform:translateY(36px);transition:opacity .9s var(--ease),transform .9s var(--ease);}
-.reveal-up.in{opacity:1;transform:translateY(0);}
+.reveal-up{opacity:0;transform:translateY(36px) scale(.98);transition:opacity .9s var(--ease),transform .9s var(--ease);}
+.reveal-up.in{opacity:1;transform:translateY(0) scale(1);}
+
+/* Card grids all reveal together via the same observer, since each card
+   already carries its own .reveal-up — staggering the transition-delay
+   per position is what actually makes them feel like they cascade in one
+   after another instead of popping in as one flat block. */
+.stats-grid .stat-item.reveal-up,
+.services-compact-grid .service-compact-item.reveal-up,
+.why-cards .why-card.reveal-up,
+.landing-grid-cards .landing-card.reveal-up,
+.latest-project-grid .latest-project-card.reveal-up{
+  transition-delay:calc(var(--card-index,0) * 70ms);
+}
 .reveal-line{overflow:hidden;display:block;}
 .reveal-line span{display:inline-block;transform:translateY(110%);transition:transform 1s var(--ease);}
 .reveal-line.in span{transform:translateY(0);}
@@ -231,9 +243,13 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
   padding:20px 0;
   background:rgba(10,10,10,.94);
   border-bottom:1px solid rgba(246,246,246,.08);
-  transition:background .4s,padding .4s,border-color .4s;
+  transition:background .4s,padding .4s,border-color .4s,opacity .7s var(--ease),transform .7s var(--ease);
   color:var(--ivory);
+  opacity:0;
+  transform:translateY(-16px);
 }
+.nav.in{opacity:1;transform:none;}
+@media(prefers-reduced-motion:reduce){.nav{opacity:1;transform:none;}}
 .nav.scrolled{
   background:rgba(10,10,10,.98);
   padding:13px 0;
