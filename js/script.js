@@ -1684,6 +1684,37 @@ document.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(tick);
   })();
 
+  /* ---------- 3D wordmark logo — spins on hover, eases back to rest ----------
+     Deliberately separate from spinLogo3D() above: this model stays still
+     by default, does one full turn while hovered, and if the pointer
+     leaves mid-spin, eases forward (never backward — no unwinding) to the
+     next full-turn checkpoint so it always settles back at its original
+     face-on orientation. */
+  (function spinWordmarkOnHover() {
+    if (!window.gsap || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!window.matchMedia('(hover: hover)').matches) return;
+    document.querySelectorAll('model-viewer.logo-wordmark-3d').forEach(mv => {
+      const state = { angle: 0 };
+      let tween = null;
+      const applyOrbit = () => { mv.cameraOrbit = state.angle + 'deg 90deg 0.36m'; };
+      mv.addEventListener('mouseenter', () => {
+        if (tween) tween.kill();
+        tween = gsap.to(state, {
+          angle: state.angle + 360, duration: 1.1, ease: 'power1.inOut', onUpdate: applyOrbit,
+          onComplete: () => { state.angle = 0; applyOrbit(); }
+        });
+      });
+      mv.addEventListener('mouseleave', () => {
+        if (tween) tween.kill();
+        const target = Math.ceil((state.angle + 0.01) / 360) * 360;
+        tween = gsap.to(state, {
+          angle: target, duration: 0.6, ease: 'power2.out', onUpdate: applyOrbit,
+          onComplete: () => { state.angle = 0; applyOrbit(); }
+        });
+      });
+    });
+  })();
+
   /* ---------- Clickable CMS cards (e.g. bento gallery tiles) ----------
      Cards carry their link as a hidden sibling text field rather than
      wrapping the tile in an <a>, since GSAP Flip (used for the bento
