@@ -1381,56 +1381,6 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .final-cta .btn-ghost::before{background:var(--mint);}
 .final-cta .btn-ghost:hover{color:var(--black-deep);border-color:var(--mint);}
 
-/* ================= HOME PAGE — full glossy black theme =================
-   The homepage runs dark end-to-end so the cinematicWebGL scene (particles,
-   constellation lines, the big centerpiece) reads clearly all the way down
-   the page. Every section here is transparent over body's black — no
-   section paints its own opaque fill — so the moving scene stays visible
-   behind the content everywhere. Scoped to [data-page-id="home"] only;
-   every other page keeps its normal light theme untouched. */
-body[data-page-id="home"]{
-  background:#050505;
-  color:var(--ivory);
-  --gray-dim: rgba(246,246,246,.5);
-  --gray: rgba(246,246,246,.68);
-  --line-soft: rgba(246,246,246,.1);
-}
-body[data-page-id="home"] .hero{color:var(--ivory);}
-body[data-page-id="home"] .hero-sub{color:rgba(246,246,246,.72);}
-body[data-page-id="home"] .hero-scroll{color:rgba(246,246,246,.55);}
-body[data-page-id="home"] .hero-scroll-line{background:rgba(246,246,246,.2);}
-body[data-page-id="home"] .marquee-strip{border-top-color:rgba(246,246,246,.14);}
-body[data-page-id="home"] .marquee-track span{color:rgba(246,246,246,.55);}
-
-body[data-page-id="home"] .why-lead p{color:var(--ivory);}
-body[data-page-id="home"] .why-card{background:rgba(255,255,255,.035);color:var(--ivory);}
-body[data-page-id="home"] .why-card:hover{background:rgba(255,255,255,.07);}
-
-body[data-page-id="home"] .service-compact-item{background:rgba(255,255,255,.035);}
-body[data-page-id="home"] .service-compact-item:hover{background:var(--mint);color:var(--black-deep);}
-
-body[data-page-id="home"] .stats{background:transparent;}
-
-body[data-page-id="home"] .testi-card{
-  background:rgba(255,255,255,.05);
-  border-color:rgba(255,255,255,.12);
-  box-shadow:0 20px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);
-}
-body[data-page-id="home"] .testi-card[data-media-current-url]:not([data-media-current-url=""]){background-color:rgba(0,0,0,.55);}
-
-body[data-page-id="home"] .final-cta{background:transparent;}
-
-body[data-page-id="home"] .btn-ghost{border-color:rgba(246,246,246,.3);color:var(--ivory);}
-body[data-page-id="home"] .btn-ghost::before{background:var(--mint);}
-body[data-page-id="home"] .btn-ghost:hover{color:var(--black-deep);border-color:var(--mint);}
-
-/* Nav + footer fully transparent on the homepage too — body's own black
-   is already behind them, so this just lets the glow/particles show
-   straight through instead of sitting behind a solid bar. */
-body[data-page-id="home"] .nav,
-body[data-page-id="home"] .nav.scrolled{background:transparent;border-bottom-color:transparent;}
-body[data-page-id="home"] .footer{background:transparent;}
-
 /* ================= FOOTER ================= */
 .footer{
   background:var(--black-deep);
@@ -1838,7 +1788,7 @@ body[data-page-id="home"] .footer{background:transparent;}
 .form-group label{font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gray-dim);}
 .form-group input,.form-group select,.form-group textarea{
   background:transparent;border:1px solid var(--line-soft);padding:16px 20px;
-  font-family:var(--sans);font-size:.95rem;color:var(--black);
+  font-family:var(--sans);font-size:.95rem;color:var(--ivory);
   transition:border-color .3s;border-radius:0;-webkit-appearance:none;appearance:none;width:100%;
 }
 .form-group input:focus,.form-group select:focus,.form-group textarea:focus{
@@ -2618,3 +2568,75 @@ body[data-page-id="home"] .footer{background:transparent;}
 /* ── Accessibility utility ──────────────────────────────────────────────── */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 .gv-cms-setting{display:none;}
+
+/* ================= SITEWIDE DARK THEME — final overrides =================
+   Deliberately placed at the very end of the file: this block used to
+   live earlier in the stylesheet, but several of the selectors below
+   (.footer, .btn-ghost, .value-item, .shopify-pillar, .service-directory-*,
+   etc.) have their real base definition further down in the file than
+   that earlier spot — same selector, same specificity, so whichever
+   comes LAST in the file wins, and the base rule was silently winning
+   and undoing the override. Every page runs dark end-to-end so the
+   cinematicWebGL scene (particles, constellation lines, the centerpiece,
+   the liquid glow) reads clearly everywhere, not just the homepage —
+   every section named here is transparent over body's black so the
+   moving scene stays visible behind the content on every page. */
+body{
+  background:#050505;
+  color:var(--ivory);
+  --gray-dim: rgba(246,246,246,.5);
+  --gray: rgba(246,246,246,.68);
+  --line-soft: rgba(246,246,246,.1);
+}
+.hero{color:var(--ivory);}
+.hero-sub{color:rgba(246,246,246,.72);}
+.hero-scroll{color:rgba(246,246,246,.55);}
+.hero-scroll-line{background:rgba(246,246,246,.2);}
+.marquee-strip{border-top-color:rgba(246,246,246,.14);}
+.marquee-track span{color:rgba(246,246,246,.55);}
+
+.why-lead p{color:var(--ivory);}
+.why-card{background:rgba(255,255,255,.035);color:var(--ivory);}
+.why-card:hover{background:rgba(255,255,255,.07);}
+
+.service-compact-item{background:rgba(255,255,255,.035);}
+.service-compact-item:hover{background:var(--mint);color:var(--black-deep);}
+
+.stats{background:transparent;}
+
+.testi-card{
+  background:rgba(255,255,255,.05);
+  border-color:rgba(255,255,255,.12);
+  box-shadow:0 20px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);
+}
+.testi-card[data-media-current-url]:not([data-media-current-url=""]){background-color:rgba(0,0,0,.55);}
+
+.final-cta{background:transparent;}
+
+.btn-ghost{border-color:rgba(246,246,246,.3);color:var(--ivory);}
+.btn-ghost::before{background:var(--mint);}
+.btn-ghost:hover{color:var(--black-deep);border-color:var(--mint);}
+
+/* Nav + footer fully transparent everywhere too — body's own black is
+   already behind them, so this just lets the glow/particles show
+   straight through instead of sitting behind a solid bar. */
+.nav,
+.nav.scrolled{background:transparent;border-bottom-color:transparent;}
+.footer{background:transparent;}
+
+.value-item{background:rgba(255,255,255,.035);color:var(--ivory);}
+.value-item:hover{background-color:rgba(255,255,255,.07);}
+.service-directory-section{background:transparent;}
+.service-directory-panels{background:rgba(255,255,255,.03);}
+.service-detail-page{background:transparent;}
+.shopify-pillar{background:rgba(255,255,255,.035);}
+.shopify-pillar:hover{background-color:rgba(255,255,255,.07);}
+.integration-item{background:rgba(255,255,255,.035);}
+.service-directory-link,
+.related-service-card{background:rgba(255,255,255,.06);color:var(--ivory);}
+.service-directory-link:hover,
+.service-directory-link:focus-visible,
+.related-service-card:hover,
+.related-service-card:focus-visible{background:rgba(255,255,255,.1);}
+.case-line strong{color:var(--ivory);}
+.work-filter-btn{color:var(--ivory);}
