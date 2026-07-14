@@ -6835,7 +6835,7 @@
   }
 
   async function applyPublishedImageEdits() {
-    if (!supabaseClient) return;
+    if (!supabaseClient) { document.dispatchEvent(new CustomEvent('gv:media-hydrated')); return; }
     try {
       const { data, error } = await supabaseClient
         .from('cms_content')
@@ -6858,6 +6858,7 @@
       });
       logCmsMediaDebug('hydration-ok', { count: count });
     } catch (e) { /* best-effort */ }
+    document.dispatchEvent(new CustomEvent('gv:media-hydrated'));
   }
 
   function logCmsMediaDebug(context, extra) {

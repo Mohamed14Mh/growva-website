@@ -1619,6 +1619,93 @@ document.addEventListener('DOMContentLoaded', () => {
     metrics.forEach(el => mIO.observe(el));
   })();
 
+  /* ---------- Cinematic pinned slide-stack for project presentations ----------
+     Each .project-presentation pins its .project-presentation-pin box while the
+     user scrolls through it; every slide rises up to cover the previous one
+     (with a slight parallax drift on the photo layer), then the page releases
+     and continues scrolling normally.
+
+     Slide count is admin-controlled: each presentation carries a hidden
+     "Presentation slide count" field (edit it from Admin mode's field list,
+     same place as the 3D logo rotation settings) holding a number from 1-10.
+     That number decides how many of the provisioned slide slots are shown
+     and wired into the rotation, regardless of whether they have a photo
+     yet — type 5, get 5 slots; type 10, get 10. Each visible slot is still
+     independently editable (click it, upload a photo) exactly like any
+     other image field. Re-runs after 'gv:media-hydrated' in case the count
+     setting itself was just published.
+
+     Always keeping at least 2 slides active (even if the count is set to 1
+     or photos are missing) matters: with only 1 slide there is nothing to
+     transition to, so the pin would never engage and the whole section
+     would look inert. */
+  function initProjectPresentations() {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced || !window.gsap || !window.ScrollTrigger) return;
+
+    document.querySelectorAll('.project-presentation').forEach(container => {
+      const pin = container.querySelector('.project-presentation-pin');
+      const allSlides = Array.from(container.querySelectorAll('.project-presentation-slide'));
+      if (!pin || !allSlides.length) return;
+
+      if (container._gvPresentationST) {
+        container._gvPresentationST.kill();
+        container._gvPresentationST = null;
+      }
+
+      const countSetting = container.querySelector('.gv-cms-setting[data-edit-key*="presentation.slide_count"]');
+      const rawCount = countSetting ? parseInt(countSetting.textContent.trim(), 10) : allSlides.length;
+      const count = Math.max(2, Math.min(allSlides.length, isNaN(rawCount) ? allSlides.length : rawCount));
+
+      const slides = allSlides.slice(0, count);
+      allSlides.forEach(s => { s.style.display = slides.includes(s) ? '' : 'none'; });
+
+      const photos = slides.map(s => s.querySelector('.project-presentation-photo'));
+      gsap.set(slides, { yPercent: 100 });
+      gsap.set(slides[0], { yPercent: 0 });
+
+      if (slides.length < 2) return;
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: container,
+          start: 'top top+=80',
+          end: () => '+=' + (slides.length - 1) * Math.max(window.innerHeight * 0.75, 420),
+          scrub: 0.6,
+          pin,
+          anticipatePin: 1,
+          invalidateOnRefresh: true
+        }
+      });
+      container._gvPresentationST = tl.scrollTrigger;
+
+      for (let i = 1; i < slides.length; i++) {
+        const step = i - 1;
+        tl.to(slides[i], { yPercent: 0, ease: 'none', duration: 1 }, step);
+        if (photos[i - 1]) tl.to(photos[i - 1], { yPercent: -10, ease: 'none', duration: 1 }, step);
+        if (photos[i]) tl.fromTo(photos[i], { yPercent: 10 }, { yPercent: 0, ease: 'none', duration: 1 }, step);
+      }
+    });
+  }
+  initProjectPresentations();
+  document.addEventListener('gv:media-hydrated', () => {
+    requestAnimationFrame(() => {
+      initProjectPresentations();
+      if (window.ScrollTrigger) ScrollTrigger.refresh();
+    });
+  });
+  // Re-run the moment the slide-count field itself changes (e.g. admin just
+  // saved a new number), so the effect is visible immediately without a
+  // page reload.
+  document.querySelectorAll('.gv-cms-setting[data-edit-key*="presentation.slide_count"]').forEach(setting => {
+    new MutationObserver(() => {
+      requestAnimationFrame(() => {
+        initProjectPresentations();
+        if (window.ScrollTrigger) ScrollTrigger.refresh();
+      });
+    }).observe(setting, { characterData: true, childList: true, subtree: true });
+  });
+
   /* ---------- Shopify.html chapter scroll navigation ---------- */
   (function initShopifyChapters() {
     const nav = document.getElementById('shopifyChapterNav');
