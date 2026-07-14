@@ -2494,6 +2494,20 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .project-card-tag{color:rgba(177,250,32,.85);}
 .project-card-arrow{color:var(--mint);opacity:0;transition:opacity .22s var(--ease);}
 .project-card:hover .project-card-arrow{opacity:1;}
+
+/* Admin-only "hidden from visitors" indicator. Visitors never see this —
+   the card gets display:none for them instead. Admins see the card at
+   reduced opacity with a clear dashed ribbon so the layout footprint
+   (and the ability to click through and un-hide it) is preserved. */
+.project-card.is-admin-hidden{position:relative;}
+.project-card.is-admin-hidden .project-card-visual{opacity:.4;}
+.project-card.is-admin-hidden::after{
+  content:'Hidden from visitors';position:absolute;inset:0;z-index:6;
+  display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
+  color:#ff8a8a;background:rgba(10,10,10,.5);border:2px dashed rgba(255,107,107,.55);
+  border-radius:14px;pointer-events:none;
+}
 @media(max-width:899px){.project-grid{grid-template-columns:repeat(2,1fr);gap:14px;}}
 @media(max-width:560px){.project-grid{grid-template-columns:1fr;}}
 

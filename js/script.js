@@ -1706,6 +1706,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }).observe(setting, { characterData: true, childList: true, subtree: true });
   });
 
+  /* ---------- Per-card "hide from visitors" toggle ----------
+     Every project card carries a hidden "Card visibility" field (find it in
+     Admin mode's Text Fields list, same place as the slide-count setting).
+     Type "hidden" and publish: visitors get display:none on that card (the
+     grid just has one fewer card, nothing shifts or breaks), while admins
+     still see it — at reduced opacity with a "Hidden from visitors" ribbon —
+     so it can always be found again and switched back to "visible". Nothing
+     is ever deleted; this only ever toggles a text value. */
+  function initProjectCardVisibility() {
+    const isAdmin = document.body.classList.contains('admin-mode');
+    document.querySelectorAll('.project-card').forEach(card => {
+      const setting = card.querySelector('.gv-cms-setting[data-edit-key*=".visibility"]');
+      if (!setting) return;
+      const hidden = setting.textContent.trim().toLowerCase() === 'hidden';
+      if (hidden && !isAdmin) {
+        card.style.display = 'none';
+        card.classList.remove('is-admin-hidden');
+      } else if (hidden && isAdmin) {
+        card.style.display = '';
+        card.classList.add('is-admin-hidden');
+      } else {
+        card.style.display = '';
+        card.classList.remove('is-admin-hidden');
+      }
+    });
+  }
+  initProjectCardVisibility();
+  document.addEventListener('gv:text-hydrated', () => requestAnimationFrame(initProjectCardVisibility));
+  new MutationObserver(() => requestAnimationFrame(initProjectCardVisibility))
+    .observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  document.querySelectorAll('.gv-cms-setting[data-edit-key*=".visibility"]').forEach(setting => {
+    new MutationObserver(() => requestAnimationFrame(initProjectCardVisibility))
+      .observe(setting, { characterData: true, childList: true, subtree: true });
+  });
+
   /* ---------- Shopify.html chapter scroll navigation ---------- */
   (function initShopifyChapters() {
     const nav = document.getElementById('shopifyChapterNav');

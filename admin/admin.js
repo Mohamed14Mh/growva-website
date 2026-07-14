@@ -5457,7 +5457,7 @@
   }
 
   async function loadPublishedEdits(options = {}) {
-    if (!supabaseClient) return;
+    if (!supabaseClient) { document.dispatchEvent(new CustomEvent('gv:text-hydrated')); return; }
     const force = Boolean(options.force);
     const shouldApply = options.apply !== false;
     if (!force && hydratedPagePaths.has(pagePath)) return;
@@ -5508,6 +5508,7 @@
         publishedHydrationInProgress = false;
         publishedHydrationPromise = null;
         performanceState.lastHydrationDuration = finishHydrationMetric();
+        document.dispatchEvent(new CustomEvent('gv:text-hydrated'));
       }
     })();
     return publishedHydrationPromise;
