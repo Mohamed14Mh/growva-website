@@ -1715,7 +1715,8 @@ document.addEventListener('DOMContentLoaded', () => {
      so it can always be found again and switched back to "visible". Nothing
      is ever deleted; this only ever toggles a text value. */
   function initProjectCardVisibility() {
-    const isAdmin = document.body.classList.contains('admin-mode');
+    const isAdmin = document.body.classList.contains('admin-mode')
+      && !document.body.classList.contains('admin-visitor-preview');
     document.querySelectorAll('.project-card').forEach(card => {
       const setting = card.querySelector('.gv-cms-setting[data-edit-key*=".visibility"]');
       if (!setting) return;
