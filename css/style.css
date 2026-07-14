@@ -2519,7 +2519,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 @media(max-width:560px){.project-gallery-grid{grid-template-columns:1fr;grid-auto-rows:150px;}.pgi--full,.pgi--wide{grid-column:span 1;}}
 
 .project-presentation{position:relative;max-width:min(1100px,92vw);margin:0 auto;}
-.project-presentation-pin{position:relative;height:min(78vh,700px);border-radius:20px;box-shadow:0 30px 90px rgba(0,0,0,.5);}
+.project-presentation-pin{position:relative;height:min(78vh,700px);border-radius:20px;box-shadow:0 30px 90px rgba(0,0,0,.5);overflow:hidden;}
 .project-presentation-slide{position:absolute;inset:0;border-radius:20px;overflow:hidden;}
 .project-presentation-photo{position:absolute;inset:-10% -3%;border-radius:20px;border:1px solid rgba(246,246,246,.09);background:linear-gradient(145deg,#181818 0%,#0e0e0e 100%);background-position:50% 50%;background-size:cover;display:flex;align-items:center;justify-content:center;}
 .project-presentation-photo[data-media-current-url]:not([data-media-current-url=""]) > *{display:none;}
