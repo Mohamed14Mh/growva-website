@@ -2543,6 +2543,15 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .project-presentation-num{position:absolute;top:16px;left:16px;font-family:var(--mono);font-size:.64rem;letter-spacing:.08em;color:var(--mint);background:rgba(10,10,10,.72);padding:5px 12px;border-radius:100px;border:1px solid rgba(177,250,32,.25);z-index:2;}
 @media(max-width:560px){.project-presentation-pin{height:min(62vh,520px);}}
 
+/* Single-card interactive 3D model showcase (replaces the photo-slide
+   presentation on projects where the work itself is a 3D asset).
+   model-viewer supplies drag-to-orbit on desktop and full-direction
+   touch rotation on mobile natively via camera-controls. */
+.project-model-showcase{position:relative;max-width:min(1100px,92vw);margin:0 auto;}
+.project-model-card{position:relative;height:min(78vh,700px);border-radius:20px;box-shadow:0 30px 90px rgba(0,0,0,.5);overflow:hidden;background:linear-gradient(145deg,#181818 0%,#0e0e0e 100%);border:1px solid rgba(246,246,246,.09);}
+.project-model-viewer{width:100%;height:100%;--poster-color:transparent;}
+@media(max-width:560px){.project-model-card{height:min(62vh,520px);}}
+
 .project-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;padding:56px 0 64px;border-top:1px solid var(--line);}
 .project-metric{text-align:center;background-position:50% 50%;background-size:cover;border-radius:8px;padding:18px 10px;}
 .project-metric[data-media-current-url]:not([data-media-current-url=""]){background-color:rgba(5,5,5,.6);background-blend-mode:darken;}
