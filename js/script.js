@@ -1742,6 +1742,23 @@ document.addEventListener('DOMContentLoaded', () => {
       .observe(setting, { characterData: true, childList: true, subtree: true });
   });
 
+  /* ---------- Project 3D model card: smoother drag ----------
+     The background cinematic scene (initCinematicBackground's animate()
+     loop, guarded by window._rafPaused) renders every frame sitewide and
+     competes with model-viewer's own WebGL canvas for GPU time. Pausing
+     that background loop for the duration of an active drag on the
+     model card gives the orbit interaction the GPU to itself, so
+     rotation stays smooth instead of fighting the other renderer. */
+  (function initProjectModelDragPerf() {
+    const mv = document.querySelector('.project-model-viewer');
+    if (!mv) return;
+    let dragging = false;
+    const setPaused = v => { window._rafPaused = document.hidden || v; };
+    mv.addEventListener('pointerdown', () => { dragging = true; setPaused(true); });
+    window.addEventListener('pointerup', () => { if (dragging) { dragging = false; setPaused(false); } });
+    window.addEventListener('pointercancel', () => { if (dragging) { dragging = false; setPaused(false); } });
+  })();
+
   /* ---------- Shopify.html chapter scroll navigation ---------- */
   (function initShopifyChapters() {
     const nav = document.getElementById('shopifyChapterNav');

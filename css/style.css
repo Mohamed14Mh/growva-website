@@ -2548,7 +2548,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
    model-viewer supplies drag-to-orbit on desktop and full-direction
    touch rotation on mobile natively via camera-controls. */
 .project-model-showcase{position:relative;max-width:min(1100px,92vw);margin:0 auto;}
-.project-model-card{position:relative;height:min(78vh,700px);border-radius:20px;box-shadow:0 30px 90px rgba(0,0,0,.5);overflow:hidden;background:linear-gradient(145deg,#181818 0%,#0e0e0e 100%);border:1px solid rgba(246,246,246,.09);}
+.project-model-card{position:relative;height:min(78vh,700px);border-radius:20px;box-shadow:0 30px 90px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);overflow:hidden;background:rgba(255,255,255,.05);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);border:1px solid rgba(246,246,246,.12);}
 .project-model-viewer{width:100%;height:100%;--poster-color:transparent;}
 @media(max-width:560px){.project-model-card{height:min(62vh,520px);}}
 
