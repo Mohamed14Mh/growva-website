@@ -1758,24 +1758,24 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('pointercancel', () => { if (dragging) { dragging = false; setPaused(false); } });
   })();
 
-  /* ---------- Project motion-logo card: play once on scroll ----------
+  /* ---------- Project motion-logo card: keep replaying while in view ----------
      After Effects exports (e.g. .webm) shown on projects where the work
-     itself is a motion piece. Muted/no controls by default; plays once
-     the moment it's scrolled into view, then holds on its last frame
-     (no loop attribute, so the browser never resets it) rather than
-     looping or replaying on a later scroll-back. Reduced-motion visitors
-     get native controls instead of an autoplay they didn't ask for. */
+     itself is a motion piece. Muted/no controls by default; the <video>
+     carries the loop attribute, and this just plays/pauses it as it
+     enters/leaves the viewport, so it keeps repeating for as long as
+     the visitor is actually looking at that section (and doesn't waste
+     cycles decoding it while scrolled away). Reduced-motion visitors
+     get native controls instead of a forced autoplay loop. */
   (function initMotionLogoPlayback() {
     const videos = document.querySelectorAll('.project-motion-video');
     if (!videos.length) return;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     videos.forEach(video => {
-      if (reduced) { video.controls = true; return; }
+      if (reduced) { video.loop = false; video.controls = true; return; }
       const io = new IntersectionObserver(entries => {
         entries.forEach(entry => {
-          if (!entry.isIntersecting) return;
-          io.unobserve(entry.target);
-          video.play().catch(() => {});
+          if (entry.isIntersecting) video.play().catch(() => {});
+          else video.pause();
         });
       }, { threshold: 0.4 });
       io.observe(video);
