@@ -1758,6 +1758,30 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('pointercancel', () => { if (dragging) { dragging = false; setPaused(false); } });
   })();
 
+  /* ---------- Project motion-logo card: play once on scroll ----------
+     After Effects exports (e.g. .webm) shown on projects where the work
+     itself is a motion piece. Muted/no controls by default; plays once
+     the moment it's scrolled into view, then holds on its last frame
+     (no loop attribute, so the browser never resets it) rather than
+     looping or replaying on a later scroll-back. Reduced-motion visitors
+     get native controls instead of an autoplay they didn't ask for. */
+  (function initMotionLogoPlayback() {
+    const videos = document.querySelectorAll('.project-motion-video');
+    if (!videos.length) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    videos.forEach(video => {
+      if (reduced) { video.controls = true; return; }
+      const io = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          io.unobserve(entry.target);
+          video.play().catch(() => {});
+        });
+      }, { threshold: 0.4 });
+      io.observe(video);
+    });
+  })();
+
   /* ---------- Shopify.html chapter scroll navigation ---------- */
   (function initShopifyChapters() {
     const nav = document.getElementById('shopifyChapterNav');

@@ -6053,6 +6053,17 @@
       wrap.appendChild(mv);
       return;
     }
+    if (/\.(webm|mp4)$/i.test(url)) {
+      const vid = document.createElement('video');
+      vid.className = 'gv-admin-image-preview';
+      vid.src = url;
+      vid.muted = true;
+      vid.controls = true;
+      vid.playsInline = true;
+      vid.dataset.imagePreview = 'true';
+      wrap.appendChild(vid);
+      return;
+    }
     const img = document.createElement('img');
     img.className = 'gv-admin-image-preview';
     img.src = url;
@@ -6167,14 +6178,15 @@
   async function uploadMediaFile(file) {
     if (!supabaseClient || !currentUser || !adminProfile) return { error: 'Not authenticated.' };
     if (!['owner', 'editor'].includes(adminProfile.role)) return { error: 'Upload requires owner or editor role.' };
-    // .glb files are 3D models (used by model-viewer, e.g. the rotating logo
-    // and per-project 3D showcases). Browsers report inconsistent/empty
-    // file.type for .glb, so this is detected by extension, not MIME type.
+    // .glb (3D models) and .webm/.mp4 (motion-logo clips) are detected by
+    // extension, not MIME type -- browsers report inconsistent/empty
+    // file.type for these.
     const isGlb = /\.glb$/i.test(file.name || '');
+    const isVideo = /\.(webm|mp4)$/i.test(file.name || '');
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!isGlb && !allowedTypes.includes(file.type)) return { error: 'File type not allowed. Use JPEG, PNG, WebP, or GLB. (SVG is disabled for security.)' };
-    const contentType = isGlb ? 'model/gltf-binary' : file.type;
-    const maxBytes = isGlb ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (!isGlb && !isVideo && !allowedTypes.includes(file.type)) return { error: 'File type not allowed. Use JPEG, PNG, WebP, GLB, WEBM, or MP4. (SVG is disabled for security.)' };
+    const contentType = isGlb ? 'model/gltf-binary' : isVideo ? (/\.mp4$/i.test(file.name) ? 'video/mp4' : 'video/webm') : file.type;
+    const maxBytes = isGlb ? 20 * 1024 * 1024 : isVideo ? 30 * 1024 * 1024 : 5 * 1024 * 1024;
     if (file.size > maxBytes) return { error: 'File too large. Max ' + (maxBytes / 1024 / 1024) + ' MB. Your file: ' + (file.size / 1024 / 1024).toFixed(1) + ' MB.' };
     const safeName = sanitizeFileName(file.name);
     const now = new Date();
@@ -6182,7 +6194,7 @@
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const ts = now.getTime();
     const storagePath = 'cms/' + yyyy + '/' + mm + '/' + ts + '-' + safeName;
-    const dims = isGlb ? { width: null, height: null } : await detectImageDimensions(file);
+    const dims = (isGlb || isVideo) ? { width: null, height: null } : await detectImageDimensions(file);
     let uploadError = null;
     try {
       const up = await supabaseClient.storage.from('cms-media').upload(storagePath, file, { upsert: false, contentType: contentType });
@@ -6228,10 +6240,10 @@
     }
     const uploadArea = canUpload ? `
       <div class="gv-admin-media-upload-area" data-admin-action="media-upload-area">
-        <input type="file" id="gvMediaFileInput" accept="image/jpeg,image/png,image/webp,.glb" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;" multiple data-admin-media-input>
+        <input type="file" id="gvMediaFileInput" accept="image/jpeg,image/png,image/webp,.glb,.webm,.mp4" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;" multiple data-admin-media-input>
         <div class="gv-admin-media-upload-icon">&#8593;</div>
-        <p>Drag &amp; drop images or 3D models here, or <button class="gv-admin-media-upload-link" type="button" data-admin-action="media-upload-trigger">browse files</button></p>
-        <p class="gv-admin-media-upload-hint">JPEG, PNG, WebP (max 5 MB) or GLB 3D model (max 20 MB) &mdash; SVG disabled</p>
+        <p>Drag &amp; drop images, 3D models, or motion clips here, or <button class="gv-admin-media-upload-link" type="button" data-admin-action="media-upload-trigger">browse files</button></p>
+        <p class="gv-admin-media-upload-hint">JPEG, PNG, WebP (max 5 MB) &middot; GLB 3D model (max 20 MB) &middot; WEBM/MP4 clip (max 30 MB) &mdash; SVG disabled</p>
       </div>
       <div class="gv-admin-media-upload-status" data-media-upload-status hidden></div>
     ` : `<div class="gv-admin-warning">${escapeHtml(getMediaUploadUnavailableMessage())}</div>`;
@@ -6337,7 +6349,9 @@
             ${asset.public_url && isSafeImageUrl(asset.public_url)
               ? (/\.glb$/i.test(asset.public_url)
                   ? `<model-viewer src="${escapeHtml(asset.public_url)}" alt="${escapeHtml(asset.alt_text || '3D model')}" camera-controls disable-zoom shadow-intensity="1" style="width:100%;height:100%;"></model-viewer>`
-                  : `<img src="${escapeHtml(asset.public_url)}" alt="${escapeHtml(asset.alt_text || '')}" loading="lazy" decoding="async">`)
+                  : /\.(webm|mp4)$/i.test(asset.public_url)
+                    ? `<video src="${escapeHtml(asset.public_url)}" controls muted playsinline style="width:100%;height:100%;object-fit:contain;"></video>`
+                    : `<img src="${escapeHtml(asset.public_url)}" alt="${escapeHtml(asset.alt_text || '')}" loading="lazy" decoding="async">`)
               : '<span>Preview unavailable</span>'}
           </div>
           <div class="gv-admin-media-detail-fields">
@@ -6660,7 +6674,7 @@
           <label for="gvImageAlt">Alt text</label>
           <input id="gvImageAlt" type="text" value="${escapeHtml(draftVal.alt !== undefined ? draftVal.alt : currentAlt)}" placeholder="Describe the image">
       </div>
-      ${mediaUploadAvailable ? '<input type="file" id="gvImageFileInput" accept="image/jpeg,image/png,image/webp,.glb" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;" data-admin-image-file-input>' : ''}
+      ${mediaUploadAvailable ? '<input type="file" id="gvImageFileInput" accept="image/jpeg,image/png,image/webp,.glb,.webm,.mp4" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;" data-admin-image-file-input>' : ''}
       <p class="gv-admin-note" data-image-save-state>Select from library or paste a URL, then Save Draft Image.</p>
       <div class="gv-admin-panel-actions" style="grid-template-columns:1fr 1fr;">
         <button class="gv-admin-action" type="button" data-admin-action="image-choose-media">Media Library</button>
