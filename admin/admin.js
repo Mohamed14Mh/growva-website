@@ -6041,6 +6041,18 @@
   function setAdminImagePreview(wrap, url, alt) {
     if (!wrap || !url || !isSafeImageUrl(url)) return;
     wrap.textContent = '';
+    if (/\.glb$/i.test(url)) {
+      const mv = document.createElement('model-viewer');
+      mv.className = 'gv-admin-image-preview';
+      mv.setAttribute('src', url);
+      mv.setAttribute('alt', sanitizeText(alt || '3D model preview'));
+      mv.setAttribute('camera-controls', '');
+      mv.setAttribute('disable-zoom', '');
+      mv.setAttribute('shadow-intensity', '1');
+      mv.dataset.imagePreview = 'true';
+      wrap.appendChild(mv);
+      return;
+    }
     const img = document.createElement('img');
     img.className = 'gv-admin-image-preview';
     img.src = url;
@@ -6155,19 +6167,25 @@
   async function uploadMediaFile(file) {
     if (!supabaseClient || !currentUser || !adminProfile) return { error: 'Not authenticated.' };
     if (!['owner', 'editor'].includes(adminProfile.role)) return { error: 'Upload requires owner or editor role.' };
+    // .glb files are 3D models (used by model-viewer, e.g. the rotating logo
+    // and per-project 3D showcases). Browsers report inconsistent/empty
+    // file.type for .glb, so this is detected by extension, not MIME type.
+    const isGlb = /\.glb$/i.test(file.name || '');
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) return { error: 'File type not allowed. Use JPEG, PNG, or WebP. (SVG is disabled for security.)' };
-    if (file.size > 5 * 1024 * 1024) return { error: 'File too large. Max 5 MB. Your file: ' + (file.size / 1024 / 1024).toFixed(1) + ' MB.' };
+    if (!isGlb && !allowedTypes.includes(file.type)) return { error: 'File type not allowed. Use JPEG, PNG, WebP, or GLB. (SVG is disabled for security.)' };
+    const contentType = isGlb ? 'model/gltf-binary' : file.type;
+    const maxBytes = isGlb ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (file.size > maxBytes) return { error: 'File too large. Max ' + (maxBytes / 1024 / 1024) + ' MB. Your file: ' + (file.size / 1024 / 1024).toFixed(1) + ' MB.' };
     const safeName = sanitizeFileName(file.name);
     const now = new Date();
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const ts = now.getTime();
     const storagePath = 'cms/' + yyyy + '/' + mm + '/' + ts + '-' + safeName;
-    const dims = await detectImageDimensions(file);
+    const dims = isGlb ? { width: null, height: null } : await detectImageDimensions(file);
     let uploadError = null;
     try {
-      const up = await supabaseClient.storage.from('cms-media').upload(storagePath, file, { upsert: false, contentType: file.type });
+      const up = await supabaseClient.storage.from('cms-media').upload(storagePath, file, { upsert: false, contentType: contentType });
       uploadError = up.error;
     } catch (e) { return { error: 'Storage upload failed: ' + (e.message || String(e)) }; }
     if (uploadError) return { error: 'Storage upload failed: ' + (uploadError.message || String(uploadError)) };
@@ -6177,7 +6195,7 @@
     try {
       const ins = await supabaseClient.from('cms_media_assets').insert({
         storage_path: storagePath, public_url: publicUrl,
-        file_name: safeName, file_type: file.type, file_size: file.size,
+        file_name: safeName, file_type: contentType, file_size: file.size,
         width: dims.width || null, height: dims.height || null,
         alt_text: '', caption: '', folder: 'cms', uploaded_by: currentUser.id
       }).select().single();
@@ -6210,10 +6228,10 @@
     }
     const uploadArea = canUpload ? `
       <div class="gv-admin-media-upload-area" data-admin-action="media-upload-area">
-        <input type="file" id="gvMediaFileInput" accept="image/jpeg,image/png,image/webp" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;" multiple data-admin-media-input>
+        <input type="file" id="gvMediaFileInput" accept="image/jpeg,image/png,image/webp,.glb" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;" multiple data-admin-media-input>
         <div class="gv-admin-media-upload-icon">&#8593;</div>
-        <p>Drag &amp; drop images here, or <button class="gv-admin-media-upload-link" type="button" data-admin-action="media-upload-trigger">browse files</button></p>
-        <p class="gv-admin-media-upload-hint">JPEG, PNG, WebP &mdash; max 5 MB &mdash; SVG disabled</p>
+        <p>Drag &amp; drop images or 3D models here, or <button class="gv-admin-media-upload-link" type="button" data-admin-action="media-upload-trigger">browse files</button></p>
+        <p class="gv-admin-media-upload-hint">JPEG, PNG, WebP (max 5 MB) or GLB 3D model (max 20 MB) &mdash; SVG disabled</p>
       </div>
       <div class="gv-admin-media-upload-status" data-media-upload-status hidden></div>
     ` : `<div class="gv-admin-warning">${escapeHtml(getMediaUploadUnavailableMessage())}</div>`;
@@ -6316,7 +6334,11 @@
         </div>
         <div class="gv-admin-media-detail-grid">
           <div class="gv-admin-media-detail-preview">
-            ${asset.public_url && isSafeImageUrl(asset.public_url) ? `<img src="${escapeHtml(asset.public_url)}" alt="${escapeHtml(asset.alt_text || '')}" loading="lazy" decoding="async">` : '<span>Preview unavailable</span>'}
+            ${asset.public_url && isSafeImageUrl(asset.public_url)
+              ? (/\.glb$/i.test(asset.public_url)
+                  ? `<model-viewer src="${escapeHtml(asset.public_url)}" alt="${escapeHtml(asset.alt_text || '3D model')}" camera-controls disable-zoom shadow-intensity="1" style="width:100%;height:100%;"></model-viewer>`
+                  : `<img src="${escapeHtml(asset.public_url)}" alt="${escapeHtml(asset.alt_text || '')}" loading="lazy" decoding="async">`)
+              : '<span>Preview unavailable</span>'}
           </div>
           <div class="gv-admin-media-detail-fields">
             ${renderMediaMetaField('title', 'Title', asset.title || '', canEdit && mediaSchemaSupportsManagement)}
@@ -6638,7 +6660,7 @@
           <label for="gvImageAlt">Alt text</label>
           <input id="gvImageAlt" type="text" value="${escapeHtml(draftVal.alt !== undefined ? draftVal.alt : currentAlt)}" placeholder="Describe the image">
       </div>
-      ${mediaUploadAvailable ? '<input type="file" id="gvImageFileInput" accept="image/jpeg,image/png,image/webp" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;" data-admin-image-file-input>' : ''}
+      ${mediaUploadAvailable ? '<input type="file" id="gvImageFileInput" accept="image/jpeg,image/png,image/webp,.glb" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;" data-admin-image-file-input>' : ''}
       <p class="gv-admin-note" data-image-save-state>Select from library or paste a URL, then Save Draft Image.</p>
       <div class="gv-admin-panel-actions" style="grid-template-columns:1fr 1fr;">
         <button class="gv-admin-action" type="button" data-admin-action="image-choose-media">Media Library</button>
