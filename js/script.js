@@ -88,6 +88,65 @@ document.addEventListener('DOMContentLoaded', () => {
     else document.addEventListener('gv:introready', cb, { once: true });
   }
 
+  /* ---------- Sitewide text-reveal system (GSAP SplitText) ----------
+     Two of the three split types from the reference demo, each assigned
+     a fixed role rather than left as a picker:
+       - Every page's single <h1> (the hero/first-section title) splits
+         into characters and cascades in once, timed off whenIntroReady
+         so it doesn't finish behind the still-opaque preloader.
+       - Every <h2> in main (section titles further down the page) splits
+         into lines and flips in with a 3D rotation as each one scrolls
+         into view, via ScrollTrigger.
+     Both replace that element's old .reveal-up fade (removed here) so
+     there's exactly one animation system per element, not two competing
+     ones. "Words" (the demo's third type) isn't used anywhere per the
+     brief — chars/lines cover the hero and the rest of the page.
+     Must run *after* CMS text hydration (gv:text-hydrated) — that system
+     overwrites textContent on data-edit-key elements (including h1/h2)
+     with the published copy, which would silently wipe out SplitText's
+     spans if we split before it runs. */
+  let splitTextRevealsDone = false;
+  function initSplitTextReveals() {
+    if (splitTextRevealsDone) return;
+    splitTextRevealsDone = true;
+    if (!window.gsap || !window.SplitText) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    gsap.registerPlugin(SplitText, window.ScrollTrigger);
+
+    const h1 = document.querySelector('h1');
+    if (h1) {
+      h1.classList.remove('reveal-up', 'in');
+      gsap.set(h1, { opacity: 1, transform: 'none' });
+      // type must include "words" alongside "chars" -- chars-only wraps
+      // every letter in its own inline-block, which breaks the browser's
+      // normal word-boundary line-wrapping and lets it split mid-word.
+      const heroSplit = SplitText.create(h1, { type: 'words,chars' });
+      gsap.set(heroSplit.chars, { opacity: 0, x: 60 });
+      whenIntroReady(() => {
+        gsap.to(heroSplit.chars, { x: 0, opacity: 1, duration: .7, ease: 'power4', stagger: 0.02 });
+      });
+    }
+
+    if (window.ScrollTrigger) {
+      document.querySelectorAll('main h2').forEach(h2 => {
+        h2.classList.remove('reveal-up', 'in');
+        h2.style.perspective = '600px';
+        gsap.set(h2, { opacity: 1, transform: 'none' });
+        const lineSplit = SplitText.create(h2, { type: 'lines' });
+        gsap.from(lineSplit.lines, {
+          rotationX: -100,
+          transformOrigin: '50% 50% -80px',
+          opacity: 0,
+          duration: 0.8,
+          ease: 'power3',
+          stagger: 0.15,
+          scrollTrigger: { trigger: h2, start: 'top 85%' }
+        });
+      });
+    }
+  }
+  document.addEventListener('gv:text-hydrated', () => requestAnimationFrame(initSplitTextReveals));
+
   /* ---------- Scroll progress ---------- */
   const progress = document.createElement('div');
   progress.className = 'scroll-progress';
@@ -144,66 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
     gsap.ticker.add(time => lenis.raf(time * 1000));
     gsap.ticker.lagSmoothing(0);
   }
-
-  /* ---------- Word-level headline reveals ---------- */
-  (function initHeadlineWordReveals() {
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const targets = document.querySelectorAll('.hero-title, .page-hero-title');
-    if (!targets.length) return;
-
-    function splitTextNode(node) {
-      const frag = document.createDocumentFragment();
-      const parts = node.nodeValue.split(/(\s+)/);
-      parts.forEach(part => {
-        if (!part) return;
-        if (/^\s+$/.test(part)) {
-          frag.appendChild(document.createTextNode(part));
-          return;
-        }
-        const clip = document.createElement('span');
-        const word = document.createElement('span');
-        clip.className = 'word-clip';
-        word.className = 'word';
-        word.textContent = part;
-        clip.appendChild(word);
-        frag.appendChild(clip);
-      });
-      node.parentNode.replaceChild(frag, node);
-    }
-
-    function walk(el) {
-      Array.from(el.childNodes).forEach(node => {
-        if (node.nodeType === Node.TEXT_NODE) {
-          splitTextNode(node);
-        } else if (node.nodeType === Node.ELEMENT_NODE && !node.classList.contains('word-clip')) {
-          walk(node);
-        }
-      });
-    }
-
-    targets.forEach(target => {
-      target.classList.remove('reveal-up', 'reveal-line');
-      target.querySelectorAll('.reveal-line').forEach(el => el.classList.remove('reveal-line'));
-      target.querySelectorAll('.in').forEach(el => el.classList.remove('in'));
-      target.classList.add('word-reveal');
-      walk(target);
-      target.querySelectorAll('.word').forEach((word, i) => word.style.setProperty('--word-index', i));
-      if (reduced) {
-        target.classList.add('in');
-      }
-    });
-
-    if (reduced) return;
-    const wordIO = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (!entry.isIntersecting) return;
-        wordIO.unobserve(entry.target);
-        whenIntroReady(() => entry.target.classList.add('in'));
-      });
-    }, { threshold: 0.25, rootMargin: '0px 0px -80px 0px' });
-    targets.forEach(target => wordIO.observe(target));
-  })();
-
 
   /* ---------- Nav scroll + burger ---------- */
   const nav = document.getElementById('nav');
