@@ -1716,7 +1716,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function initProjectCardVisibility() {
     const isAdmin = document.body.classList.contains('admin-mode')
       && !document.body.classList.contains('admin-visitor-preview');
-    document.querySelectorAll('.project-card').forEach(card => {
+    document.querySelectorAll('.project-card, .gv-hideable').forEach(card => {
       const setting = card.querySelector('.gv-cms-setting[data-edit-key*=".visibility"]');
       if (!setting) return;
       const hidden = setting.textContent.trim().toLowerCase() === 'hidden';
@@ -1779,6 +1779,70 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }, { threshold: 0.4 });
       io.observe(video);
+    });
+  })();
+
+  /* ---------- Case-study proof/photography gallery lightbox ----------
+     Click-to-enlarge popup for `.lightbox-trigger` tiles (proof-of-results
+     screenshots, product photography). One overlay is built lazily and
+     reused for every trigger on the page. Skipped while admin edit mode
+     is active so editors can still click through to edit the tile
+     instead of popping the viewer, matching the clickable-card pattern
+     used elsewhere on the site. */
+  (function initLightbox() {
+    const triggers = document.querySelectorAll('.lightbox-trigger');
+    if (!triggers.length) return;
+
+    let overlay = document.querySelector('.gv-lightbox');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'gv-lightbox';
+      overlay.innerHTML =
+        '<button type="button" class="gv-lightbox-close" aria-label="Close">' +
+        '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' +
+        '</button>' +
+        '<img class="gv-lightbox-img" alt="">' +
+        '<span class="gv-lightbox-caption"></span>';
+      document.body.appendChild(overlay);
+    }
+    const img = overlay.querySelector('.gv-lightbox-img');
+    const caption = overlay.querySelector('.gv-lightbox-caption');
+    const closeBtn = overlay.querySelector('.gv-lightbox-close');
+
+    function extractUrl(photoEl) {
+      if (!photoEl) return '';
+      if (photoEl.dataset.mediaCurrentUrl) return photoEl.dataset.mediaCurrentUrl;
+      const bg = photoEl.style.backgroundImage || '';
+      const m = bg.match(/url\((['"]?)(.*?)\1\)/);
+      return m ? m[2] : '';
+    }
+
+    function open(trigger) {
+      const photo = trigger.querySelector('.project-proof-photo');
+      const url = extractUrl(photo);
+      if (!url) return;
+      img.src = url;
+      const cap = trigger.querySelector('.project-proof-caption');
+      caption.textContent = cap ? cap.textContent.trim() : '';
+      overlay.classList.add('is-open');
+      window._lenis?.stop();
+      document.body.classList.add('lenis-stopped');
+    }
+    function close() {
+      overlay.classList.remove('is-open');
+      window._lenis?.start();
+      document.body.classList.remove('lenis-stopped');
+    }
+
+    document.addEventListener('click', (event) => {
+      if (document.body.classList.contains('admin-edit-mode')) return;
+      const trigger = event.target.closest('.lightbox-trigger');
+      if (trigger) { event.preventDefault(); open(trigger); return; }
+      if (event.target === overlay) close();
+    });
+    closeBtn.addEventListener('click', close);
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && overlay.classList.contains('is-open')) close();
     });
   })();
 
