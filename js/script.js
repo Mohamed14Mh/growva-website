@@ -2,6 +2,15 @@
    GROWVA — js/script.js  (shared across all pages)
    ========================================================================== */
 
+/* Always reload at the top of the page instead of the browser's default
+   scroll-restoration. Runs before Lenis/ScrollTrigger init further down, so
+   pinned sections always measure from a consistent scroll-0 starting state
+   (loading mid-scroll was corrupting pinned-section layout on refresh). */
+if ('scrollRestoration' in history) {
+  history.scrollRestoration = 'manual';
+}
+window.scrollTo(0, 0);
+
 document.addEventListener('DOMContentLoaded', () => {
 
   /* ---------- First-party attribution memory (no third-party tracking) ---------- */
@@ -665,6 +674,141 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   })();
 
+  /* ---------- Printing quote forms (category pages) — same lead pipeline as
+     the contact form, just with printing-specific fields folded into the
+     message body so no schema change is needed. ---------- */
+  (function initPrintQuoteForms() {
+    document.querySelectorAll('.print-quote-form').forEach(form => {
+      const gvFormPageLoadTime = Date.now();
+      const statusEl = form.querySelector('.contact-form-status');
+      const submitBtn = form.querySelector('[type="submit"]');
+      const successEl = form.parentElement.querySelector('.form-success');
+      let gvSubmitLocked = false;
+
+      function safeAttributionText(value, max) {
+        return String(value || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, max || 500);
+      }
+      function currentPathWithQuery() {
+        const path = safeAttributionText(window.location.pathname || '/', 240);
+        const query = safeAttributionText(window.location.search || '', 500);
+        return (path + query).slice(0, 700);
+      }
+      function referrerHost(referrer) {
+        try {
+          const url = new URL(referrer);
+          return safeAttributionText(url.hostname.replace(/^www\./, ''), 160);
+        } catch (e) { return ''; }
+      }
+      function collectAttribution() {
+        const params = new URLSearchParams(window.location.search || '');
+        const referrer = safeAttributionText(document.referrer || '', 700);
+        const utm_source = safeAttributionText(params.get('utm_source'), 160);
+        const source = utm_source || referrerHost(referrer) || 'direct';
+        return { page_path: currentPathWithQuery(), referrer, source };
+      }
+      function showStatus(msg, type) {
+        if (!statusEl) return;
+        statusEl.textContent = msg;
+        statusEl.className = 'contact-form-status contact-form-status--' + type;
+        statusEl.style.display = '';
+      }
+      function hideStatus() { if (statusEl) statusEl.style.display = 'none'; }
+      function setLoading(loading) {
+        if (!submitBtn) return;
+        const span = submitBtn.querySelector('span');
+        submitBtn.disabled = loading;
+        if (span) span.textContent = loading ? 'Sending…' : span.dataset.defaultLabel || span.textContent;
+        if (span && !span.dataset.defaultLabel) span.dataset.defaultLabel = span.textContent;
+      }
+      function showSuccess() {
+        form.style.display = 'none';
+        if (successEl) successEl.classList.add('show');
+      }
+
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        if (gvSubmitLocked) return;
+        hideStatus();
+
+        const hpField = form.querySelector('[name="hp_website"]');
+        if (hpField && hpField.value.trim() !== '') { showSuccess(); return; }
+        if (Date.now() - gvFormPageLoadTime < 2000) { showSuccess(); return; }
+
+        const fd = new FormData(form);
+        const name = (fd.get('full_name') || '').trim();
+        const email = (fd.get('email') || '').trim();
+        const phone = (fd.get('phone') || '').trim();
+        const company = (fd.get('business_name') || '').trim();
+        const category = form.dataset.category || 'Printing';
+
+        const details = [
+          ['Product Type', fd.get('product_type')],
+          ['Quantity', fd.get('quantity')],
+          ['Size', fd.get('size')],
+          ['Material', fd.get('material')],
+          ['Finishing', fd.get('finishing')],
+          ['Delivery Date', fd.get('delivery_date')],
+          ['Has ready design?', fd.get('has_design')],
+        ].filter(([, v]) => v && String(v).trim());
+
+        const designFileInput = form.querySelector('[name="design_file"]');
+        const designFile = designFileInput && designFileInput.files && designFileInput.files[0];
+
+        let message = `Printing quote request — ${category}\n\n`;
+        message += details.map(([label, v]) => `${label}: ${v}`).join('\n');
+        const extraNotes = (fd.get('notes') || '').trim();
+        if (extraNotes) message += `\n\nNotes: ${extraNotes}`;
+        if (designFile) message += `\n\nAttached design file (not uploaded, contact visitor to request it): ${designFile.name}`;
+
+        if (!name || name.length < 2) { showStatus('Please enter your full name.', 'error'); return; }
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showStatus('Please enter a valid email address.', 'error'); return; }
+        if (!fd.get('product_type')) { showStatus('Please select a product type.', 'error'); return; }
+
+        gvSubmitLocked = true;
+        setLoading(true);
+        showStatus('Sending your request…', 'loading');
+
+        try {
+          const cfg = window.GROWVA_SUPABASE_CONFIG;
+          if (cfg && cfg.url && cfg.anonKey && window.supabase) {
+            const client = window.supabase.createClient(cfg.url, cfg.anonKey);
+            const attribution = collectAttribution();
+            const payload = {
+              name, email, phone: phone || null,
+              company: company || null,
+              project_type: `Printing – ${category}`,
+              message,
+              page_path: attribution.page_path,
+              source: attribution.source,
+              user_agent: navigator.userAgent ? navigator.userAgent.slice(0, 400) : null,
+            };
+            let { error } = await client.from('cms_contact_submissions').insert([payload]);
+            const canFallback = error && /column|schema cache|could not find/i.test(String(error.message || error.details || error.hint || ''));
+            if (canFallback) {
+              const { phone: _drop, ...withoutPhone } = payload;
+              const fallback = await client.from('cms_contact_submissions').insert([withoutPhone]);
+              error = fallback.error;
+            }
+            if (error) throw new Error(error.message || 'Submission failed');
+          } else {
+            throw new Error('Form service not available');
+          }
+          showSuccess();
+        } catch (err) {
+          gvSubmitLocked = false;
+          setLoading(false);
+          const isServiceErr = (err.message || '').includes('not available');
+          showStatus(
+            isServiceErr
+              ? 'Form service is currently unavailable. Please email us directly at hello@growva.com.'
+              : 'Something went wrong — please try again or email us at hello@growva.com.',
+            'error'
+          );
+        }
+      });
+    });
+  })();
+
   /* ---------- Work filter ---------- */
   (function initWorkFilter() {
     const filterBtns = Array.from(document.querySelectorAll('.work-filter-btn'));
@@ -821,6 +965,97 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initIntroBentoGalleries();
 
+    function initPrintShowcasePin() {
+      document.querySelectorAll('.print-showcase-pin').forEach(pinEl => {
+        const listItems = Array.from(pinEl.querySelectorAll('.print-showcase-item'));
+        const slides = Array.from(pinEl.querySelectorAll('.print-showcase-slide'));
+        const fill = pinEl.querySelector('.print-showcase-fill');
+        if (listItems.length < 2 || listItems.length !== slides.length) return;
+
+        const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const desktopQuery = window.matchMedia('(min-width: 900px)');
+        const titles = listItems.map(el => el.querySelector('.print-showcase-item-title'));
+        const specGroups = listItems.map(el => Array.from(el.querySelectorAll('.print-showcase-item-specs span')));
+        let ctx;
+
+        const build = () => {
+          ctx && ctx.revert();
+          pinEl.classList.remove('print-showcase-pin--static');
+          gsap.set(titles, { clearProps: 'all' });
+          gsap.set(specGroups.flat(), { clearProps: 'color' });
+          gsap.set(slides, { clearProps: 'all' });
+          if (fill) gsap.set(fill, { clearProps: 'all' });
+
+          if (reduceMotionQuery.matches || !desktopQuery.matches) {
+            pinEl.classList.add('print-showcase-pin--static');
+            return;
+          }
+
+          ctx = gsap.context(() => {
+            const n = listItems.length;
+            gsap.set(slides, { yPercent: 100, autoAlpha: 0 });
+            gsap.set(slides[0], { yPercent: 0, autoAlpha: 1 });
+            if (fill) gsap.set(fill, { scaleY: 1 / n, transformOrigin: 'top left' });
+
+            const tl = gsap.timeline({
+              scrollTrigger: {
+                trigger: pinEl,
+                start: 'top top',
+                end: '+=' + (n * 60) + '%',
+                pin: true,
+                scrub: true,
+                invalidateOnRefresh: true
+              }
+            });
+
+            // Each item gets an equal-length dwell segment [k-1, k); transitions
+            // land exactly on whole units so item 1 also gets real dwell time
+            // before the first transition (previously transitions fired at t=0).
+            for (let k = 1; k < n; k++) {
+              const prevTitle = titles[k - 1];
+              const prevSpecs = specGroups[k - 1];
+              const title = titles[k];
+              const specs = specGroups[k];
+              tl.set(prevTitle, { color: 'rgba(246,246,246,.32)' }, k)
+                .set(prevSpecs, { color: 'rgba(246,246,246,.28)' }, k)
+                .fromTo(title,
+                  { color: 'rgba(246,246,246,.32)', y: 8, opacity: 0.4 },
+                  { color: 'var(--mint)', y: 0, opacity: 1, duration: 0.35, ease: 'power1.out' }, k)
+                .set(specs, { color: 'rgba(246,246,246,.6)' }, k)
+                .to(slides[k - 1], { autoAlpha: 0, y: '-6%', duration: 0.35 }, k)
+                .fromTo(slides[k],
+                  { yPercent: 100, autoAlpha: 0 },
+                  { yPercent: 0, autoAlpha: 1, duration: 0.45, ease: 'power2.out' }, k);
+              if (fill) tl.to(fill, { scaleY: (k + 1) / n, ease: 'none' }, k);
+            }
+            tl.to({}, { duration: 0.001 }, n); // pad so the final item's dwell segment is equal too
+
+            return () => {
+              gsap.set(titles, { clearProps: 'all' });
+              gsap.set(specGroups.flat(), { clearProps: 'color' });
+              gsap.set(slides, { clearProps: 'all' });
+              if (fill) gsap.set(fill, { clearProps: 'all' });
+            };
+          }, pinEl);
+
+          if (window._lenis) window._lenis.resize();
+          ScrollTrigger.refresh();
+        };
+
+        build();
+        let resizeFrame = null;
+        window.addEventListener('resize', () => {
+          if (resizeFrame) cancelAnimationFrame(resizeFrame);
+          resizeFrame = requestAnimationFrame(() => {
+            resizeFrame = null;
+            build();
+          });
+        });
+      });
+    }
+
+    initPrintShowcasePin();
+
     function initBentoGallery() {
       const galleryElement = document.querySelector('#bentoGallery');
       if (!galleryElement || !window.gsap || !window.Flip || !window.ScrollTrigger) return;
@@ -929,25 +1164,43 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     /* ---------- Hero stack-deck: one continuous journey, no fade handoff ---------- */
-    (function heroStackDeck() {
+    function heroStackDeck() {
       const deck     = document.getElementById('stackDeck');
       if (!deck) return;
       const cards    = Array.from(deck.querySelectorAll('.stack-card'));
       if (cards.length < 4) return;
       const travelEl = document.getElementById('cardTravel');
+      const n = cards.length;
 
-      // Fan values for the resting "deck of cards" look
-      const fan = [
-        { rotation: -6, x: -10, y: 6 },
-        { rotation: -2, x: -4,  y: 2 },
-        { rotation: 2,  x: 4,   y: 2 },
-        { rotation: 6,  x: 10,  y: 6 }
+      // Fan values for the resting "deck of cards" look. Spread wide enough
+      // that each card's edge is clearly visible behind the front one —
+      // too subtle here reads as an accidental overlapping duplicate
+      // instead of a deliberate fanned stack.
+      const fan = n >= 6 ? [
+        { rotation: -13, x: -30, y: 18 },
+        { rotation: -8,  x: -18, y: 11 },
+        { rotation: -3,  x: -6,  y: 4 },
+        { rotation: 3,   x: 6,   y: 4 },
+        { rotation: 8,   x: 18,  y: 11 },
+        { rotation: 13,  x: 30,  y: 18 }
+      ] : [
+        { rotation: -11, x: -26, y: 16 },
+        { rotation: -4,  x: -10, y: 6 },
+        { rotation: 4,   x: 10,  y: 6 },
+        { rotation: 11,  x: 26,  y: 16 }
       ];
-      cards.forEach((card, i) => gsap.set(card, { ...fan[i], zIndex: 4 - i }));
+      cards.forEach((card, i) => gsap.set(card, { ...fan[i], zIndex: n - i }));
 
       // Every card scatters outward AND downward — never upward — so the
       // motion always reads as "coming down with the scroll."
-      const scatterTargets = [
+      const scatterTargets = n >= 6 ? [
+        { x: '-42vw', y: '14vh', rotation: -16, scale: 0.76 },
+        { x: '-26vw', y: '10vh', rotation:  10, scale: 0.78 },
+        { x: '-10vw', y: '17vh', rotation: -12, scale: 0.79 },
+        { x:   '6vw', y: '12vh', rotation:  14, scale: 0.79 },
+        { x:  '20vw', y: '18vh', rotation:  -9, scale: 0.78 },
+        { x:  '32vw', y: '13vh', rotation:  15, scale: 0.77 }
+      ] : [
         { x: '-36vw', y: '16vh', rotation: -14, scale: 0.78 },
         { x: '-13vw', y:  '9vh', rotation:  11, scale: 0.8 },
         { x:   '3vw', y: '11vh', rotation:  -8, scale: 0.79 },
@@ -1001,136 +1254,194 @@ document.addEventListener('DOMContentLoaded', () => {
       // Travel system — the SAME cards drift continuously from their resting
       // spot all the way down to the .landing-card grid; nothing fades out
       // and reappears elsewhere, so the motion never breaks.
-      const travelTops  = ['-30vh', '-34vh', '-29vh', '0vh'];
-      const travelEnds  = [0.6, 0.7, 0.64, 0.72];
-      const extraRot    = [-3, 4, -2, 5];
+      const travelTops  = n >= 6
+        ? ['-30vh', '-32vh', '-34vh', '-29vh', '-27vh', '0vh']
+        : ['-30vh', '-34vh', '-29vh', '0vh'];
+      const travelEnds  = n >= 6 ? [0.6, 0.65, 0.7, 0.64, 0.68, 0.72] : [0.6, 0.7, 0.64, 0.72];
+      const extraRot    = n >= 6 ? [-3, 3, 4, -2, 3, 5] : [-3, 4, -2, 5];
       // Scatter runs first (staggered per card), then drift picks up exactly
       // where scatter left off, then land — no two phases overlap in time.
-      const scatterStart = [0.02, 0.04, 0.06, 0.08];
+      const scatterStart = n >= 6 ? [0.02, 0.035, 0.05, 0.065, 0.08, 0.095] : [0.02, 0.04, 0.06, 0.08];
       const scatterDur   = 0.18;
       const driftEnd     = 0.66;
       const landEnd      = 0.94;
 
       const landingCards = Array.from(document.querySelectorAll('.landing-card'));
       const hasLandingTargets = landingCards.length === cards.length;
-      if (hasLandingTargets) gsap.set(landingCards, { autoAlpha: 0 });
 
-      const travelCards = cards.map((card, i) => {
-        const clone = card.cloneNode(true);
-        clone.classList.add(
-          'stack-card--traveling',
-          i % 2 === 0 ? 'travel-lane-left' : 'travel-lane-right'
-        );
-        // cloneNode(true) copies the source card's inline transform (the
-        // resting fan offset) verbatim — strip it via plain DOM so the
-        // clone starts life un-managed by GSAP, and its rect below reflects
-        // its true, untransformed CSS position.
-        clone.style.transform = '';
-        clone.style.setProperty('--travel-top', travelTops[i]);
-        travelEl.appendChild(clone);
-        return clone;
-      });
+      // buildTravel() creates the clones + travel timelines. It only runs
+      // twice — once immediately, once after window 'load' — see the calls
+      // at the bottom of this function.
+      let travelCards = [];
+      let travelTimelines = [];
 
-      // Measure the clone's natural (untransformed) rect together with the
-      // resting deck card's current on-screen rect, and separately with the
-      // landing slot's rect — each pair measured at the same instant, so the
-      // deltas stay correct at any scroll position later (both sides of a
-      // viewport-relative measurement shift together with scrollY, so the
-      // difference cancels it out). This lets a clone start pixel-perfectly
-      // on top of the resting card and end pixel-perfectly on the landing
-      // card, with no visible seam at either end.
-      const startTargets = travelCards.map((clone, i) => {
-        const naturalRect = clone.getBoundingClientRect();
-        const deckRect = cards[i].getBoundingClientRect();
-        const startScale = deckRect.width / naturalRect.width;
-        return {
-          x: (deckRect.left - naturalRect.left) - (naturalRect.width / 2) * (1 - startScale),
-          y: (deckRect.top - naturalRect.top) - (naturalRect.height / 2) * (1 - startScale),
-          scale: startScale
-        };
-      });
-      const landTargets = travelCards.map((clone, i) => {
-        if (!hasLandingTargets) return null;
-        const naturalRect = clone.getBoundingClientRect();
-        const landRect = landingCards[i].getBoundingClientRect();
-        const finalScale = landRect.width / naturalRect.width;
-        return {
-          x: (landRect.left - naturalRect.left) - (naturalRect.width / 2) * (1 - finalScale),
-          y: (landRect.top - naturalRect.top) - (naturalRect.height / 2) * (1 - finalScale),
-          scale: finalScale
-        };
-      });
+      function buildTravel() {
+        travelTimelines.forEach(tl => tl.kill());
+        travelCards.forEach(c => c.remove());
+        travelTimelines = [];
 
-      gsap.set(travelCards, { autoAlpha: 1, transformOrigin: '50% 50%', pointerEvents: 'auto' });
+        if (hasLandingTargets) gsap.set(landingCards, { autoAlpha: 0 });
 
-      const travelTimelines = [];
-      travelCards.forEach((card, i) => {
-        const start  = startTargets[i];
-        const target = landTargets[i];
-        const scatterEnd = scatterStart[i] + scatterDur;
-        const travelTl = gsap.timeline({
-          scrollTrigger: {
-            trigger: travelEl,
-            start: 'top bottom',
-            end: 'bottom top',
-            scrub: true,
-            invalidateOnRefresh: true
+        travelCards = cards.map((card, i) => {
+          const clone = card.cloneNode(true);
+          clone.classList.add(
+            'stack-card--traveling',
+            i % 2 === 0 ? 'travel-lane-left' : 'travel-lane-right'
+          );
+          // cloneNode(true) copies the source card's inline transform (the
+          // resting fan offset) verbatim — strip it via plain DOM so the
+          // clone starts life un-managed by GSAP, and its rect below reflects
+          // its true, untransformed CSS position.
+          clone.style.transform = '';
+          clone.style.setProperty('--travel-top', travelTops[i]);
+          travelEl.appendChild(clone);
+          return clone;
+        });
+
+        // Measure the clone's natural (untransformed) rect together with the
+        // resting deck card's current on-screen rect, and separately with the
+        // landing slot's rect — each pair measured at the same instant, so the
+        // deltas stay correct at any scroll position later (both sides of a
+        // viewport-relative measurement shift together with scrollY, so the
+        // difference cancels it out). This lets a clone start pixel-perfectly
+        // on top of the resting card and end pixel-perfectly on the landing
+        // card, with no visible seam at either end.
+        // Center-to-center alignment, not edge/width-based: the resting deck
+        // card is rotated (the fan effect), and a rotated element's
+        // getBoundingClientRect() returns its inflated axis-aligned bounding
+        // box (wider/taller than the card itself), not its true size. Deriving
+        // scale from that inflated box (deckRect.width / naturalRect.width)
+        // produced a scale >1 and a matching position error, so the clone
+        // rendered visibly larger and offset from the card it's supposed to
+        // sit exactly on top of — both were momentarily visible at once,
+        // reading as duplicated/doubled cards. Rotation doesn't move an
+        // element's centroid though (only inflates the box symmetrically
+        // around it), so centroid-to-centroid deltas stay correct regardless
+        // of rotation, and scale comes from true CSS widths (offsetWidth,
+        // transform-independent) instead of the bounding box.
+        const startTargets = travelCards.map((clone, i) => {
+          const naturalRect = clone.getBoundingClientRect();
+          const deckRect = cards[i].getBoundingClientRect();
+          const startScale = cards[i].offsetWidth / clone.offsetWidth;
+          return {
+            x: (deckRect.left + deckRect.width / 2) - (naturalRect.left + naturalRect.width / 2),
+            y: (deckRect.top + deckRect.height / 2) - (naturalRect.top + naturalRect.height / 2),
+            scale: startScale
+          };
+        });
+        const landTargets = travelCards.map((clone, i) => {
+          if (!hasLandingTargets) return null;
+          const naturalRect = clone.getBoundingClientRect();
+          const landRect = landingCards[i].getBoundingClientRect();
+          const finalScale = landingCards[i].offsetWidth / clone.offsetWidth;
+          return {
+            x: (landRect.left + landRect.width / 2) - (naturalRect.left + naturalRect.width / 2),
+            y: (landRect.top + landRect.height / 2) - (naturalRect.top + naturalRect.height / 2),
+            scale: finalScale
+          };
+        });
+
+        gsap.set(travelCards, { autoAlpha: 1, transformOrigin: '50% 50%', pointerEvents: 'auto' });
+
+        travelCards.forEach((card, i) => {
+          const start  = startTargets[i];
+          const target = landTargets[i];
+          const scatterEnd = scatterStart[i] + scatterDur;
+          const travelTl = gsap.timeline({
+            scrollTrigger: {
+              trigger: travelEl,
+              start: 'top bottom',
+              end: 'bottom top',
+              scrub: true
+              // Deliberately no invalidateOnRefresh here: GSAP's own
+              // automatic refresh-on-window-load re-evaluates every
+              // invalidatable value in this timeline when it fires, which
+              // was corrupting the pixel-perfect start position this whole
+              // timeline depends on (built once from a single synchronized
+              // measurement pair — see buildTravel() above). The one
+              // function-based value below (drift distance) doesn't need
+              // to be kept current enough to justify that risk.
+            }
+          });
+          travelTimelines.push(travelTl);
+
+          // Spawn pixel-perfectly over the resting deck card, already fully
+          // visible and clickable — the original deck disappears in the same
+          // breath (imperceptible, since the clone already covers it exactly).
+          travelTl.set(card, { x: start.x, y: start.y, rotation: fan[i].rotation, scale: start.scale }, 0);
+          if (i === 0) travelTl.to(deck, { autoAlpha: 0, duration: 0.01, ease: 'none' }, 0);
+
+          // Scatter out from the resting stack
+          travelTl.to(card, {
+            x: scatterTargets[i].x, y: scatterTargets[i].y,
+            rotation: scatterTargets[i].rotation, scale: scatterTargets[i].scale,
+            ease: 'power2.out', duration: scatterDur
+          }, scatterStart[i]);
+
+          // Drift down the page at a staggered rate, continuing seamlessly
+          // from wherever the scatter left the card.
+          travelTl.to(card, {
+            y: () => travelEl.offsetHeight * travelEnds[i],
+            rotation: scatterTargets[i].rotation + extraRot[i],
+            ease: 'none',
+            duration: driftEnd - scatterEnd
+          }, scatterEnd);
+
+          if (target) {
+            // Cinematic dock — the scattered card straightens out and glides
+            // into its exact spot in the grid section below.
+            travelTl.to(card, {
+              x: target.x, y: target.y, rotation: 0, scale: target.scale,
+              ease: 'power3.inOut', duration: landEnd - driftEnd
+            }, driftEnd);
+            travelTl.to(card, { autoAlpha: 0, duration: 0.05, ease: 'power1.in' }, landEnd);
+            travelTl.to(landingCards[i], { autoAlpha: 1, duration: 0.05, ease: 'power1.in' }, landEnd);
+          } else {
+            travelTl.to(card, { autoAlpha: 0, duration: 0.15, ease: 'power1.in' }, 0.85);
           }
         });
-        travelTimelines.push(travelTl);
 
-        // Spawn pixel-perfectly over the resting deck card, already fully
-        // visible and clickable — the original deck disappears in the same
-        // breath (imperceptible, since the clone already covers it exactly).
-        travelTl.set(card, { x: start.x, y: start.y, rotation: fan[i].rotation, scale: start.scale }, 0);
-        if (i === 0) travelTl.to(deck, { autoAlpha: 0, duration: 0.01, ease: 'none' }, 0);
+        // A scrub timeline sitting at progress 0 doesn't paint its frame-0
+        // state on its own — render it explicitly once right after creation.
+        travelTimelines.forEach(tl => tl.render(0, false, true));
+      }
 
-        // Scatter out from the resting stack
-        travelTl.to(card, {
-          x: scatterTargets[i].x, y: scatterTargets[i].y,
-          rotation: scatterTargets[i].rotation, scale: scatterTargets[i].scale,
-          ease: 'power2.out', duration: scatterDur
-        }, scatterStart[i]);
+      buildTravel();
 
-        // Drift down the page at a staggered rate, continuing seamlessly
-        // from wherever the scatter left the card.
-        travelTl.to(card, {
-          y: () => travelEl.offsetHeight * travelEnds[i],
-          rotation: scatterTargets[i].rotation + extraRot[i],
-          ease: 'none',
-          duration: driftEnd - scatterEnd
-        }, scatterEnd);
+      // The deck itself (not the clone) can still drift a little after this
+      // first build — e.g. the header's two <model-viewer> 3D logos finish
+      // loading their GLB asynchronously and can nudge the hero's layout
+      // once they settle into their final size. Rebuilding once after
+      // window 'load' (all page resources fully loaded) re-measures the
+      // deck's actual current position, so the clone still starts exactly
+      // on top of it even if the deck moved. A single one-off rebuild here
+      // — not a recurring listener — avoids the earlier instability from
+      // rebuilding on every ScrollTrigger.refresh() (many other components
+      // on this page call that repeatedly for unrelated reasons).
+      const stillAtRestNow = () => travelTimelines.every(tl => !tl.scrollTrigger || tl.scrollTrigger.progress === 0);
+      if (document.readyState === 'complete') {
+        if (stillAtRestNow()) buildTravel();
+      } else {
+        window.addEventListener('load', () => { if (stillAtRestNow()) buildTravel(); }, { once: true });
+      }
+    }
 
-        if (target) {
-          // Cinematic dock — the scattered card straightens out and glides
-          // into its exact spot in the grid section below.
-          travelTl.to(card, {
-            x: target.x, y: target.y, rotation: 0, scale: target.scale,
-            ease: 'power3.inOut', duration: landEnd - driftEnd
-          }, driftEnd);
-          travelTl.to(card, { autoAlpha: 0, duration: 0.05, ease: 'power1.in' }, landEnd);
-          travelTl.to(landingCards[i], { autoAlpha: 1, duration: 0.05, ease: 'power1.in' }, landEnd);
-        } else {
-          travelTl.to(card, { autoAlpha: 0, duration: 0.15, ease: 'power1.in' }, 0.85);
-        }
-      });
-      // A scrub timeline sitting at progress 0 doesn't paint its frame-0
-      // state on its own — ScrollTrigger.refresh() recalculates positions
-      // but skips the actual repaint when progress doesn't numerically
-      // change. Force it explicitly, and redo it after every future
-      // refresh too (fonts/images/CMS hydration elsewhere in the app call
-      // ScrollTrigger.refresh() and would otherwise leave the deck-to-clone
-      // handoff unpainted again).
-      // Only re-force the render while progress is still exactly 0 — once
-      // the user has scrolled, ScrollTrigger paints changes correctly on
-      // its own, and forcing a render at time 0 later would wrongly snap
-      // an already-scrolled card back to its resting position.
-      const forceInitialPaint = () => travelTimelines.forEach(tl => {
-        if (tl.scrollTrigger && tl.scrollTrigger.progress === 0) tl.render(0, false, true);
-      });
-      forceInitialPaint();
-      ScrollTrigger.addEventListener('refresh', forceInitialPaint);
-    })();
+    // getBoundingClientRect() inside heroStackDeck() must run after layout is
+    // truly final — web fonts swapping in (Fraunces/Bodoni/Inter load async)
+    // or the <model-viewer> logo settling its size shift the hero's layout
+    // after DOMContentLoaded. Measuring too early baked in wrong, permanent
+    // clone start/land positions (the deck never faded and clones landed at
+    // bogus coordinates), which read as 8 duplicated cards overlapping on
+    // load before any scroll. Wait for fonts before measuring anything.
+    // (Deliberately not gated behind requestAnimationFrame — rAF is paused
+    // on hidden/background tabs, and layout/getBoundingClientRect() is a
+    // forced-reflow that's accurate regardless of paint/visibility, so it
+    // doesn't need a paint tick to be correct.)
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(heroStackDeck).catch(heroStackDeck);
+    } else {
+      heroStackDeck();
+    }
   }
 
   /* ================= THREE.js — CTA particle field (shared, lightweight) ================= */
@@ -1524,7 +1835,8 @@ document.addEventListener('DOMContentLoaded', () => {
       '.testi-card', '.stat-item', '.value-item',
       '.project-card', '.work-cat-card',
       '.pgi', '.related-service-card', '.stack-card',
-      '.service-detail-item', '.integration-item'
+      '.service-detail-item', '.integration-item',
+      '.print-product-card', '.print-material-card'
     ].join(',');
     const LERP = 0.14;
     const SNAP_EPS = 0.02;
