@@ -2246,8 +2246,9 @@ document.addEventListener('DOMContentLoaded', () => {
      instead of popping the viewer, matching the clickable-card pattern
      used elsewhere on the site. */
   (function initLightbox() {
-    const triggers = document.querySelectorAll('.lightbox-trigger');
-    if (!triggers.length) return;
+    const proofTriggers = document.querySelectorAll('.lightbox-trigger');
+    const previewCards = document.querySelectorAll('.print-product-grid--preview .print-product-card-preview');
+    if (!proofTriggers.length && !previewCards.length) return;
 
     let overlay = document.querySelector('.gv-lightbox');
     if (!overlay) {
@@ -2274,11 +2275,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function open(trigger) {
-      const photo = trigger.querySelector('.project-proof-photo');
+      const photo = trigger.querySelector('.project-proof-photo') || trigger.querySelector('.print-product-card-preview');
       const url = extractUrl(photo);
       if (!url) return;
       img.src = url;
-      const cap = trigger.querySelector('.project-proof-caption');
+      const cap = trigger.querySelector('.project-proof-caption') || trigger.querySelector('.print-product-name');
       caption.textContent = cap ? cap.textContent.trim() : '';
       overlay.classList.add('is-open');
       window._lenis?.stop();
@@ -2292,13 +2293,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('click', (event) => {
       if (document.body.classList.contains('admin-edit-mode')) return;
-      const trigger = event.target.closest('.lightbox-trigger');
+      const trigger = event.target.closest('.lightbox-trigger')
+        || event.target.closest('.print-product-grid--preview .print-product-card');
       if (trigger) { event.preventDefault(); open(trigger); return; }
       if (event.target === overlay) close();
     });
     closeBtn.addEventListener('click', close);
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && overlay.classList.contains('is-open')) close();
+    });
+  })();
+
+  /* ---------- Feature-card hover preview ----------
+     Cards in a `.print-product-grid--preview` grid carry a hidden
+     `.print-product-card-preview` screenshot. Hovering shows it small,
+     following the cursor; moving off the card hides it; clicking opens
+     it full-size via the lightbox above. Cards with no screenshot (no
+     `.print-product-card-preview` inside) are left as plain static cards. */
+  (function initCardHoverPreview() {
+    const cards = Array.from(document.querySelectorAll('.print-product-grid--preview .print-product-card'));
+    if (!cards.length) return;
+    if (window.matchMedia('(hover: none), (pointer: coarse)').matches) return;
+
+    let bubble = document.querySelector('.gv-hover-preview');
+    if (!bubble) {
+      bubble = document.createElement('div');
+      bubble.className = 'gv-hover-preview';
+      document.body.appendChild(bubble);
+    }
+
+    cards.forEach(card => {
+      const photo = card.querySelector('.print-product-card-preview');
+      if (!photo) return;
+      const bg = photo.style.backgroundImage || '';
+      const m = bg.match(/url\((['"]?)(.*?)\1\)/);
+      const url = m ? m[2] : '';
+      if (!url) return;
+
+      card.addEventListener('mouseenter', () => {
+        bubble.style.backgroundImage = `url("${url}")`;
+        bubble.classList.add('is-visible');
+      });
+      card.addEventListener('mousemove', (event) => {
+        bubble.style.left = (event.clientX + 24) + 'px';
+        bubble.style.top = event.clientY + 'px';
+      });
+      card.addEventListener('mouseleave', () => {
+        bubble.classList.remove('is-visible');
+      });
     });
   })();
 
