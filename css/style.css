@@ -2336,6 +2336,53 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   #cardTravel{display:none;}
 }
 
+/* Technical-features pill list (GROWVA Agency OS case study) */
+.tech-badges{display:flex;flex-wrap:wrap;gap:14px;margin-top:24px;}
+.tech-badge{display:inline-flex;align-items:center;gap:10px;padding:12px 20px;border:1px solid var(--line);border-radius:100px;background:rgba(177,250,32,.03);font-family:var(--mono);font-size:.78rem;color:var(--ivory);}
+.tech-badge svg{width:18px;height:18px;color:var(--mint);flex-shrink:0;}
+
+/* Service-department "how we work" alternating steps (services/*.html) */
+.dept-steps{display:flex;flex-direction:column;}
+.dept-step{display:flex;align-items:center;gap:56px;padding:56px 0;border-top:1px solid var(--line);}
+.dept-step:nth-child(even){flex-direction:row-reverse;}
+.dept-step-media{flex:0 0 42%;aspect-ratio:4/3;border-radius:16px;overflow:hidden;background-position:50% 50%;background-size:cover;background-color:#141414;}
+.dept-step-body{flex:1;min-width:0;}
+.dept-step-num{display:block;font-family:var(--mono);font-size:.7rem;color:var(--mint);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px;}
+.dept-step-body h3{font-family:var(--serif);font-size:1.7rem;font-weight:500;color:var(--ivory);margin-bottom:14px;}
+.dept-step-body p{color:rgba(246,246,246,.65);line-height:1.75;font-size:1rem;}
+@media(max-width:899px){
+  .dept-step,.dept-step:nth-child(even){flex-direction:column;align-items:stretch;gap:24px;padding:36px 0;}
+  .dept-step-media{flex:none;width:100%;}
+}
+
+/* Deep-dive module breakdown (problem/solution/benefits/shots/stat) */
+.module-detail{padding:64px 0;border-top:1px solid var(--line);}
+.module-detail-top{display:flex;align-items:center;gap:16px;margin-bottom:32px;}
+.module-detail-icon{width:46px;height:46px;border-radius:10px;background:rgba(177,250,32,.08);border:1px solid rgba(177,250,32,.25);display:flex;align-items:center;justify-content:center;color:var(--mint);flex:none;}
+.module-detail-icon svg{width:22px;height:22px;}
+.module-detail-top-text{min-width:0;}
+.module-detail-eyebrow{display:block;font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:rgba(246,246,246,.44);margin-bottom:4px;}
+.module-detail-top h3{font-family:var(--serif);font-size:1.9rem;font-weight:500;color:var(--ivory);}
+.module-detail-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:start;}
+.module-detail-block{margin-bottom:24px;}
+.module-detail-block:last-child{margin-bottom:0;}
+.module-detail-label{font-family:var(--mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mint);margin-bottom:8px;display:block;}
+.module-detail-block p{color:rgba(246,246,246,.68);line-height:1.75;font-size:1rem;}
+.module-detail-benefits{list-style:none;margin-top:6px;}
+.module-detail-benefits li{position:relative;padding-left:26px;color:rgba(246,246,246,.75);line-height:1.6;font-size:.95rem;margin-bottom:10px;}
+.module-detail-benefits li::before{content:"";position:absolute;left:0;top:.35em;width:14px;height:14px;border-radius:50%;background:rgba(177,250,32,.12);border:1px solid var(--mint);}
+.module-detail-benefits li::after{content:"";position:absolute;left:4px;top:.55em;width:6px;height:3px;border-left:1.6px solid var(--mint);border-bottom:1.6px solid var(--mint);transform:rotate(-45deg);}
+.module-detail-media{display:flex;flex-direction:column;gap:16px;}
+.module-detail-shots{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.module-detail-stat{text-align:center;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:10px;padding:22px 16px;}
+@media(max-width:899px){
+  .module-detail-grid{grid-template-columns:1fr;gap:28px;}
+  .module-detail{padding:44px 0;}
+}
+@media(max-width:560px){
+  .module-detail-shots{grid-template-columns:1fr 1fr;gap:8px;}
+}
+
 /* --- Reduced-motion guards for cinematic layer --- */
 @media(prefers-reduced-motion:reduce){
   .page-transition,.pt-line{transition:none !important;animation:none !important;}
@@ -2815,6 +2862,14 @@ body{
 .print-product-desc{font-size:.82rem;line-height:1.5;color:rgba(246,246,246,.55);}
 @media(max-width:899px){.print-product-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:560px){.print-product-grid{grid-template-columns:1fr;}}
+.print-product-grid--wide{grid-template-columns:repeat(2,minmax(0,1fr));}
+.print-product-grid--wide .print-product-card-photo{aspect-ratio:16/9;}
+@media(max-width:560px){.print-product-grid--wide{grid-template-columns:1fr;}}
+.print-product-card.has-photo{padding:0 0 24px;overflow:hidden;text-align:center;}
+.print-product-card-photo{width:100%;aspect-ratio:16/10;background-position:50% 0;background-size:cover;background-color:#141414;margin-bottom:20px;}
+.print-product-card.has-photo .print-product-icon{margin:0 auto 12px;}
+.print-product-card.has-photo .print-product-name,
+.print-product-card.has-photo .print-product-desc{padding:0 20px;}
 
 /* Featured projects showcase (case-study style, not a plain gallery) */
 .print-showcase{padding:64px 0;border-top:1px solid var(--line);}
@@ -2833,8 +2888,34 @@ body{
 .print-showcase-item-specs b{font-weight:500;}
 .print-showcase-item:first-child .print-showcase-item-title{color:var(--mint);}
 .print-showcase-item:first-child .print-showcase-item-specs span{color:rgba(246,246,246,.6);}
+/* Modifier: only the active item's description shows (rest stay collapsed to
+   just their title). Shrinks the list's total height so it can't overrun its
+   pinned box on sections with many items. Opt-in via --collapsed-specs so
+   the original always-visible-specs showcases elsewhere are untouched. */
+.print-showcase-pin--collapsed-specs .print-showcase-item-specs{display:none;}
+.print-showcase-pin--collapsed-specs .print-showcase-item.is-active .print-showcase-item-specs{display:flex;}
+
 .print-showcase-track{position:absolute;left:0;top:0;width:2px;height:100%;background:rgba(246,246,246,.14);}
 .print-showcase-fill{position:absolute;left:0;top:0;width:100%;height:100%;background:var(--mint);transform:scaleY(0);transform-origin:top left;}
+
+/* Venetian-blinds scroll reveal (GROWVA Agency OS page) — a row of thin bars
+   sweeps clear to reveal a screenshot, sweeps back to hide it, then the next
+   screenshot swaps in underneath while fully covered, and so on. */
+.gos-blinds-trigger{position:relative;width:100%;height:100vh;overflow:hidden;background:#0a0a0a;}
+.gos-blinds-images{position:absolute;inset:0;}
+.gos-blinds-image{position:absolute;inset:0;opacity:0;background-position:50% 50%;background-size:cover;}
+.gos-blinds-caption{position:absolute;left:0;right:0;bottom:64px;z-index:3;text-align:center;opacity:0;pointer-events:none;}
+.gos-blinds-caption-eyebrow{display:block;font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mint);margin-bottom:8px;}
+.gos-blinds-caption-title{display:block;font-family:var(--serif);font-size:clamp(1.4rem,2.6vw,2rem);font-weight:500;color:var(--ivory);}
+.gos-blinds-boxes{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;}
+.gos-blinds-box{width:100%;height:1.2vh;margin-bottom:-.2vh;background:#0a0a0a;flex:0 0 auto;}
+@media(max-width:899px){
+  .gos-blinds-trigger{height:auto;min-height:0;overflow:visible;background:transparent;}
+  .gos-blinds-images{position:relative;display:flex;flex-direction:column;gap:16px;padding:12px 0;}
+  .gos-blinds-image{position:relative;inset:auto;opacity:1;height:60vw;border-radius:14px;}
+  .gos-blinds-caption{position:relative;bottom:auto;opacity:1;text-align:left;padding:0 4px;margin-top:-8px;}
+  .gos-blinds-boxes{display:none;}
+}
 .print-showcase-slides{position:relative;flex:1;min-height:420px;border-radius:16px;overflow:hidden;background:#141414;}
 .print-showcase-slide{position:absolute;inset:0;background-position:50% 50%;background-size:cover;background-color:#141414;opacity:0;visibility:hidden;}
 .print-showcase-slide:first-child{opacity:1;visibility:visible;}

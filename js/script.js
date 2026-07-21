@@ -983,7 +983,11 @@ document.addEventListener('DOMContentLoaded', () => {
           pinEl.classList.remove('print-showcase-pin--static');
           gsap.set(titles, { clearProps: 'all' });
           gsap.set(specGroups.flat(), { clearProps: 'color' });
-          gsap.set(slides, { clearProps: 'all' });
+          // Only clear the properties this timeline actually animates on slides —
+          // clearProps:'all' strips the ENTIRE inline style attribute, which was
+          // wiping out each slide's CMS/static background-image before the
+          // timeline below ever got a chance to show it.
+          gsap.set(slides, { clearProps: 'yPercent,autoAlpha' });
           if (fill) gsap.set(fill, { clearProps: 'all' });
 
           if (reduceMotionQuery.matches || !desktopQuery.matches) {
@@ -995,6 +999,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const n = listItems.length;
             gsap.set(slides, { yPercent: 100, autoAlpha: 0 });
             gsap.set(slides[0], { yPercent: 0, autoAlpha: 1 });
+            listItems.forEach((it, i) => it.classList.toggle('is-active', i === 0));
             if (fill) gsap.set(fill, { scaleY: 1 / n, transformOrigin: 'top left' });
 
             const tl = gsap.timeline({
@@ -1004,7 +1009,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 end: '+=' + (n * 60) + '%',
                 pin: true,
                 scrub: true,
-                invalidateOnRefresh: true
+                anticipatePin: 1
               }
             });
 
@@ -1018,6 +1023,8 @@ document.addEventListener('DOMContentLoaded', () => {
               const specs = specGroups[k];
               tl.set(prevTitle, { color: 'rgba(246,246,246,.32)' }, k)
                 .set(prevSpecs, { color: 'rgba(246,246,246,.28)' }, k)
+                .set(listItems[k - 1], { className: '-=is-active' }, k)
+                .set(listItems[k], { className: '+=is-active' }, k)
                 .fromTo(title,
                   { color: 'rgba(246,246,246,.32)', y: 8, opacity: 0.4 },
                   { color: 'var(--mint)', y: 0, opacity: 1, duration: 0.35, ease: 'power1.out' }, k)
@@ -1033,7 +1040,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return () => {
               gsap.set(titles, { clearProps: 'all' });
               gsap.set(specGroups.flat(), { clearProps: 'color' });
-              gsap.set(slides, { clearProps: 'all' });
+              // Same reasoning as the top of build(): don't nuke the slide's
+              // background-image via clearProps:'all' on every teardown.
+              gsap.set(slides, { clearProps: 'yPercent,autoAlpha' });
               if (fill) gsap.set(fill, { clearProps: 'all' });
             };
           }, pinEl);
@@ -1043,8 +1052,30 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         build();
+        // The very first build() can run before the page has fully settled —
+        // webfonts still reflowing, and (critically) any pinned section
+        // ABOVE this one on the page — like a hero image-presentation pin —
+        // may not have inserted its own pin-spacer yet. That pin-spacer adds
+        // real height above this trigger, so measuring 'top top' before it
+        // exists locks this pin's start/end to a position that's now wrong
+        // for the rest of the page's life. A plain ScrollTrigger.refresh()
+        // doesn't fix this: refresh only re-measures trigger boundaries, it
+        // doesn't resize a pin-spacer that was already sized from stale
+        // measurements. Only a real teardown+rebuild does — so once the
+        // whole page (all images, all pins) has finished loading, rebuild
+        // this pin from scratch against the now-final layout.
+        window.addEventListener('load', () => requestAnimationFrame(() => requestAnimationFrame(build)));
         let resizeFrame = null;
+        let lastWidth = window.innerWidth;
         window.addEventListener('resize', () => {
+          // A vertical scrollbar toggling on/off while this section pins
+          // shaves ~15-17px off the viewport width, which can spuriously
+          // fire 'resize' mid-scroll. Rebuilding the whole pin/timeline at
+          // that moment tears down the live ScrollTrigger while the user is
+          // still inside its scroll range, corrupting the layout. Only a
+          // real width change (an actual window resize) warrants a rebuild.
+          if (Math.abs(window.innerWidth - lastWidth) < 20) return;
+          lastWidth = window.innerWidth;
           if (resizeFrame) cancelAnimationFrame(resizeFrame);
           resizeFrame = requestAnimationFrame(() => {
             resizeFrame = null;
@@ -1444,11 +1475,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  /* Chrome silently drops a page's WebGL contexts after it sits idle/
+     backgrounded for a long stretch (GPU memory reclaim) — without a
+     'webglcontextlost' listener that calls preventDefault(), the spec
+     says the browser won't even try to restore it, so the canvas stays
+     frozen/blank for the rest of the session no matter how long you wait.
+     None of this site's four THREE.js scenes had one. A full reload on
+     restore is the simplest correct recovery for a decorative background
+     scene — cheaper than hand-recreating each scene's geometry/materials. */
+  function recoverFromContextLoss(canvas) {
+    canvas.addEventListener('webglcontextlost', (e) => e.preventDefault(), false);
+    canvas.addEventListener('webglcontextrestored', () => location.reload(), false);
+  }
+
   /* ================= THREE.js — CTA particle field (shared, lightweight) ================= */
   (function ctaScene() {
     const canvas = document.getElementById('ctaCanvas');
     if (!canvas || !window.THREE) return;
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    recoverFromContextLoss(canvas);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(50, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
@@ -1576,6 +1621,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const variant = canvas.dataset.brandObject || 'footer';
       const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      recoverFromContextLoss(canvas);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, variant === 'footer' ? 1.4 : 1.75));
       if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
 
@@ -1999,6 +2045,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   initProjectPresentations();
+  // The pin-spacer this inserts changes document height, which leaves any
+  // ScrollTrigger built earlier (e.g. a print-showcase further down the
+  // page) holding stale start/end positions until something refreshes them.
+  // Deferred a frame so the browser has actually committed the new
+  // pin-spacer's layout before ScrollTrigger re-measures everything.
+  if (window.ScrollTrigger) requestAnimationFrame(() => ScrollTrigger.refresh());
   document.addEventListener('gv:media-hydrated', () => {
     requestAnimationFrame(() => {
       initProjectPresentations();
@@ -2016,6 +2068,98 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }).observe(setting, { characterData: true, childList: true, subtree: true });
   });
+
+  /* ---------- GROWVA Agency OS page: venetian-blinds screenshot reveal ----------
+     A row of thin bars sweeps clear to reveal a screenshot, sweeps back to
+     hide it, then the next screenshot swaps in while fully covered (so the
+     swap itself is never visible), repeating through the set.
+     Builds only once both 'load' and document.fonts.ready have settled —
+     two independent triggers each rebuilding on their own was what caused
+     the earlier module-list pin on this page to jump/drift mid-scroll (see
+     buildGosModulePin's history): whichever fired second was tearing down
+     and recreating the live pin while the user had already scrolled into
+     it. Waiting for both, then building exactly once, avoids that. */
+  function buildGosBlindsReveal() {
+    const section = document.querySelector('.gos-blinds-trigger');
+    if (!section) return;
+    const images = Array.from(section.querySelectorAll('.gos-blinds-image'));
+    const captions = Array.from(section.querySelectorAll('.gos-blinds-caption'));
+    const boxes = Array.from(section.querySelectorAll('.gos-blinds-box'));
+    if (images.length < 2 || !boxes.length) return;
+
+    if (section._gvBlindsST) {
+      section._gvBlindsST.kill();
+      section._gvBlindsST = null;
+    }
+    gsap.set(images, { clearProps: 'opacity' });
+    gsap.set(captions, { clearProps: 'opacity' });
+    gsap.set(boxes, { clearProps: 'x,xPercent' });
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const desktop = window.matchMedia('(min-width: 900px)').matches;
+    if (reduced || !desktop || !window.gsap || !window.ScrollTrigger) return;
+
+    const n = images.length;
+    gsap.set(images, { autoAlpha: 0 });
+    gsap.set(images[0], { autoAlpha: 1 });
+    gsap.set(captions, { autoAlpha: 0 });
+    gsap.set(captions[0], { autoAlpha: 1 });
+    gsap.set(boxes, { xPercent: 0 });
+
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: section,
+        start: 'top top',
+        end: '+=' + (n * 100) + '%',
+        pin: true,
+        scrub: true,
+        anticipatePin: 1
+      }
+    });
+    section._gvBlindsST = tl.scrollTrigger;
+
+    images.forEach((img, i) => {
+      const t = i * 2;
+      tl.to(boxes, { xPercent: 100, stagger: { amount: 0.6 }, ease: 'power1.inOut', duration: 1 }, t);
+      if (i < n - 1) {
+        tl.to(boxes, { xPercent: 0, stagger: { amount: 0.6 }, ease: 'power1.inOut', duration: 1 }, t + 1);
+        tl.set(images[i], { autoAlpha: 0 }, t + 2)
+          .set(images[i + 1], { autoAlpha: 1 }, t + 2)
+          .set(captions[i], { autoAlpha: 0 }, t + 2)
+          .set(captions[i + 1], { autoAlpha: 1 }, t + 2);
+      }
+    });
+
+    if (window._lenis) window._lenis.resize();
+    ScrollTrigger.refresh();
+  }
+  (function () {
+    let loaded = document.readyState === 'complete';
+    let fontsSettled = !(document.fonts && document.fonts.ready);
+    let built = false;
+    const maybeBuild = () => {
+      if (built || !loaded || !fontsSettled) return;
+      built = true;
+      buildGosBlindsReveal();
+    };
+    if (!loaded) window.addEventListener('load', () => { loaded = true; maybeBuild(); });
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => { fontsSettled = true; maybeBuild(); });
+    }
+    setTimeout(maybeBuild, 50);
+
+    let resizeFrame = null;
+    let lastWidth = window.innerWidth;
+    window.addEventListener('resize', () => {
+      if (Math.abs(window.innerWidth - lastWidth) < 20) return;
+      lastWidth = window.innerWidth;
+      if (resizeFrame) cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => {
+        resizeFrame = null;
+        buildGosBlindsReveal();
+      });
+    });
+  })();
 
   /* ---------- Per-card "hide from visitors" toggle ----------
      Every project card carries a hidden "Card visibility" field (find it in
@@ -2376,6 +2520,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    recoverFromContextLoss(canvas);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 260);
