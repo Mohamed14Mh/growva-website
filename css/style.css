@@ -2906,24 +2906,17 @@ body{
 .print-showcase-track{position:absolute;left:0;top:0;width:2px;height:100%;background:rgba(246,246,246,.14);}
 .print-showcase-fill{position:absolute;left:0;top:0;width:100%;height:100%;background:var(--mint);transform:scaleY(0);transform-origin:top left;}
 
-/* Venetian-blinds scroll reveal (GROWVA Agency OS page) — a row of thin bars
-   sweeps clear to reveal a screenshot, sweeps back to hide it, then the next
-   screenshot swaps in underneath while fully covered, and so on. */
-.gos-blinds-trigger{position:relative;width:100%;height:100vh;overflow:hidden;background:#0a0a0a;}
-.gos-blinds-images{position:absolute;inset:0;}
-.gos-blinds-image{position:absolute;inset:0;opacity:0;background-position:50% 50%;background-size:cover;}
-.gos-blinds-caption{position:absolute;left:0;right:0;bottom:64px;z-index:3;text-align:center;opacity:0;pointer-events:none;}
-.gos-blinds-caption-eyebrow{display:block;font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mint);margin-bottom:8px;}
-.gos-blinds-caption-title{display:block;font-family:var(--serif);font-size:clamp(1.4rem,2.6vw,2rem);font-weight:500;color:var(--ivory);}
-.gos-blinds-boxes{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;}
-.gos-blinds-box{width:100%;height:1.2vh;margin-bottom:-.2vh;background:#0a0a0a;flex:0 0 auto;}
-@media(max-width:899px){
-  .gos-blinds-trigger{height:auto;min-height:0;overflow:visible;background:transparent;}
-  .gos-blinds-images{position:relative;display:flex;flex-direction:column;gap:16px;padding:12px 0;}
-  .gos-blinds-image{position:relative;inset:auto;opacity:1;height:60vw;border-radius:14px;}
-  .gos-blinds-caption{position:relative;bottom:auto;opacity:1;text-align:left;padding:0 4px;margin-top:-8px;}
-  .gos-blinds-boxes{display:none;}
-}
+/* Compact variant: the 30-card "Everything Inside" feature grid on the
+   GROWVA Agency OS page reused .print-product-card, but that card's default
+   padding/icon size was designed for an 8-card grid with longer copy — at
+   30 cards with short one-line descriptions it read as oversized, mostly
+   empty space. Tightens padding and shrinks the icon so the box matches
+   its content instead of dwarfing it. */
+.print-product-grid--preview .print-product-card{padding:20px 18px;}
+.print-product-grid--preview .print-product-icon{width:28px;height:28px;margin:0 auto 10px;}
+.print-product-grid--preview .print-product-icon svg{width:28px;height:28px;}
+.print-product-grid--preview .print-product-name{font-size:.92rem;}
+.print-product-grid--preview .print-product-desc{font-size:.82rem;line-height:1.4;}
 .print-showcase-slides{position:relative;flex:1;min-height:420px;border-radius:16px;overflow:hidden;background:#141414;}
 .print-showcase-slide{position:absolute;inset:0;background-position:50% 50%;background-size:cover;background-color:#141414;opacity:0;visibility:hidden;}
 .print-showcase-slide:first-child{opacity:1;visibility:visible;}
