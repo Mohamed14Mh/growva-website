@@ -1363,7 +1363,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   color:var(--ivory);padding:90px 0 30px;
   position:relative;
 }
-.footer-top{display:grid;grid-template-columns:1.3fr .75fr .75fr .75fr .75fr;gap:40px;padding-bottom:70px;border-bottom:1px solid rgba(246,246,246,.1);}
+.footer-top{display:grid;grid-template-columns:minmax(0,1.3fr) repeat(4,fit-content(190px));gap:40px;padding-bottom:70px;border-bottom:1px solid rgba(246,246,246,.1);}
 .footer-brand p{color:rgba(246,246,246,.5);margin-top:14px;font-family:var(--serif);font-style:italic;}
 .footer-object{
   width:128px;
