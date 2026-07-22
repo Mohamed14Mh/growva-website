@@ -8,7 +8,7 @@
   <url><loc>https://www.growva.agency/process.html</loc><priority>0.7</priority></url>
   <url><loc>https://www.growva.agency/services.html</loc><priority>0.9</priority></url>
   <url><loc>https://www.growva.agency/shopify.html</loc><priority>0.8</priority></url>
-  <url><loc>https://www.growva.agency/work.html</loc><priority>0.8</priority></url>
+  <url><loc>https://www.growva.agency/portfolio.html</loc><priority>0.8</priority></url>
   <url><loc>https://www.growva.agency/services/amazon-account-management.html</loc><priority>0.7</priority></url>
   <url><loc>https://www.growva.agency/services/amazon-account-setup.html</loc><priority>0.7</priority></url>
   <url><loc>https://www.growva.agency/services/amazon-listing-advertising-optimization.html</loc><priority>0.7</priority></url>
@@ -29,32 +29,32 @@
   <url><loc>https://www.growva.agency/services/shopify-cro.html</loc><priority>0.7</priority></url>
   <url><loc>https://www.growva.agency/services/shopify-store-optimization.html</loc><priority>0.7</priority></url>
   <url><loc>https://www.growva.agency/services/website-maintenance.html</loc><priority>0.7</priority></url>
-  <url><loc>https://www.growva.agency/work/amazon-storefronts.html</loc><priority>0.6</priority></url>
-  <url><loc>https://www.growva.agency/work/brand-identity.html</loc><priority>0.6</priority></url>
-  <url><loc>https://www.growva.agency/work/marketing-print.html</loc><priority>0.6</priority></url>
-  <url><loc>https://www.growva.agency/work/shopify-stores.html</loc><priority>0.6</priority></url>
-  <url><loc>https://www.growva.agency/work/websites.html</loc><priority>0.6</priority></url>
-  <url><loc>https://www.growva.agency/work/amazon-storefronts/hasat-organics.html</loc><priority>0.5</priority></url>
-  <url><loc>https://www.growva.agency/work/amazon-storefronts/maison-luxe.html</loc><priority>0.5</priority></url>
-  <url><loc>https://www.growva.agency/work/amazon-storefronts/noor-perfumery.html</loc><priority>0.5</priority></url>
-  <url><loc>https://www.growva.agency/work/amazon-storefronts/new-project-1.html</loc><priority>0.4</priority></url>
-  <url><loc>https://www.growva.agency/work/amazon-storefronts/new-project-2.html</loc><priority>0.4</priority></url>
-  <url><loc>https://www.growva.agency/work/amazon-storefronts/new-project-3.html</loc><priority>0.4</priority></url>
-  <url><loc>https://www.growva.agency/work/amazon-storefronts/new-project-4.html</loc><priority>0.4</priority></url>
-  <url><loc>https://www.growva.agency/work/amazon-storefronts/new-project-5.html</loc><priority>0.4</priority></url>
-  <url><loc>https://www.growva.agency/work/amazon-storefronts/new-project-6.html</loc><priority>0.4</priority></url>
-  <url><loc>https://www.growva.agency/work/amazon-storefronts/new-project-7.html</loc><priority>0.4</priority></url>
-  <url><loc>https://www.growva.agency/work/brand-identity/hasat-organics.html</loc><priority>0.5</priority></url>
-  <url><loc>https://www.growva.agency/work/brand-identity/noor-perfumery.html</loc><priority>0.5</priority></url>
-  <url><loc>https://www.growva.agency/work/brand-identity/vella-cosmetics.html</loc><priority>0.5</priority></url>
-  <url><loc>https://www.growva.agency/work/marketing-print/noor-holiday.html</loc><priority>0.5</priority></url>
-  <url><loc>https://www.growva.agency/work/marketing-print/terra-grove.html</loc><priority>0.5</priority></url>
-  <url><loc>https://www.growva.agency/work/marketing-print/vella-campaign.html</loc><priority>0.5</priority></url>
-  <url><loc>https://www.growva.agency/work/shopify-stores/atelier-marbre.html</loc><priority>0.5</priority></url>
-  <url><loc>https://www.growva.agency/work/shopify-stores/noor-perfumery.html</loc><priority>0.5</priority></url>
-  <url><loc>https://www.growva.agency/work/shopify-stores/terra-grove.html</loc><priority>0.5</priority></url>
-  <url><loc>https://www.growva.agency/work/shopify-stores/vella-cosmetics.html</loc><priority>0.5</priority></url>
-  <url><loc>https://www.growva.agency/work/websites/atelier-marbre.html</loc><priority>0.5</priority></url>
-  <url><loc>https://www.growva.agency/work/websites/dune-studio.html</loc><priority>0.5</priority></url>
-  <url><loc>https://www.growva.agency/work/websites/hasat-organics.html</loc><priority>0.5</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/amazon-storefronts.html</loc><priority>0.6</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/brand-identity.html</loc><priority>0.6</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/marketing-print.html</loc><priority>0.6</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/shopify-stores.html</loc><priority>0.6</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/websites.html</loc><priority>0.6</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/amazon-storefronts/hasat-organics.html</loc><priority>0.5</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/amazon-storefronts/maison-luxe.html</loc><priority>0.5</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/amazon-storefronts/noor-perfumery.html</loc><priority>0.5</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/amazon-storefronts/new-project-1.html</loc><priority>0.4</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/amazon-storefronts/new-project-2.html</loc><priority>0.4</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/amazon-storefronts/new-project-3.html</loc><priority>0.4</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/amazon-storefronts/new-project-4.html</loc><priority>0.4</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/amazon-storefronts/new-project-5.html</loc><priority>0.4</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/amazon-storefronts/new-project-6.html</loc><priority>0.4</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/amazon-storefronts/new-project-7.html</loc><priority>0.4</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/brand-identity/hasat-organics.html</loc><priority>0.5</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/brand-identity/noor-perfumery.html</loc><priority>0.5</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/brand-identity/vella-cosmetics.html</loc><priority>0.5</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/marketing-print/noor-holiday.html</loc><priority>0.5</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/marketing-print/terra-grove.html</loc><priority>0.5</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/marketing-print/vella-campaign.html</loc><priority>0.5</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/shopify-stores/atelier-marbre.html</loc><priority>0.5</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/shopify-stores/noor-perfumery.html</loc><priority>0.5</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/shopify-stores/terra-grove.html</loc><priority>0.5</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/shopify-stores/vella-cosmetics.html</loc><priority>0.5</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/websites/atelier-marbre.html</loc><priority>0.5</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/websites/dune-studio.html</loc><priority>0.5</priority></url>
+  <url><loc>https://www.growva.agency/portfolio/websites/hasat-organics.html</loc><priority>0.5</priority></url>
 </urlset>

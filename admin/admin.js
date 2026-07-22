@@ -57,7 +57,7 @@
       label: 'CTA Section',
       sectionType: 'custom-cta',
       description: 'Conversion-focused call to action with two links.',
-      defaults: { heading: 'Ready to build a sharper commerce system?', body: 'Tell us what you are launching, improving, or scaling next.', primaryLabel: 'Start a Project', primaryLink: 'contact.html', secondaryLabel: 'View Work', secondaryLink: 'work.html', image_asset_id: '', image_url: '', image_alt: '', overlay_strength: '0.45' }
+      defaults: { heading: 'Ready to build a sharper commerce system?', body: 'Tell us what you are launching, improving, or scaling next.', primaryLabel: 'Start a Project', primaryLink: 'contact.html', secondaryLabel: 'View Portfolio', secondaryLink: 'portfolio.html', image_asset_id: '', image_url: '', image_alt: '', overlay_strength: '0.45' }
     },
     feature_cards: {
       label: 'Feature Cards Section',
@@ -81,7 +81,7 @@
       label: 'Project Highlight Section',
       sectionType: 'custom-project-highlight',
       description: 'A compact work teaser with category and metric.',
-      defaults: { eyebrow: 'Project highlight', heading: 'A refined commerce moment', description: 'Showcase one project outcome with a focused summary.', projectTitle: 'Noor Perfumery', category: 'Shopify / Brand', metric: '+28% add-to-cart rate', ctaLabel: 'View Project', ctaLink: 'work.html', image_asset_id: '', image_url: '', image_alt: '' }
+      defaults: { eyebrow: 'Project highlight', heading: 'A refined commerce moment', description: 'Showcase one project outcome with a focused summary.', projectTitle: 'Noor Perfumery', category: 'Shopify / Brand', metric: '+28% add-to-cart rate', ctaLabel: 'View Project', ctaLink: 'portfolio.html', image_asset_id: '', image_url: '', image_alt: '' }
     },
     logo_strip: {
       label: 'Logo / Partners Strip',
@@ -2829,7 +2829,7 @@
           ['Home', 'index.html'],
           ['Shopify', 'shopify.html'],
           ['Services', 'services.html'],
-          ['Work', 'work.html'],
+          ['Work', 'portfolio.html'],
           ['Process', 'process.html'],
           ['About', 'about.html'],
           ['Pricing', 'pricing.html'],
@@ -2865,36 +2865,36 @@
       {
         label: 'Work category pages',
         pages: [
-          ['Shopify Stores', 'work/shopify-stores.html'],
-          ['Brand Identity', 'work/brand-identity.html'],
-          ['Packaging Design', 'work/packaging-design.html'],
-          ['Amazon Storefronts', 'work/amazon-storefronts.html'],
-          ['Websites', 'work/websites.html'],
-          ['Marketing & Print', 'work/marketing-print.html']
+          ['Shopify Stores', 'portfolio/shopify-stores.html'],
+          ['Brand Identity', 'portfolio/brand-identity.html'],
+          ['Packaging Design', 'portfolio/packaging-design.html'],
+          ['Amazon Storefronts', 'portfolio/amazon-storefronts.html'],
+          ['Websites', 'portfolio/websites.html'],
+          ['Marketing & Print', 'portfolio/marketing-print.html']
         ]
       },
       {
         label: 'Work project pages',
         pages: [
-          ['Noor Perfumery Shopify', 'work/shopify-stores/noor-perfumery.html'],
-          ['Terra Grove Shopify', 'work/shopify-stores/terra-grove.html'],
-          ['Atelier Marbre Shopify', 'work/shopify-stores/atelier-marbre.html'],
-          ['Vella Cosmetics Shopify', 'work/shopify-stores/vella-cosmetics.html'],
-          ['Noor Perfumery Brand', 'work/brand-identity/noor-perfumery.html'],
-          ['Hasat Organics Brand', 'work/brand-identity/hasat-organics.html'],
-          ['Vella Cosmetics Brand', 'work/brand-identity/vella-cosmetics.html'],
-          ['Noor No.03 Packaging', 'work/packaging-design/noor-no03.html'],
-          ['Terra Grove Packaging', 'work/packaging-design/terra-grove.html'],
-          ['Atelier Marbre Packaging', 'work/packaging-design/atelier-marbre.html'],
-          ['Noor Perfumery Amazon', 'work/amazon-storefronts/noor-perfumery.html'],
-          ['Maison Luxe Amazon', 'work/amazon-storefronts/maison-luxe.html'],
-          ['Hasat Organics Amazon', 'work/amazon-storefronts/hasat-organics.html'],
-          ['Atelier Marbre Website', 'work/websites/atelier-marbre.html'],
-          ['Dune Studio Website', 'work/websites/dune-studio.html'],
-          ['Hasat Organics Website', 'work/websites/hasat-organics.html'],
-          ['Noor Holiday Marketing', 'work/marketing-print/noor-holiday.html'],
-          ['Terra Grove Marketing', 'work/marketing-print/terra-grove.html'],
-          ['Vella Campaign Marketing', 'work/marketing-print/vella-campaign.html']
+          ['Noor Perfumery Shopify', 'portfolio/shopify-stores/noor-perfumery.html'],
+          ['Terra Grove Shopify', 'portfolio/shopify-stores/terra-grove.html'],
+          ['Atelier Marbre Shopify', 'portfolio/shopify-stores/atelier-marbre.html'],
+          ['Vella Cosmetics Shopify', 'portfolio/shopify-stores/vella-cosmetics.html'],
+          ['Noor Perfumery Brand', 'portfolio/brand-identity/noor-perfumery.html'],
+          ['Hasat Organics Brand', 'portfolio/brand-identity/hasat-organics.html'],
+          ['Vella Cosmetics Brand', 'portfolio/brand-identity/vella-cosmetics.html'],
+          ['Noor No.03 Packaging', 'portfolio/packaging-design/noor-no03.html'],
+          ['Terra Grove Packaging', 'portfolio/packaging-design/terra-grove.html'],
+          ['Atelier Marbre Packaging', 'portfolio/packaging-design/atelier-marbre.html'],
+          ['Noor Perfumery Amazon', 'portfolio/amazon-storefronts/noor-perfumery.html'],
+          ['Maison Luxe Amazon', 'portfolio/amazon-storefronts/maison-luxe.html'],
+          ['Hasat Organics Amazon', 'portfolio/amazon-storefronts/hasat-organics.html'],
+          ['Atelier Marbre Website', 'portfolio/websites/atelier-marbre.html'],
+          ['Dune Studio Website', 'portfolio/websites/dune-studio.html'],
+          ['Hasat Organics Website', 'portfolio/websites/hasat-organics.html'],
+          ['Noor Holiday Marketing', 'portfolio/marketing-print/noor-holiday.html'],
+          ['Terra Grove Marketing', 'portfolio/marketing-print/terra-grove.html'],
+          ['Vella Campaign Marketing', 'portfolio/marketing-print/vella-campaign.html']
         ]
       }
     ];
