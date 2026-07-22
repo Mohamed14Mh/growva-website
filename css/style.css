@@ -1041,7 +1041,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   radial-gradient(circle at 35% 55%,rgba(177,250,32,.3),transparent 60%),
   linear-gradient(155deg,#1a1a12 0%,#111108 55%,#0a0a04 100%);}
 .latest-project-grid{
-  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:34px;
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;
 }
 .latest-project-card{
   display:block;text-decoration:none;color:var(--black);outline:none;
