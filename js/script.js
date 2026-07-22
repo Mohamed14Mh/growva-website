@@ -1181,6 +1181,20 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    const journeyLineFill = document.getElementById('journeyLineFill');
+    if (journeyLineFill) {
+      gsap.to('#journeyLineFill', {
+        width: '100%',
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.journey-track-wrap',
+          start: 'top 70%',
+          end: 'bottom 60%',
+          scrub: 0.6
+        }
+      });
+    }
+
     document.querySelectorAll('.case-visual-inner').forEach(el => {
       gsap.to(el, {
         yPercent: -8,

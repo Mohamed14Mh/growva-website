@@ -503,6 +503,29 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
 @media(max-width:1100px){.process-steps{grid-template-columns:repeat(3,1fr);row-gap:44px;}}
 @media(max-width:600px){.process-steps{grid-template-columns:repeat(1,1fr);}}
 
+/* ================= JOURNEY (home "Full-Service" teaser) ================= */
+.journey{padding-bottom:80px;}
+.journey-track-wrap{max-width:var(--container);margin:0 auto;padding:0 40px;position:relative;}
+.journey-line{position:relative;height:2px;background:var(--line-soft);margin-bottom:60px;overflow:hidden;}
+.journey-line i{position:absolute;top:0;left:0;height:100%;width:0%;background:var(--mint);transition:width .1s linear;display:block;}
+.journey-steps{display:grid;grid-template-columns:repeat(6,1fr);gap:24px;}
+.journey-step{text-align:center;position:relative;}
+.j-num{font-family:var(--mono);font-size:.78rem;color:var(--mint);display:block;margin-bottom:14px;}
+.journey-step h4{font-family:var(--serif);font-size:1.05rem;font-weight:600;}
+.journey-step:not(:last-child)::after{
+  content:'→';position:absolute;top:26px;right:-16px;color:var(--gray-dim);font-family:var(--mono);font-size:.9rem;
+}
+.journey-sub{text-align:center;margin-top:54px;font-size:1rem;color:var(--gray-dim);max-width:560px;margin-left:auto;margin-right:auto;}
+
+@media(max-width:1100px){
+  .journey-steps{grid-template-columns:repeat(3,1fr);row-gap:44px;}
+  .journey-step:nth-child(3n)::after{display:none;}
+}
+@media(max-width:600px){
+  .journey-steps{grid-template-columns:repeat(1,1fr);}
+  .journey-step::after{display:none;}
+}
+
 /* ================= STATS ================= */
 .stats{background:var(--black);color:var(--ivory);padding:110px 0;}
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:40px;}
