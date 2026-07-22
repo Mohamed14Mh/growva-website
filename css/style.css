@@ -1382,7 +1382,8 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .footer-object-3d:not([src]),.footer-object-3d[src=""]{display:none;}
 .footer-object-3d[src]:not([src=""]) ~ .brand-object-canvas{display:none;}
 .footer-col h5{font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--mint);margin-bottom:18px;text-align:center;}
-.footer-col a{display:block;color:rgba(246,246,246,.65);font-size:.92rem;margin-bottom:12px;transition:color .25s;}
+.footer-col-links{width:fit-content;max-width:100%;margin:0 auto;}
+.footer-col a{display:block;color:rgba(246,246,246,.65);font-size:.92rem;margin-bottom:12px;transition:color .25s;text-align:left;}
 .footer-col a:hover{color:var(--mint);}
 .footer-bottom{display:flex;justify-content:space-between;padding-top:28px;font-size:.78rem;color:rgba(246,246,246,.4);font-family:var(--mono);}
 .footer-credit{text-align:center;padding-top:16px;font-size:.72rem;color:rgba(246,246,246,.3);font-family:var(--mono);}
