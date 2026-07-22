@@ -666,8 +666,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const isServiceErr = (err.message || '').includes('not available');
         showFormStatus(
           isServiceErr
-            ? 'Form service is currently unavailable. Please email us directly at hello@growva.com.'
-            : 'Something went wrong — please try again or email us at hello@growva.com.',
+            ? 'Form service is currently unavailable. Please email us directly at growva.eg@gmail.com.'
+            : 'Something went wrong — please try again or email us at growva.eg@gmail.com.',
           'error'
         );
       }
@@ -800,8 +800,8 @@ document.addEventListener('DOMContentLoaded', () => {
           const isServiceErr = (err.message || '').includes('not available');
           showStatus(
             isServiceErr
-              ? 'Form service is currently unavailable. Please email us directly at hello@growva.com.'
-              : 'Something went wrong — please try again or email us at hello@growva.com.',
+              ? 'Form service is currently unavailable. Please email us directly at growva.eg@gmail.com.'
+              : 'Something went wrong — please try again or email us at growva.eg@gmail.com.',
             'error'
           );
         }
