@@ -1761,6 +1761,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .pricing-card{
   border:1px solid var(--line-soft);padding:44px 36px;position:relative;
   transition:border-color .3s,transform .3s;
+  background:rgba(12,14,10,.5);backdrop-filter:blur(16px) saturate(1.1);-webkit-backdrop-filter:blur(16px) saturate(1.1);
 }
 .pricing-card:hover{border-color:var(--mint);transform:translateY(-4px);}
 .pricing-card.featured{border-color:var(--mint);background:var(--black);color:var(--ivory);}
