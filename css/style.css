@@ -1805,7 +1805,10 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .pricing-note-box.is-quote p{font-style:italic;}
 
 .pricing-note-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;}
-.pricing-note-grid .pricing-note-box{max-width:none;height:100%;}
+.pricing-note-grid .pricing-note-box{max-width:none;height:100%;padding:36px 32px;}
+.pricing-note-grid .pricing-note-box h2{font-size:clamp(1.1rem,1.7vw,1.4rem)!important;margin-bottom:16px!important;}
+.pricing-note-grid .pricing-note-box p{font-size:.9rem;line-height:1.6;}
+.pricing-note-grid .pricing-plain-list li{font-size:.86rem;}
 
 .pricing-plain-list{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:6px 32px;}
 .pricing-plain-list li{position:relative;padding-left:20px;padding-bottom:10px;color:rgba(246,246,246,.72);font-size:.9rem;line-height:1.6;}
