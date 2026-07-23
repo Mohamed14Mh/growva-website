@@ -407,7 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Stagger index for card grids — see the .stats-grid/.why-cards/etc rule
   // in style.css that reads this back as a transition-delay multiplier.
   document.querySelectorAll(
-    '.stats-grid, .services-compact-grid, .why-cards, .landing-grid-cards, .latest-project-grid'
+    '.stats-grid, .services-compact-grid, .why-cards, .landing-grid-cards, .latest-project-grid, .pricing-grid, .pricing-addons-grid'
   ).forEach(grid => {
     Array.from(grid.children).forEach((card, i) => card.style.setProperty('--card-index', i));
   });
