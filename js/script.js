@@ -1258,34 +1258,51 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Mobile (< 900px): a simpler, purpose-built version of the same idea
-      // — NOT the desktop clone-and-dock-into-.landing-card system below.
-      // That system measures a start/end pixel pair against a zero-height
-      // #cardTravel trigger element and needs the two ends to stay in sync
-      // with ScrollTrigger's own progress tracking; on this mobile viewport
-      // the two visibly desynced (ScrollTrigger reported real progress, but
-      // the cloned cards never received a transform), which would have
-      // shipped as cards stuck mid-air or a landing grid that never reveals
-      // — worse than no animation at all. Instead, drift + fade the SAME
-      // resting cards directly, scrubbed against the hero-travel-scene
-      // wrapper's own (real, non-zero) height, so there's no clone/measure
-      // step that can desync.
+      // Mobile (< 900px): a purpose-built version of the same idea — NOT the
+      // desktop clone-and-dock-into-.landing-card system below. That system
+      // measures a start/end pixel pair against a zero-height #cardTravel
+      // trigger element and needs the two ends to stay in sync with
+      // ScrollTrigger's own progress tracking; on this mobile viewport the
+      // two visibly desynced (ScrollTrigger reported real progress, but the
+      // cloned cards never received a transform), which would have shipped
+      // as cards stuck mid-air or a landing grid that never reveals — worse
+      // than no animation at all. Instead, each card gets its own scrubbed
+      // timeline directly on the ORIGINAL element (no clone, no measure
+      // step to desync): a staggered outward throw — reusing the same
+      // scatterTargets already tuned for the desktop scatter phase, so the
+      // motion language matches — followed by a continued drift-and-fade,
+      // all scrubbed against the hero-travel-scene wrapper's own real
+      // (non-zero) height.
       if (window.matchMedia('(max-width: 899px)').matches) {
         const sceneEl = document.querySelector('.hero-travel-scene');
         if (sceneEl) {
+          const flickStart = n >= 6
+            ? [0.04, 0.08, 0.12, 0.16, 0.20, 0.24]
+            : [0.04, 0.1, 0.16, 0.22];
+          const flickDur = 0.2;
+          const fadeEnd = 0.9;
           cards.forEach((card, i) => {
-            gsap.to(card, {
-              y: `+=${16 + i * 3}vh`,
-              rotation: `+=${fan[i].rotation < 0 ? -6 : 6}`,
+            const fEnd = flickStart[i] + flickDur;
+            const tl = gsap.timeline({
+              scrollTrigger: { trigger: sceneEl, start: 'top top', end: 'bottom top', scrub: true }
+            });
+            // Dramatic outward throw — same direction/rotation language as
+            // the desktop scatter phase, just staggered per card so they
+            // peel off the stack one after another instead of all at once.
+            tl.to(card, {
+              x: scatterTargets[i].x, y: scatterTargets[i].y,
+              rotation: scatterTargets[i].rotation, scale: scatterTargets[i].scale,
+              ease: 'power2.out', duration: flickDur
+            }, flickStart[i]);
+            // Keep falling away and fade out, so it reads as the card
+            // continuing its journey off-screen rather than freezing.
+            tl.to(card, {
+              y: `+=${18 + i * 4}vh`,
+              rotation: `+=${scatterTargets[i].rotation < 0 ? -8 : 8}`,
               autoAlpha: 0,
               ease: 'none',
-              scrollTrigger: {
-                trigger: sceneEl,
-                start: 'top top',
-                end: 'bottom top',
-                scrub: true
-              }
-            });
+              duration: fadeEnd - fEnd
+            }, fEnd);
           });
         }
         return;
