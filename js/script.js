@@ -2484,9 +2484,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!canvas || !window.THREE || !window.gsap || !window.ScrollTrigger) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+    // Mobile/narrow viewports: this whole scene (shape placement, camera
+    // flight path) was tuned against a wide desktop aspect ratio. On a tall
+    // portrait screen the same perspective camera's horizontal field of
+    // view covers a much narrower world-space slice at any given depth, so
+    // shapes that sit comfortably beside the text column on desktop land
+    // dead-center over it on a phone instead. Rather than re-tuning the
+    // whole choreography per aspect ratio, keep shapes fainter and smaller
+    // here so they read as background texture instead of a legibility
+    // problem — and trim particle/link/pixel-ratio cost too, since this
+    // scene competes with the sticky header for the same weak mobile GPU.
+    const isMobileViewport = window.innerWidth < 700;
+
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     recoverFromContextLoss(canvas);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobileViewport ? 1.5 : 2));
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 260);
     camera.position.set(0, 0, 20);
@@ -2542,7 +2554,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const glowSprite = makeGlowSprite();
 
     // ---- Drifting particle field the camera flies through, colour-graded by depth ----
-    const COUNT = 700;
+    const COUNT = isMobileViewport ? 380 : 700;
     const pPos = new Float32Array(COUNT * 3);
     const pCol = new Float32Array(COUNT * 3);
     const positions = [];
@@ -2576,7 +2588,7 @@ document.addEventListener('DOMContentLoaded', () => {
           linkPositions.push(positions[i].x, positions[i].y, positions[i].z, positions[j].x, positions[j].y, positions[j].z);
           const c = colorForDepth(((positions[i].z + positions[j].z) / 2 + HALF_DEPTH) / DEPTH);
           linkColors.push(c.r, c.g, c.b, c.r, c.g, c.b);
-          if (linkPositions.length / 6 > 260) break outer;
+          if (linkPositions.length / 6 > (isMobileViewport ? 140 : 260)) break outer;
         }
       }
     }
@@ -2619,14 +2631,18 @@ document.addEventListener('DOMContentLoaded', () => {
     for (let i = 0; i < SHAPE_COUNT; i++) {
       const z = -HALF_DEPTH + ((i + 0.5) / SHAPE_COUNT) * DEPTH;
       const color = colorForDepth((z + HALF_DEPTH) / DEPTH);
-      const mat = new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.26 });
+      const mat = new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: isMobileViewport ? 0.13 : 0.26 });
       const mesh = shapeFactories[i % shapeFactories.length](mat);
       // Alternate left/right so consecutive shapes don't land near the
       // same spot as the camera passes through in sequence.
       const side = i % 2 === 0 ? -1 : 1;
-      mesh.position.set(side * (10 + Math.random() * 12), (Math.random() - 0.5) * 20, z);
+      // Pushed further out + scaled down on mobile: a portrait aspect
+      // ratio's narrower horizontal FOV otherwise drags these toward the
+      // center of the (much narrower) screen, right over the text column.
+      mesh.position.set(side * (isMobileViewport ? 16 + Math.random() * 10 : 10 + Math.random() * 12), (Math.random() - 0.5) * 20, z);
       mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
       mesh.userData.spin = 0.3 + Math.random() * 0.4;
+      if (isMobileViewport) mesh.scale.setScalar(0.6);
       scene.add(mesh);
       shapes.push(mesh);
     }
@@ -2685,10 +2701,14 @@ document.addEventListener('DOMContentLoaded', () => {
       new THREE.TorusKnotGeometry(4.4, 0.9, 140, 16),
       new THREE.MeshBasicMaterial({
         color: colorForDepth((centerpieceZ + HALF_DEPTH) / DEPTH),
-        wireframe: true, transparent: true, opacity: 0.32
+        wireframe: true, transparent: true, opacity: isMobileViewport ? 0.14 : 0.32
       })
     );
-    centerpiece.position.set(6, -2, centerpieceZ);
+    // Pushed out and shrunk on mobile — on a portrait aspect ratio this
+    // "big moment" shape otherwise lands close to dead-center over the
+    // text column instead of beside it.
+    centerpiece.position.set(isMobileViewport ? 11 : 6, -2, centerpieceZ);
+    if (isMobileViewport) centerpiece.scale.setScalar(0.55);
     scene.add(centerpiece);
 
     // ---- Camera choreography: a winding multi-beat flight tied to scroll ----

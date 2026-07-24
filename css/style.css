@@ -354,7 +354,7 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
 .mobile-mega-panel{max-height:0;overflow:hidden;background:rgba(246,246,246,.025);transition:max-height .28s var(--ease);}
 .mobile-mega.open .mobile-mega-panel{max-height:1400px;}
 .mobile-mega-panel a{
-  padding:12px 56px;font:500 .9rem/1.35 var(--sans);color:rgba(246,246,246,.68);
+  display:block;width:100%;padding:12px 56px;font:500 .9rem/1.35 var(--sans);color:rgba(246,246,246,.68);
 }
 
 @media(max-width:960px){
