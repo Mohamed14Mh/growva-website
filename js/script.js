@@ -319,20 +319,37 @@ document.addEventListener('DOMContentLoaded', () => {
   const burger    = document.getElementById('navBurger');
   const navMobile = document.getElementById('navMobile');
   if (burger && navMobile) {
+    // The open panel is a fixed overlay starting right below the header —
+    // its real height varies (20px vs 13px padding once .scrolled), so it's
+    // measured fresh each time rather than hardcoded in CSS.
+    const setMobileNavTop = () => {
+      navMobile.style.setProperty('--nav-mobile-top', nav.getBoundingClientRect().height + 'px');
+    };
+    const closeMobileNav = () => {
+      navMobile.classList.remove('open');
+      burger.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('nav-mobile-locked');
+      navMobile.querySelectorAll('.mobile-mega.open').forEach(item => {
+        item.classList.remove('open');
+        const toggle = item.querySelector('.mobile-mega-toggle');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+      });
+    };
     burger.addEventListener('click', () => {
       const isOpen = navMobile.classList.toggle('open');
       burger.setAttribute('aria-expanded', String(isOpen));
+      if (isOpen) {
+        setMobileNavTop();
+        document.body.classList.add('nav-mobile-locked');
+      } else {
+        document.body.classList.remove('nav-mobile-locked');
+      }
+    });
+    window.addEventListener('resize', () => {
+      if (navMobile.classList.contains('open')) setMobileNavTop();
     });
     navMobile.querySelectorAll('a').forEach(a =>
-      a.addEventListener('click', () => {
-        navMobile.classList.remove('open');
-        burger.setAttribute('aria-expanded', 'false');
-        navMobile.querySelectorAll('.mobile-mega.open').forEach(item => {
-          item.classList.remove('open');
-          const toggle = item.querySelector('.mobile-mega-toggle');
-          if (toggle) toggle.setAttribute('aria-expanded', 'false');
-        });
-      })
+      a.addEventListener('click', closeMobileNav)
     );
     navMobile.querySelectorAll('.mobile-mega-toggle').forEach(toggle => {
       toggle.addEventListener('click', () => {

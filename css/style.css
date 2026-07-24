@@ -331,7 +331,7 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
 .nav-burger{display:none;flex-direction:column;gap:5px;width:26px;}
 .nav-burger span{height:1.5px;background:var(--ivory);width:100%;transition:transform .3s,opacity .3s;}
 .nav-mobile{
-  display:none;flex-direction:column;gap:0;background:var(--black-deep);
+  display:none;flex-direction:column;gap:0;
   border-top:1px solid rgba(246,246,246,.08);
 }
 .nav-mobile a,.mobile-mega-toggle{
@@ -339,7 +339,25 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
   background:transparent;text-align:left;font-size:1.1rem;font-family:var(--serif);color:rgba(246,246,246,.85);
 }
 .nav-mobile a:hover,.nav-mobile a.active{color:var(--mint);}
-.nav-mobile.open{display:flex;}
+/* Open state is its own fixed, independently-scrolling overlay (not just
+   an in-flow child growing the fixed header) — --nav-mobile-top is set by
+   JS to the header's real rendered height so this always starts right
+   below it, however tall the header currently is. Translucent + blurred
+   per the site's established "simple blur" look elsewhere, kept fairly
+   dark (.8 opacity) so a momentary blank/white WebGL canvas frame behind
+   it (rare GPU context-loss case, already mitigated in script.js) doesn't
+   wash the menu out. */
+.nav-mobile.open{
+  display:flex;
+  position:fixed;left:0;right:0;
+  top:var(--nav-mobile-top,64px);bottom:0;
+  max-height:calc(100vh - var(--nav-mobile-top,64px));
+  overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  background:rgba(10,10,10,.8);
+  backdrop-filter:blur(22px) saturate(1.3);
+  -webkit-backdrop-filter:blur(22px) saturate(1.3);
+}
+body.nav-mobile-locked{overflow:hidden;}
 .mobile-mega-toggle{
   display:flex;align-items:center;justify-content:space-between;cursor:pointer;
 }
@@ -2967,6 +2985,15 @@ body{
 .print-product-desc{font-size:.82rem;line-height:1.5;color:rgba(246,246,246,.55);}
 @media(max-width:899px){.print-product-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:560px){.print-product-grid{grid-template-columns:1fr;}}
+/* The 30-card "preview" grid stays 2-up even at phone widths — these cards
+   are compact (icon + one-line title + short desc), so a single column
+   just wastes space and makes a 30-item list feel endless to scroll. */
+@media(max-width:560px){
+  .print-product-grid--preview{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+  .print-product-grid--preview .print-product-card{padding:16px 10px;}
+  .print-product-grid--preview .print-product-name{font-size:.82rem;}
+  .print-product-grid--preview .print-product-desc{font-size:.72rem;line-height:1.35;}
+}
 .print-product-grid--wide{grid-template-columns:repeat(2,minmax(0,1fr));}
 .print-product-grid--wide .print-product-card-photo{aspect-ratio:16/9;}
 @media(max-width:560px){.print-product-grid--wide{grid-template-columns:1fr;}}
@@ -2979,10 +3006,28 @@ body{
 /* Modifier: card's screenshot stays hidden by default; hovering shows a
    small preview that follows the cursor, clicking opens it full-size in
    the shared lightbox. Cards with no matching screenshot are left plain. */
-.print-product-grid--preview .print-product-card:has(.print-product-card-preview){cursor:pointer;}
+.print-product-grid--preview .print-product-card:has(.print-product-card-preview){cursor:pointer;position:relative;}
 .gv-hover-preview{position:fixed;z-index:9998;width:240px;height:150px;border-radius:12px;background-position:50% 50%;background-size:cover;background-color:#141414;box-shadow:0 20px 50px rgba(0,0,0,.5);border:1px solid rgba(246,246,246,.14);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .15s ease;transform:translateY(-50%);}
 .gv-hover-preview.is-visible{opacity:1;visibility:visible;}
 @media(hover:none),(pointer:coarse){.gv-hover-preview{display:none;}}
+/* This batch of 30 icons was authored without stroke="currentColor" on
+   their shapes (unlike every other icon sitewide), so they rendered
+   completely invisible on both desktop and mobile — not a responsive bug,
+   just missing SVG attributes. Force it via CSS rather than editing all
+   84 individual shapes. */
+.print-product-grid--preview .print-product-icon svg *{stroke:currentColor;stroke-width:1.6;}
+/* Touch devices can't hover, so the cursor-preview affordance above never
+   shows — without it there's nothing telling a mobile visitor that
+   tapping a card opens its screenshot. A small persistent badge replaces
+   that hint on touch only; desktop keeps the hover-preview as its cue. */
+@media(hover:none),(pointer:coarse){
+  .print-product-grid--preview .print-product-card:has(.print-product-card-preview)::after{
+    content:'';position:absolute;top:10px;right:10px;width:24px;height:24px;
+    border-radius:50%;background:rgba(177,250,32,.12);border:1px solid rgba(177,250,32,.4);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Crect x='3' y='5' width='18' height='14' rx='2' stroke='%23B1FA20' stroke-width='1.8'/%3E%3Ccircle cx='9' cy='11' r='1.4' fill='%23B1FA20'/%3E%3Cpath d='M4 16l5-4 4 3 3-3 4 4' stroke='%23B1FA20' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:center;background-size:12px 12px;
+  }
+}
 
 /* Featured projects showcase (case-study style, not a plain gallery) */
 .print-showcase{padding:64px 0;border-top:1px solid var(--line);}
