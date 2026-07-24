@@ -328,7 +328,7 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
 .btn-nav{background:var(--mint);color:var(--black-deep);border:none;}
 .btn-nav:hover{background:var(--ivory);}
 
-.nav-burger{display:none;flex-direction:column;gap:5px;width:26px;}
+.nav-burger{display:none;flex-direction:column;gap:4px;width:26px;}
 .nav-burger span{height:1.5px;background:var(--ivory);width:100%;transition:transform .3s,opacity .3s;}
 .nav-mobile{
   display:none;flex-direction:column;gap:0;
