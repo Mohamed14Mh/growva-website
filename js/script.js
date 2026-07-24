@@ -156,6 +156,98 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   document.addEventListener('gv:text-hydrated', () => requestAnimationFrame(initSplitTextReveals));
 
+  /* ---------- Process page: mobile-only horizontal flythrough ----------
+     Reads the number + title off each real .process-stage (after CMS
+     hydration so edited copy is picked up), builds a single long
+     horizontal line out of them, and pins the page while it scrolls past
+     — each character popping in via containerAnimation, same recipe as
+     the sitewide hero/section reveals but running on the horizontal
+     scrollTween instead of the vertical page scroll. Desktop never builds
+     this (bails out on width), so the existing timeline/grid layout there
+     is completely untouched. */
+  let processFlythroughBuilt = false;
+  function initProcessHorizontalFlythrough() {
+    if (processFlythroughBuilt) return;
+    const timeline = document.querySelector('.process-timeline');
+    if (!timeline) return;
+    if (window.innerWidth >= 900) return;
+    if (!window.gsap || !window.ScrollTrigger || !window.SplitText) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const stages = Array.from(timeline.querySelectorAll('.process-stage'));
+    if (stages.length < 2) return;
+    processFlythroughBuilt = true;
+    gsap.registerPlugin(SplitText, ScrollTrigger);
+
+    const scene = document.createElement('section');
+    scene.className = 'process-h-scene';
+    scene.setAttribute('aria-hidden', 'true');
+    const track = document.createElement('div');
+    track.className = 'process-h-track';
+
+    stages.forEach((stage, i) => {
+      const num = stage.querySelector('.process-stage-num');
+      const h3 = stage.querySelector('.process-stage-content h3');
+      if (!num || !h3) return;
+      const item = document.createElement('span');
+      item.className = 'process-h-item';
+      const numSpan = document.createElement('span');
+      numSpan.className = 'process-h-num';
+      numSpan.textContent = num.textContent;
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'process-h-title';
+      titleSpan.textContent = h3.textContent;
+      item.appendChild(numSpan);
+      item.appendChild(titleSpan);
+      track.appendChild(item);
+      if (i < stages.length - 1) {
+        const sep = document.createElement('span');
+        sep.className = 'process-h-sep';
+        sep.textContent = '—';
+        track.appendChild(sep);
+      }
+    });
+
+    scene.appendChild(track);
+    // Prepended *inside* the section (before its .container), not as a
+    // sibling of it in <main> — admin.js's sitewide applyCurrentSectionOrder()
+    // re-appends every [data-section-type][data-section-id] element under a
+    // shared parent to enforce CMS section ordering, which would otherwise
+    // shove this untagged element to the front of <main> the moment it runs.
+    timeline.closest('.section').prepend(scene);
+
+    const split = SplitText.create(track.querySelectorAll('.process-h-title, .process-h-num'), { type: 'chars' });
+
+    const scrollTween = gsap.to(track, {
+      xPercent: -100,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: scene,
+        pin: true,
+        start: 'top top',
+        end: () => '+=' + Math.min(Math.max(track.scrollWidth * 0.55, window.innerHeight * 2.2), window.innerHeight * 5.5),
+        scrub: true
+      }
+    });
+
+    split.chars.forEach(char => {
+      gsap.from(char, {
+        yPercent: 'random(-150, 150)',
+        rotation: 'random(-20, 20)',
+        ease: 'back.out(1.2)',
+        scrollTrigger: {
+          trigger: char,
+          containerAnimation: scrollTween,
+          start: 'left 100%',
+          end: 'left 30%',
+          scrub: 1
+        }
+      });
+    });
+
+    if (window._lenis) window._lenis.resize();
+  }
+  document.addEventListener('gv:text-hydrated', () => requestAnimationFrame(initProcessHorizontalFlythrough));
+
   /* ---------- Scroll progress ---------- */
   const progress = document.createElement('div');
   progress.className = 'scroll-progress';

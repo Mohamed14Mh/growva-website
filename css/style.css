@@ -1754,6 +1754,24 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   .process-stage-num{font-size:2rem;}
 }
 
+/* Mobile-only cinematic horizontal flythrough for the stage titles — built
+   entirely via JS (never exists in the DOM on desktop), reading its text
+   from the real .process-stage elements below so nothing is duplicated by
+   hand. The full detail list (descriptions + bullets) stays intact and
+   scrolls normally right after it. */
+.process-h-scene{
+  height:100vh;overflow:hidden;position:relative;
+  display:flex;align-items:center;background:var(--black);
+}
+.process-h-track{
+  display:flex;align-items:baseline;width:max-content;white-space:nowrap;
+  gap:6vw;padding-left:100vw;will-change:transform;
+}
+.process-h-item{display:flex;align-items:baseline;gap:3vw;}
+.process-h-num{font-family:var(--mono);font-size:7vw;color:var(--mint);font-weight:500;line-height:1;}
+.process-h-title{font-family:var(--serif);font-size:13vw;font-weight:500;line-height:1;color:var(--ivory);}
+.process-h-sep{font-family:var(--mono);font-size:6vw;color:rgba(246,246,246,.25);}
+
 /* ================= PRICING PAGE ================= */
 .pricing-category{margin-bottom:100px;}
 .pricing-category-title{font-family:var(--serif);font-size:clamp(1.6rem,2.8vw,2.2rem);font-weight:500;margin-bottom:10px;}
