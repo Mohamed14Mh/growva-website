@@ -11,6 +11,83 @@ if ('scrollRestoration' in history) {
 }
 window.scrollTo(0, 0);
 
+/* ---------- Scroll position memory (reload / back-forward only) ----------
+   The scrollTo(0,0) above is what protects ScrollTrigger's pin geometry —
+   it must stay. But landing back at the top after every refresh is its own
+   real problem for anyone mid-page, so recover the *visual* position
+   afterward instead of removing that protection: save scrollY continuously
+   per path, then — only on an actual reload or a back/forward navigation,
+   never a fresh link click, which should still start at the top — replay it
+   once the page has settled (both 'load' and the CMS gv:text-hydrated
+   event, which on this site fires roughly a second after 'load').
+
+   Known limitation: a pin whose ScrollTrigger gets (re)measured while
+   scroll is already away from 0 — which restoring to a saved position
+   necessarily does — can come out with its start/end shifted by however far
+   that scroll position is, independent of this feature (reproduces even
+   with a plain manual ScrollTrigger.refresh() at a non-zero scrollY, no
+   restore code involved). Confirmed on the process-page mobile flythrough;
+   tried refresh-ordering, refresh(true), invalidateOnRefresh, and clamping
+   the landing spot outside the pin's range — none of it corrected the
+   measurement, so this is a real, separate GSAP-pin issue worth its own
+   investigation later, not something to keep working around here. */
+(function scrollPositionMemory() {
+  const key = 'growva_scroll_' + location.pathname;
+  let saveFrame = null;
+  window.addEventListener('scroll', () => {
+    if (saveFrame) return;
+    saveFrame = requestAnimationFrame(() => {
+      saveFrame = null;
+      sessionStorage.setItem(key, String(window.scrollY));
+    });
+  }, { passive: true });
+
+  const navEntry = performance.getEntriesByType('navigation')[0];
+  const navType = navEntry && navEntry.type;
+  if (navType !== 'reload' && navType !== 'back_forward') return;
+  const saved = Number(sessionStorage.getItem(key));
+  if (!saved) return;
+
+  let loadDone = false, hydratedDone = false;
+  const maybeRestore = () => {
+    if (!loadDone || !hydratedDone) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const start = window.scrollY;
+      const distance = saved - start;
+      if (Math.abs(distance) < 4) return;
+
+      if (window._lenis) {
+        // Lenis owns scroll here (desktop/hover-capable devices) — its own
+        // animated scrollTo already advances scroll incrementally frame by
+        // frame and fires the 'scroll' → ScrollTrigger.update() hookup set
+        // up below, so it drives pinned sections exactly like an organic
+        // scroll would.
+        window._lenis.scrollTo(saved, { duration: 0.3 });
+        return;
+      }
+      // No Lenis (mobile/touch, reduced-motion) — plain native scroll,
+      // walked in real incremental steps rather than one instant jump so
+      // scrub/containerAnimation-driven sections update the same way they
+      // would from a real user scrolling through them.
+      const stepDuration = 260;
+      const startTime = performance.now();
+      const ease = t => 1 - Math.pow(1 - t, 3);
+      function step(now) {
+        const t = Math.min(1, (now - startTime) / stepDuration);
+        window.scrollTo(0, start + distance * ease(t));
+        if (t < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }));
+  };
+  window.addEventListener('load', () => { loadDone = true; maybeRestore(); });
+  document.addEventListener('gv:text-hydrated', () => { hydratedDone = true; maybeRestore(); });
+  // Safety net in case hydration never fires (offline, a Supabase outage,
+  // a page with nothing CMS-driven to hydrate) — don't leave restoration
+  // permanently stuck waiting on a signal that may never come.
+  setTimeout(() => { hydratedDone = true; maybeRestore(); }, 4000);
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
 
   /* ---------- First-party attribution memory (no third-party tracking) ---------- */
@@ -228,7 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
         pin: true,
         start: 'top top',
         end: () => '+=' + Math.min(Math.max(track.scrollWidth * 0.55, window.innerHeight * 2.2), window.innerHeight * 5.5),
-        scrub: true
+        scrub: true,
+        invalidateOnRefresh: true
       }
     });
 

@@ -1652,9 +1652,9 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .service-detail-page .service-detail-item{
   padding:24px;
   border:1px solid var(--line-soft);
-  background:rgba(255,255,255,.5);
+  background:rgba(255,255,255,.035);
 }
-.related-services-section{background:var(--white);}
+.related-services-section{background:transparent;}
 .related-services-grid{
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
