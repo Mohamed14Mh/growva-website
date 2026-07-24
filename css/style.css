@@ -1394,6 +1394,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   margin-top:28px;
   opacity:.82;
   position:relative;
+  overflow:hidden;
 }
 .footer-object-3d{
   position:absolute;

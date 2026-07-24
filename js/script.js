@@ -1258,8 +1258,38 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Mobile (< 900px): static stacked deck only
-      if (window.matchMedia('(max-width: 899px)').matches) return;
+      // Mobile (< 900px): a simpler, purpose-built version of the same idea
+      // — NOT the desktop clone-and-dock-into-.landing-card system below.
+      // That system measures a start/end pixel pair against a zero-height
+      // #cardTravel trigger element and needs the two ends to stay in sync
+      // with ScrollTrigger's own progress tracking; on this mobile viewport
+      // the two visibly desynced (ScrollTrigger reported real progress, but
+      // the cloned cards never received a transform), which would have
+      // shipped as cards stuck mid-air or a landing grid that never reveals
+      // — worse than no animation at all. Instead, drift + fade the SAME
+      // resting cards directly, scrubbed against the hero-travel-scene
+      // wrapper's own (real, non-zero) height, so there's no clone/measure
+      // step that can desync.
+      if (window.matchMedia('(max-width: 899px)').matches) {
+        const sceneEl = document.querySelector('.hero-travel-scene');
+        if (sceneEl) {
+          cards.forEach((card, i) => {
+            gsap.to(card, {
+              y: `+=${16 + i * 3}vh`,
+              rotation: `+=${fan[i].rotation < 0 ? -6 : 6}`,
+              autoAlpha: 0,
+              ease: 'none',
+              scrollTrigger: {
+                trigger: sceneEl,
+                start: 'top top',
+                end: 'bottom top',
+                scrub: true
+              }
+            });
+          });
+        }
+        return;
+      }
       if (!travelEl) return;
 
       // Desktop hover lift + 3D cursor tilt while the deck is at rest (top of
