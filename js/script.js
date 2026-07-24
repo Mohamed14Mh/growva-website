@@ -103,9 +103,12 @@ document.addEventListener('DOMContentLoaded', () => {
        - Every page's single <h1> (the hero/first-section title) splits
          into characters and cascades in once, timed off whenIntroReady
          so it doesn't finish behind the still-opaque preloader.
-       - Every <h2> in main (section titles further down the page) splits
-         into lines and flips in with a 3D rotation as each one scrolls
-         into view, via ScrollTrigger.
+       - Every <h2>/<h3>/<h4> in main (section titles, card titles, step
+         titles — anything smaller) splits into lines and flips in with
+         a 3D rotation as each one scrolls into view, via ScrollTrigger.
+         <h5> is deliberately excluded: it's only ever used for the small
+         persistent footer column headers (Services/Portfolio/Company/
+         Contact), which don't want a scroll-triggered reveal.
      Both replace that element's old .reveal-up fade (removed here) so
      there's exactly one animation system per element, not two competing
      ones. "Words" (the demo's third type) isn't used anywhere per the
@@ -137,11 +140,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (window.ScrollTrigger) {
-      document.querySelectorAll('main h2').forEach(h2 => {
-        h2.classList.remove('reveal-up', 'in');
-        h2.style.perspective = '600px';
-        gsap.set(h2, { opacity: 1, transform: 'none' });
-        const lineSplit = SplitText.create(h2, { type: 'lines' });
+      document.querySelectorAll('main h2, main h3, main h4').forEach(heading => {
+        heading.classList.remove('reveal-up', 'in');
+        heading.style.perspective = '600px';
+        gsap.set(heading, { opacity: 1, transform: 'none' });
+        const lineSplit = SplitText.create(heading, { type: 'lines' });
         gsap.from(lineSplit.lines, {
           rotationX: -100,
           transformOrigin: '50% 50% -80px',
@@ -149,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
           duration: 0.8,
           ease: 'power3',
           stagger: 0.15,
-          scrollTrigger: { trigger: h2, start: 'top 85%' }
+          scrollTrigger: { trigger: heading, start: 'top 85%' }
         });
       });
     }
