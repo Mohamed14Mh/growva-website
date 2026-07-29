@@ -675,6 +675,18 @@ document.addEventListener('DOMContentLoaded', () => {
     sections.forEach(s => sectionIO.observe(s));
   }
 
+  /* Wraps a Supabase call with a hard deadline. Without this, a hung
+     connection (dead socket, silent proxy drop — anything that never
+     actually errors) left the submit button locked on "Sending…"
+     indefinitely, with no way for the visitor to retry short of reloading
+     and losing what they typed. */
+  function withTimeout(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), ms))
+    ]);
+  }
+
   /* ---------- Contact form — Phase 19 lead capture ---------- */
   (function initContactForm() {
     const contactForm = document.getElementById('contactForm');
@@ -835,12 +847,12 @@ document.addEventListener('DOMContentLoaded', () => {
             utm_content:      attribution.utm_content      || null,
             attribution_json: attribution.attribution_json || {},
           });
-          let { error } = await client.from('cms_contact_submissions').insert([attributionPayload]);
+          let { error } = await withTimeout(client.from('cms_contact_submissions').insert([attributionPayload]), 15000);
           const canFallbackToBase =
             error &&
             /column|schema cache|could not find/i.test(String(error.message || error.details || error.hint || ''));
           if (canFallbackToBase) {
-            const fallback = await client.from('cms_contact_submissions').insert([basePayload]);
+            const fallback = await withTimeout(client.from('cms_contact_submissions').insert([basePayload]), 15000);
             error = fallback.error;
           }
           if (error) throw new Error(error.message || 'Submission failed');
@@ -854,9 +866,12 @@ document.addEventListener('DOMContentLoaded', () => {
         gvSubmitLocked = false;
         setSubmitLoading(false);
         const isServiceErr = (err.message || '').includes('not available');
+        const isTimeout = (err.message || '').includes('timed out');
         showFormStatus(
           isServiceErr
             ? 'Form service is currently unavailable. Please email us directly at growva.eg@gmail.com.'
+            : isTimeout
+            ? 'That took too long to send — please check your connection and try again.'
             : 'Something went wrong — please try again or email us at growva.eg@gmail.com.',
           'error'
         );
@@ -972,11 +987,11 @@ document.addEventListener('DOMContentLoaded', () => {
               source: attribution.source,
               user_agent: navigator.userAgent ? navigator.userAgent.slice(0, 400) : null,
             };
-            let { error } = await client.from('cms_contact_submissions').insert([payload]);
+            let { error } = await withTimeout(client.from('cms_contact_submissions').insert([payload]), 15000);
             const canFallback = error && /column|schema cache|could not find/i.test(String(error.message || error.details || error.hint || ''));
             if (canFallback) {
               const { phone: _drop, ...withoutPhone } = payload;
-              const fallback = await client.from('cms_contact_submissions').insert([withoutPhone]);
+              const fallback = await withTimeout(client.from('cms_contact_submissions').insert([withoutPhone]), 15000);
               error = fallback.error;
             }
             if (error) throw new Error(error.message || 'Submission failed');
@@ -988,9 +1003,12 @@ document.addEventListener('DOMContentLoaded', () => {
           gvSubmitLocked = false;
           setLoading(false);
           const isServiceErr = (err.message || '').includes('not available');
+          const isTimeout = (err.message || '').includes('timed out');
           showStatus(
             isServiceErr
               ? 'Form service is currently unavailable. Please email us directly at growva.eg@gmail.com.'
+              : isTimeout
+              ? 'That took too long to send — please check your connection and try again.'
               : 'Something went wrong — please try again or email us at growva.eg@gmail.com.',
             'error'
           );
@@ -1736,7 +1754,22 @@ document.addEventListener('DOMContentLoaded', () => {
      scene — cheaper than hand-recreating each scene's geometry/materials. */
   function recoverFromContextLoss(canvas) {
     canvas.addEventListener('webglcontextlost', (e) => e.preventDefault(), false);
-    canvas.addEventListener('webglcontextrestored', () => location.reload(), false);
+    canvas.addEventListener('webglcontextrestored', () => {
+      // Circuit breaker: a GPU-constrained device can lose context again
+      // immediately after the reload recreates it, which without a limit
+      // would reload forever. Cap it at 2 reloads per 30s — past that,
+      // context loss on this device is chronic, and leaving the canvas
+      // blank/frozen is better than an infinite reload loop.
+      const key = 'growva_webgl_reload_guard';
+      const now = Date.now();
+      let attempts = [];
+      try { attempts = JSON.parse(sessionStorage.getItem(key) || '[]'); } catch (err) {}
+      attempts = attempts.filter(t => now - t < 30000);
+      if (attempts.length >= 2) return;
+      attempts.push(now);
+      try { sessionStorage.setItem(key, JSON.stringify(attempts)); } catch (err) {}
+      location.reload();
+    }, false);
   }
 
   /* ================= THREE.js — CTA particle field (shared, lightweight) ================= */
