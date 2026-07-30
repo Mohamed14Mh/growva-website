@@ -255,6 +255,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const stages = Array.from(timeline.querySelectorAll('.process-stage'));
     if (stages.length < 2) return;
+    const section = timeline.closest('.section');
+    if (!section) return;
     processFlythroughBuilt = true;
     gsap.registerPlugin(SplitText, ScrollTrigger);
 
@@ -293,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // re-appends every [data-section-type][data-section-id] element under a
     // shared parent to enforce CMS section ordering, which would otherwise
     // shove this untagged element to the front of <main> the moment it runs.
-    timeline.closest('.section').prepend(scene);
+    section.prepend(scene);
 
     const split = SplitText.create(track.querySelectorAll('.process-h-title, .process-h-num'), { type: 'chars' });
 
@@ -1088,6 +1090,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const desktopQuery = window.matchMedia('(min-width: 900px)');
         let flipCtx;
         let resizeFrame = null;
+        let lastWidth = window.innerWidth;
 
         const createTween = () => {
           flipCtx && flipCtx.revert();
@@ -1162,6 +1165,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         createTween();
         window.addEventListener('resize', () => {
+          // Same guard as initPrintShowcasePin below: a vertical scrollbar
+          // toggling on/off while this Flip animation is mid-scroll shaves a
+          // few px off the viewport width, which without this check would
+          // spuriously tear down and rebuild the live Flip/ScrollTrigger
+          // pin mid-interaction. Only a real width change warrants a rebuild.
+          if (Math.abs(window.innerWidth - lastWidth) < 20) return;
+          lastWidth = window.innerWidth;
           if (resizeFrame) cancelAnimationFrame(resizeFrame);
           resizeFrame = requestAnimationFrame(() => {
             resizeFrame = null;
@@ -1367,7 +1377,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       createTween();
       let _bentoResizeFrame = null;
+      let _bentoLastWidth = window.innerWidth;
       window.addEventListener('resize', () => {
+        // Same scrollbar-toggle guard as the gallery--switch Flip above and
+        // initPrintShowcasePin below — only a real width change (not the
+        // ~15-17px a scrollbar's appearance/disappearance shaves off)
+        // warrants tearing down and rebuilding this pin mid-scroll.
+        if (Math.abs(window.innerWidth - _bentoLastWidth) < 20) return;
+        _bentoLastWidth = window.innerWidth;
         if (_bentoResizeFrame) cancelAnimationFrame(_bentoResizeFrame);
         _bentoResizeFrame = requestAnimationFrame(() => { _bentoResizeFrame = null; createTween(); });
       });
@@ -2543,6 +2560,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!nav || !window.gsap || !window.ScrollTrigger) return;
     const reduced  = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const chapters = Array.from(document.querySelectorAll('[data-chapter]'));
+    if (!chapters.length) return;
     const dots     = Array.from(nav.querySelectorAll('.chapter-dot'));
     const LABELS   = ['Platform','Advantages','How We Build','Ecosystem','After Launch'];
 
