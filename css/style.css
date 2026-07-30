@@ -3071,7 +3071,14 @@ body{
 .print-product-grid--preview .print-product-icon svg{width:28px;height:28px;}
 .print-product-grid--preview .print-product-name{font-size:.92rem;}
 .print-product-grid--preview .print-product-desc{font-size:.82rem;line-height:1.4;}
-.print-showcase-slides{position:relative;flex:1;min-height:420px;border-radius:16px;overflow:hidden;background:#141414;}
+/* aspect-ratio (not a bare fixed height) keeps the same photo crop
+   consistent across desktop widths — with only min-height before, this
+   box went from ~1:1 at 920px wide up to ~1.8:1 at 1400px+, showing a
+   visibly different slice of the same uploaded image depending on the
+   visitor's screen width. min-height stays as a floor for the narrow
+   end of the desktop range, just before the 899px breakpoint switches
+   to the static/aspect-ratio:4/3 mobile layout below. */
+.print-showcase-slides{position:relative;flex:1;aspect-ratio:16/9;min-height:420px;border-radius:16px;overflow:hidden;background:#141414;}
 .print-showcase-slide{position:absolute;inset:0;background-position:50% 50%;background-size:cover;background-color:#141414;opacity:0;visibility:hidden;}
 .print-showcase-slide:first-child{opacity:1;visibility:visible;}
 .print-showcase-pin--static .print-showcase-track,.print-showcase-pin--static .print-showcase-fill{display:none;}
