@@ -121,13 +121,14 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
   transform:scale(.86);
   animation:preloaderMark .9s var(--ease) forwards;
 }
-.preloader-mark svg{width:58px;height:58px;overflow:visible;}
-.preloader-mark path,
-.preloader-mark polyline{
-  stroke-dasharray:180;
-  stroke-dashoffset:180;
-  animation:preloaderDraw 1.05s var(--ease) forwards .1s;
-}
+/* A live <model-viewer> was tried here first (same .glb the nav logo
+   uses) but its internal "reveal" never fired within the preloader's
+   lifetime in testing — confirmed over a 3+ second window, modelIsVisible
+   stayed false the entire time, so visitors would've seen an empty
+   circle. A static crop of the real icon mark (growva-icon-mark.png,
+   cropped from the brand's own icon file) renders instantly and
+   reliably instead — no WebGL context, no load race, same real mark. */
+.preloader-mark-icon{width:44px;height:44px;object-fit:contain;}
 .preloader-wordmark{
   font-family:var(--serif);
   font-size:clamp(1.35rem,3vw,2rem);
@@ -148,10 +149,6 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
 @keyframes preloaderMark{
   0%{opacity:0;transform:scale(.86) rotate(-8deg);}
   100%{opacity:1;transform:scale(1) rotate(0);}
-}
-@keyframes preloaderDraw{
-  0%{stroke-dashoffset:180;}
-  100%{stroke-dashoffset:0;}
 }
 @keyframes preloaderIn{
   0%{opacity:0;letter-spacing:.4em;}
