@@ -107,19 +107,21 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ---------- Preloader ---------- */
   const preloader = document.getElementById('preloader');
   if (preloader) {
-    // The mark used to be a hand-drawn placeholder SVG (a generic G+check
-    // shape unrelated to the brand). It's a crop of the real icon mark now
-    // (growva-icon-mark.png) so the very first thing a visitor sees is
-    // actually on-brand instead of a stand-in. A live <model-viewer> using
-    // the same .glb as the nav logo was tried first, but its render never
+    // The mark used to be a hand-drawn placeholder SVG (a generic shape
+    // unrelated to the brand). It's a crop of the real icon mark now
+    // (the "G" wordmark's initial with the growth-arrow worked into it,
+    // growva-icon-mark.png) and the wordmark line is the real logo
+    // typography too (growva-wordmark-mark.png) instead of plain text in
+    // the site's body font. A live <model-viewer> using the same .glb as
+    // the nav logo was tried first for the mark, but its render never
     // became visible within the preloader's short lifetime in testing —
     // a static image avoids that WebGL load race entirely.
     preloader.innerHTML = `
       <div class="preloader-core" aria-live="polite">
         <div class="preloader-mark" aria-hidden="true">
-          <img class="preloader-mark-icon" src="assets/logo/growva-icon-mark.png?v=2" alt="">
+          <img class="preloader-mark-icon" src="assets/logo/growva-icon-mark.png?v=3" alt="">
         </div>
-        <div class="preloader-wordmark">GROWVA</div>
+        <img class="preloader-wordmark-img" src="assets/logo/growva-wordmark-mark.png" alt="GROWVA">
         <div class="preloader-count" id="preloaderCount">000%</div>
       </div>`;
 

@@ -129,12 +129,13 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
    cropped from the brand's own icon file) renders instantly and
    reliably instead — no WebGL context, no load race, same real mark. */
 .preloader-mark-icon{width:44px;height:44px;object-fit:contain;}
-.preloader-wordmark{
-  font-family:var(--serif);
-  font-size:clamp(1.35rem,3vw,2rem);
-  letter-spacing:.04em;
+.preloader-wordmark-img{
+  height:clamp(24px,3.6vw,34px);
+  width:auto;
+  display:block;
   opacity:0;
-  animation:preloaderIn .95s var(--ease) forwards .12s;
+  transform:translateY(6px);
+  animation:preloaderWordmarkIn .95s var(--ease) forwards .12s;
 }
 .preloader-count{
   font-family:var(--mono);
@@ -149,6 +150,10 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
 @keyframes preloaderMark{
   0%{opacity:0;transform:scale(.86) rotate(-8deg);}
   100%{opacity:1;transform:scale(1) rotate(0);}
+}
+@keyframes preloaderWordmarkIn{
+  0%{opacity:0;transform:translateY(6px);}
+  100%{opacity:1;transform:translateY(0);}
 }
 @keyframes preloaderIn{
   0%{opacity:0;letter-spacing:.4em;}
