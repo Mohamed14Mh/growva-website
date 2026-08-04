@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
     preloader.innerHTML = `
       <div class="preloader-core" aria-live="polite">
         <div class="preloader-mark" aria-hidden="true">
-          <img class="preloader-mark-icon" src="assets/logo/growva-icon-mark.png" alt="">
+          <img class="preloader-mark-icon" src="assets/logo/growva-icon-mark.png?v=2" alt="">
         </div>
         <div class="preloader-wordmark">GROWVA</div>
         <div class="preloader-count" id="preloaderCount">000%</div>
