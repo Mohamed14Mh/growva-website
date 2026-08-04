@@ -2,6 +2,14 @@
    GROWVA — js/script.js  (shared across all pages)
    ========================================================================== */
 
+/* document.currentScript is only non-null while this script is executing
+   synchronously at parse time — it's null by the time DOMContentLoaded
+   fires. Cache its resolved URL here, at the top level, so code inside
+   the DOMContentLoaded handler further down (e.g. the preloader) can
+   still derive a correct site-root-relative path on every page, no
+   matter how deep the page sits in the folder structure. */
+const GV_SCRIPT_SRC = document.currentScript ? document.currentScript.src : '';
+
 /* Always reload at the top of the page instead of the browser's default
    scroll-restoration. Runs before Lenis/ScrollTrigger init further down, so
    pinned sections always measure from a consistent scroll-0 starting state
@@ -107,6 +115,15 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ---------- Preloader ---------- */
   const preloader = document.getElementById('preloader');
   if (preloader) {
+    // Pages sit at different folder depths (index.html vs
+    // portfolio/brand-identity/new-project-5.html), and every other asset
+    // reference on the site accounts for that with a hand-written relative
+    // prefix per page (e.g. "../../css/style.css"). This script is shared
+    // verbatim across all of them, so a bare "assets/..." path here would
+    // resolve relative to whatever page is currently loaded and 404 on
+    // every non-root page. Deriving the prefix from this script's own
+    // resolved <script src> keeps it correct everywhere automatically.
+    const gvBase = GV_SCRIPT_SRC.replace(/js\/script\.js(\?.*)?$/, '');
     // The mark used to be a hand-drawn placeholder SVG (a generic shape
     // unrelated to the brand). It's a crop of the real icon mark now
     // (the "G" wordmark's initial with the growth-arrow worked into it,
@@ -119,9 +136,9 @@ document.addEventListener('DOMContentLoaded', () => {
     preloader.innerHTML = `
       <div class="preloader-core" aria-live="polite">
         <div class="preloader-mark" aria-hidden="true">
-          <img class="preloader-mark-icon" src="assets/logo/growva-icon-mark.png?v=3" alt="">
+          <img class="preloader-mark-icon" src="${gvBase}assets/logo/growva-icon-mark.png?v=3" alt="">
         </div>
-        <img class="preloader-wordmark-img" src="assets/logo/growva-wordmark-mark.png" alt="GROWVA">
+        <img class="preloader-wordmark-img" src="${gvBase}assets/logo/growva-wordmark-mark.png" alt="GROWVA">
         <div class="preloader-count" id="preloaderCount">000%</div>
       </div>`;
 
