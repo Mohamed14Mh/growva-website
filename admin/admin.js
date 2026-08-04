@@ -639,6 +639,14 @@
     clean = clean.replace(/^([A-Za-z]:)?\/?/, match => match.includes(':') ? '' : match);
     const adminIndex = clean.lastIndexOf('/admin/admin.js');
     if (adminIndex >= 0) clean = 'index.html';
+    // Cloudflare Pages serves this site's pages at clean URLs (no ".html"),
+    // while every local/file-based way of viewing the same page keeps the
+    // extension in the URL. Without normalizing, the two environments
+    // compute different page_path values for the identical page, so
+    // content edited from one is invisible from the other. Every page_path
+    // already stored in cms_content uses the ".html" form (all editing so
+    // far happened against file paths), so that's the canonical form here.
+    if (clean && !/\.[a-z0-9]+$/i.test(clean)) clean = `${clean}.html`;
     return clean || 'index.html';
   }
 
