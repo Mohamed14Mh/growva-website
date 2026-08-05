@@ -2692,26 +2692,26 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
    frame visible — the default bleed+cover treatment above is built for
    photography, where cropping into the edges is a deliberate look, but
    it silently cuts real content out of anything with text in it. */
-.project-presentation-photo--fit{inset:0;background-size:contain;background-repeat:no-repeat;background-color:transparent;}
-/* Matches this gallery's actual source images (1500x1200, 5:4) exactly,
-   so the frame is filled edge to edge with zero letterboxing at the one
-   fixed image size instead of needing a different export per breakpoint.
-   height:auto overrides the base class's own vh-capped height and its
-   mobile media-query override, so height always follows width via
-   aspect-ratio instead of the two fighting each other — the base rule's
-   height was a *different* definite value at some breakpoints, which is
-   exactly what left a gap on the mobile screenshots this was built from.
-   Selector repeats the class to out-specificity that mobile media query,
-   which would otherwise win the height tie-break by coming later in the
-   file — .project-presentation-pin--fit alone has equal specificity to
-   .project-presentation-pin (one class each), and loses on source order. */
+.project-presentation-photo--fit{inset:0;background-size:contain;background-repeat:no-repeat;background-color:transparent;background-image:var(--gv-bg-desktop);}
+/* Two separate exports (desktop 1500x1200 5:4, mobile ~4:5 portrait) are
+   swapped per breakpoint via custom properties set inline per slide
+   (--gv-bg-desktop / --gv-bg-mobile), each paired with its own matching
+   aspect-ratio below — this replaces the earlier one-size-fits-all
+   approach, which forced a single ratio on both a landscape and a
+   portrait image and always left a gap on one of the two.
+   height:auto overrides the base class's own vh-capped height so height
+   always follows width via aspect-ratio. Selector repeats the class to
+   out-specificity the mobile media query below, which would otherwise
+   win the height tie-break by coming later in the file —
+   .project-presentation-pin--fit alone has equal specificity to
+   .project-presentation-pin (one class each) and loses on source order. */
 .project-presentation-pin--fit.project-presentation-pin--fit{aspect-ratio:5/4;height:auto;width:100%;max-width:100%;margin:0 auto;}
 .project-presentation-photo[data-media-current-url]:not([data-media-current-url=""]) > *{display:none;}
 .project-presentation-slide-placeholder{display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--gray-dim);}
 .project-presentation-slide-placeholder svg{width:32px;height:32px;color:var(--mint);opacity:.75;}
 .project-presentation-slide-placeholder span{font-family:var(--mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;}
 .project-presentation-num{position:absolute;top:16px;left:16px;font-family:var(--mono);font-size:.64rem;letter-spacing:.08em;color:var(--mint);background:rgba(10,10,10,.72);padding:5px 12px;border-radius:100px;border:1px solid rgba(177,250,32,.25);z-index:2;}
-@media(max-width:560px){.project-presentation-pin{height:min(62vh,520px);}}
+@media(max-width:560px){.project-presentation-pin{height:min(62vh,520px);}.project-presentation-photo--fit{background-image:var(--gv-bg-mobile);}.project-presentation-pin--fit.project-presentation-pin--fit{aspect-ratio:4/5;}}
 
 /* Single-card interactive 3D model showcase (replaces the photo-slide
    presentation on projects where the work itself is a 3D asset).
