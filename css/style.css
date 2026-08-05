@@ -2704,8 +2704,13 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
    out-specificity the mobile media query below, which would otherwise
    win the height tie-break by coming later in the file —
    .project-presentation-pin--fit alone has equal specificity to
-   .project-presentation-pin (one class each) and loses on source order. */
-.project-presentation-pin--fit.project-presentation-pin--fit{aspect-ratio:5/4;height:auto;width:100%;max-width:100%;margin:0 auto;}
+   .project-presentation-pin (one class each) and loses on source order.
+   width is capped via vh (not just 100%) so the card's resulting height
+   (width / (5/4)) can never grow past a comfortable on-screen size on
+   short/laptop viewports — same intent as the base class's own
+   height:min(78vh,700px) cap, just expressed as a width limit so it
+   drives the aspect-ratio instead of fighting it. */
+.project-presentation-pin--fit.project-presentation-pin--fit{aspect-ratio:5/4;height:auto;width:min(100%,97.5vh,875px);max-width:100%;margin:0 auto;}
 .project-presentation-photo[data-media-current-url]:not([data-media-current-url=""]) > *{display:none;}
 .project-presentation-slide-placeholder{display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--gray-dim);}
 .project-presentation-slide-placeholder svg{width:32px;height:32px;color:var(--mint);opacity:.75;}
