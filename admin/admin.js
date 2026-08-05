@@ -1,6 +1,12 @@
 (function () {
   'use strict';
 
+  // document.currentScript is only valid during this script's own
+  // synchronous top-level execution — it's null everywhere else,
+  // including inside the many async/callback paths below that used to
+  // reach for it directly and silently fail. Cache it once here.
+  const ADMIN_SCRIPT_SRC = document.currentScript ? document.currentScript.src : '';
+
   const MOCK_SESSION_KEY = 'growva_admin_session';
   const MOCK_DRAFT_KEY = 'growva_admin_draft';
   const MOCK_CUSTOM_SECTIONS_KEY = 'growva_admin_custom_sections';
@@ -621,12 +627,11 @@
 
   function getPagePath() {
     const pathname = decodeURIComponent(window.location.pathname || '/');
-    const script = document.currentScript || $('script[src$="admin/admin.js"]');
     let rootPath = '/';
     try {
-      if (script && script.src) {
-        const scriptPath = new URL(script.src, window.location.href).pathname.replace(/\\/g, '/');
-        rootPath = scriptPath.replace(/admin\/admin\.js(?:\?.*)?$/, '');
+      if (ADMIN_SCRIPT_SRC) {
+        const scriptPath = new URL(ADMIN_SCRIPT_SRC, window.location.href).pathname.replace(/\\/g, '/');
+        rootPath = scriptPath.replace(/admin\/admin(?:\.min)?\.js(?:\?.*)?$/, '');
       }
     } catch (error) {
       rootPath = '/';
@@ -637,7 +642,7 @@
     clean = clean.replace(/^\/+/, '').replace(/\/+/g, '/');
     if (!clean || clean.endsWith('/')) clean = `${clean}index.html`;
     clean = clean.replace(/^([A-Za-z]:)?\/?/, match => match.includes(':') ? '' : match);
-    const adminIndex = clean.lastIndexOf('/admin/admin.js');
+    const adminIndex = clean.search(/\/admin\/admin(?:\.min)?\.js$/);
     if (adminIndex >= 0) clean = 'index.html';
     // Cloudflare Pages serves this site's pages at clean URLs (no ".html"),
     // while every local/file-based way of viewing the same page keeps the
@@ -1373,14 +1378,15 @@
     }
 
     function getLoadedAdminScriptSrc() {
+      if (ADMIN_SCRIPT_SRC) return ADMIN_SCRIPT_SRC;
       const scripts = getAdminScriptSrcsDebug();
       return scripts.find(src => {
         try {
-          return /\/admin\/admin\.js$/i.test(new URL(src, window.location.href).pathname);
+          return /\/admin\/admin(?:\.min)?\.js$/i.test(new URL(src, window.location.href).pathname);
         } catch (_) {
-          return src.includes('admin/admin.js');
+          return src.includes('admin/admin.js') || src.includes('admin/admin.min.js');
         }
-      }) || scripts.find(src => src.includes('/admin/admin.js')) || new URL('admin/admin.js', getSiteRootUrl()).href;
+      }) || scripts.find(src => src.includes('/admin/admin.js') || src.includes('/admin/admin.min.js')) || new URL('admin/admin.min.js', getSiteRootUrl()).href;
     }
 
     function isElementVisible(element) {
@@ -2910,8 +2916,7 @@
 
   function getSiteRootUrl() {
     try {
-      const script = document.currentScript || $('script[src$="admin/admin.js"]');
-      if (script && script.src) return new URL(script.src.replace(/admin\/admin\.js(?:\?.*)?$/, ''), window.location.href);
+      if (ADMIN_SCRIPT_SRC) return new URL(ADMIN_SCRIPT_SRC.replace(/admin\/admin(?:\.min)?\.js(?:\?.*)?$/, ''), window.location.href);
     } catch (_) {}
     return new URL('./', window.location.href);
   }
