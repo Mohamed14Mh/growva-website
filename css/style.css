@@ -2692,7 +2692,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
    frame visible — the default bleed+cover treatment above is built for
    photography, where cropping into the edges is a deliberate look, but
    it silently cuts real content out of anything with text in it. */
-.project-presentation-photo--fit{inset:0;background-size:contain;background-color:#0e0e0e;}
+.project-presentation-photo--fit{inset:0;background-size:contain;background-repeat:no-repeat;background-color:#0e0e0e;}
 .project-presentation-photo[data-media-current-url]:not([data-media-current-url=""]) > *{display:none;}
 .project-presentation-slide-placeholder{display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--gray-dim);}
 .project-presentation-slide-placeholder svg{width:32px;height:32px;color:var(--mint);opacity:.75;}
