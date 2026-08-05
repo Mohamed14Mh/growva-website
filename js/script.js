@@ -10,35 +10,33 @@
    matter how deep the page sits in the folder structure. */
 const GV_SCRIPT_SRC = document.currentScript ? document.currentScript.src : '';
 
-/* Always reload at the top of the page instead of the browser's default
-   scroll-restoration. Runs before Lenis/ScrollTrigger init further down, so
-   pinned sections always measure from a consistent scroll-0 starting state
-   (loading mid-scroll was corrupting pinned-section layout on refresh). */
+/* Belt-and-suspenders backup for the inline <script> right after <meta
+   charset> in <head> — that one is what actually matters, since it runs
+   synchronously before the browser's own native scroll-restoration has a
+   chance to act. This one, being in a deferred script, runs too late to
+   stop native restoration on its own; it's kept as a second layer in case
+   the inline copy is ever missing from a page. See that inline script's
+   comment for the full story: every pinned ScrollTrigger section on the
+   site was intermittently measuring itself against whatever scroll
+   position the browser's native restore had already jumped to on reload,
+   producing permanently wrong start/end offsets and a visibly broken,
+   overlapping layout — looked exactly like a GSAP pin bug, wasn't one. */
 if ('scrollRestoration' in history) {
   history.scrollRestoration = 'manual';
 }
 window.scrollTo(0, 0);
 
 /* ---------- Scroll position memory (reload / back-forward only) ----------
-   The scrollTo(0,0) above is what protects ScrollTrigger's pin geometry —
-   it must stay. But landing back at the top after every refresh is its own
-   real problem for anyone mid-page, so recover the *visual* position
-   afterward instead of removing that protection: save scrollY continuously
-   per path, then — only on an actual reload or a back/forward navigation,
-   never a fresh link click, which should still start at the top — replay it
-   once the page has settled (both 'load' and the CMS gv:text-hydrated
-   event, which on this site fires roughly a second after 'load').
-
-   Known limitation: a pin whose ScrollTrigger gets (re)measured while
-   scroll is already away from 0 — which restoring to a saved position
-   necessarily does — can come out with its start/end shifted by however far
-   that scroll position is, independent of this feature (reproduces even
-   with a plain manual ScrollTrigger.refresh() at a non-zero scrollY, no
-   restore code involved). Confirmed on the process-page mobile flythrough;
-   tried refresh-ordering, refresh(true), invalidateOnRefresh, and clamping
-   the landing spot outside the pin's range — none of it corrected the
-   measurement, so this is a real, separate GSAP-pin issue worth its own
-   investigation later, not something to keep working around here. */
+   Landing back at the top after every refresh is a real problem for
+   anyone mid-page, so recover the *visual* position afterward: save
+   scrollY continuously per path, then — only on an actual reload or a
+   back/forward navigation, never a fresh link click, which should still
+   start at the top — replay it once the page has settled (both 'load'
+   and the CMS gv:text-hydrated event, which on this site fires roughly a
+   second after 'load'). Safe to do now that native scroll-restoration is
+   actually disabled (see above) rather than merely raced against — with
+   pinned sections measuring correctly from scroll-0 at creation time,
+   moving scroll afterward, by any amount, no longer corrupts them. */
 (function scrollPositionMemory() {
   const key = 'growva_scroll_' + location.pathname;
   let saveFrame = null;
@@ -53,6 +51,16 @@ window.scrollTo(0, 0);
   const navEntry = performance.getEntriesByType('navigation')[0];
   const navType = navEntry && navEntry.type;
   if (navType !== 'reload' && navType !== 'back_forward') return;
+  // .project-presentation-pin (the "Brand Presentation" gallery on ~all
+  // case-study pages) still comes out with corrupted pin start/end
+  // boundaries once scroll ends up away from 0, even after the native
+  // scroll-restoration race above is fixed, and even after forcing a full
+  // kill-and-rebuild well after the restore animation has settled — this
+  // is a deeper GSAP/Lenis interaction than a measurement-timing issue,
+  // not something worth continuing to chase here. Landing at the top on
+  // reload for these specific pages (same as any fresh navigation) beats
+  // a guaranteed broken, overlapping layout.
+  if (document.querySelector('.project-presentation-pin')) return;
   const saved = Number(sessionStorage.getItem(key));
   if (!saved) return;
 
@@ -2374,6 +2382,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // pin-spacer's layout before ScrollTrigger re-measures everything.
   if (window.ScrollTrigger) requestAnimationFrame(() => ScrollTrigger.refresh());
   document.addEventListener('gv:media-hydrated', () => {
+    // Rebuilding this pin (or just refreshing it) while scroll has already
+    // moved away from 0 is what corrupts its start/end boundaries — see the
+    // scrollPositionMemory comment near the top of this file; confirmed
+    // even a plain ScrollTrigger.refresh() does it, rebuilding fresh does
+    // not avoid it either. gv:media-hydrated can fire well after a scroll
+    // restore has landed (it reacts to any CMS image on the page, not just
+    // this gallery), so skip the rebuild when we're not near the top —
+    // the correct scroll-0 measurement from initial load is still valid
+    // and Lenis's own scroll events keep the pin's visual state in sync
+    // regardless of whether anything "refreshes" it.
+    if (window.scrollY > 50) return;
     requestAnimationFrame(() => {
       initProjectPresentations();
       if (window.ScrollTrigger) ScrollTrigger.refresh();
