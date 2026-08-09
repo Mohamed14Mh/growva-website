@@ -1108,6 +1108,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const gsapPlugins = [ScrollTrigger];
     if (window.Flip) gsapPlugins.push(Flip);
     gsap.registerPlugin(...gsapPlugins);
+    // Mobile Chrome/Safari resize the visual viewport as the address bar
+    // hides/shows mid-scroll. Without this, ScrollTrigger treats that as a
+    // real resize and re-measures/re-pins pinned sections mid-gesture,
+    // which is what made pinned galleries feel like they were "shaking" or
+    // not staying put while scrolling on a phone. This is GSAP's own
+    // documented flag for exactly that scenario — it ignores resize events
+    // caused by mobile viewport height changes specifically.
+    ScrollTrigger.config({ ignoreMobileResize: true });
 
     function initIntroBentoGalleries() {
       document.querySelectorAll('.gallery--switch').forEach(galleryElement => {
@@ -2368,16 +2376,6 @@ document.addEventListener('DOMContentLoaded', () => {
           end: () => '+=' + (slides.length - 1) * Math.max(window.innerHeight * 0.75, 420),
           scrub: 0.6,
           pin,
-          // Default pinType against the window scroller is 'fixed'
-          // (position:fixed). On mobile browsers that's what made the pin
-          // feel like it "wasn't really fixed, it moves" — position:fixed
-          // is relative to the visual viewport, and mobile Chrome/Safari
-          // resize that viewport as the address bar hides/shows mid-scroll,
-          // so the pinned card visibly shifts even though nothing about
-          // the scroll position itself is wrong. 'transform' pins via a
-          // CSS transform on a normal in-flow element instead, which is
-          // immune to that address-bar resize entirely.
-          pinType: 'transform',
           anticipatePin: 1,
           invalidateOnRefresh: true
         }
