@@ -2698,6 +2698,12 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
    equal specificity to a single .project-presentation-pin--m45 and
    would otherwise win the height tie-break by coming later in the file. */
 @media(max-width:560px){.project-presentation-pin--m45.project-presentation-pin--m45{aspect-ratio:1080/1350;height:auto;width:100%;max-width:100%;margin:0 auto;}}
+/* Opt-in per-breakpoint image swap for pages providing a matched pair
+   of exports (--gv-bg-desktop 1100x700, --gv-bg-mobile 1080x1350, set
+   inline per slide) — scoped to this modifier class so it never touches
+   the shared component's own image handling on other pages. */
+.project-presentation-photo--bp{background-image:var(--gv-bg-desktop);}
+@media(max-width:560px){.project-presentation-photo--bp{background-image:var(--gv-bg-mobile);}}
 .project-presentation-photo[data-media-current-url]:not([data-media-current-url=""]) > *{display:none;}
 .project-presentation-slide-placeholder{display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--gray-dim);}
 .project-presentation-slide-placeholder svg{width:32px;height:32px;color:var(--mint);opacity:.75;}
