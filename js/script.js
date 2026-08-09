@@ -2356,7 +2356,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: container,
-          start: 'top top+=80',
+          // top+=80 used to start pinning while the container's top was
+          // still 80px below the viewport top — with only ~28px of margin
+          // between it and the "Brand Presentation" eyebrow label above,
+          // that plus anticipatePin's early snap left virtually no buffer,
+          // so the pinned card could visually overlap the eyebrow text for
+          // a frame during engagement. Starting the pin only once the
+          // container's top is flush with the viewport top means the
+          // eyebrow has already scrolled well clear by the time it pins.
+          start: 'top top',
           end: () => '+=' + (slides.length - 1) * Math.max(window.innerHeight * 0.75, 420),
           scrub: 0.6,
           pin,
