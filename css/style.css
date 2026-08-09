@@ -2713,8 +2713,17 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 /* Opt-in per-breakpoint image swap for pages providing a matched pair
    of exports (--gv-bg-desktop 1100x700, --gv-bg-mobile 1080x1350, set
    inline per slide) — scoped to this modifier class so it never touches
-   the shared component's own image handling on other pages. */
-.project-presentation-photo--bp{background-image:var(--gv-bg-desktop);}
+   the shared component's own image handling on other pages.
+   inset:0 cancels the base class's inset:-10% -3% bleed (a deliberate
+   crop-into-the-edges look built for photography) — with the box now
+   locked to the exact export ratio there's nothing left to "bleed" into,
+   and that inset was silently clipping ~10% off the top/bottom of these
+   deck-slide exports (text sitting close to the edges), which is what
+   the "top and bottom captions are missing" report on desktop turned
+   out to be — matching pixel-for-pixel export ratios doesn't help if
+   the element showing them is still sized/positioned bigger than the
+   frame it's clipped to. */
+.project-presentation-photo--bp{inset:0;background-image:var(--gv-bg-desktop);}
 @media(max-width:560px){.project-presentation-photo--bp{background-image:var(--gv-bg-mobile);}}
 .project-presentation-photo[data-media-current-url]:not([data-media-current-url=""]) > *{display:none;}
 .project-presentation-slide-placeholder{display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--gray-dim);}
