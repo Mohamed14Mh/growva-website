@@ -2368,6 +2368,16 @@ document.addEventListener('DOMContentLoaded', () => {
           end: () => '+=' + (slides.length - 1) * Math.max(window.innerHeight * 0.75, 420),
           scrub: 0.6,
           pin,
+          // Default pinType against the window scroller is 'fixed'
+          // (position:fixed). On mobile browsers that's what made the pin
+          // feel like it "wasn't really fixed, it moves" — position:fixed
+          // is relative to the visual viewport, and mobile Chrome/Safari
+          // resize that viewport as the address bar hides/shows mid-scroll,
+          // so the pinned card visibly shifts even though nothing about
+          // the scroll position itself is wrong. 'transform' pins via a
+          // CSS transform on a normal in-flow element instead, which is
+          // immune to that address-bar resize entirely.
+          pinType: 'transform',
           anticipatePin: 1,
           invalidateOnRefresh: true
         }
