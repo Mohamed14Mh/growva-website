@@ -2494,12 +2494,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     videos.forEach(video => {
       if (reduced) { video.loop = false; video.controls = true; return; }
+      // Two thresholds instead of one give this hysteresis: play once 40%
+      // visible, but only pause once it drops below 10% — not the same
+      // 40% line for both directions. A single threshold means ordinary
+      // scroll jitter (momentum/rubber-band on touch, or just a visitor
+      // pausing mid-scroll) can flicker the ratio back and forth across
+      // it, each crossing calling pause() then play() again and cutting
+      // the clip off before its own natural hold-on-the-final-frame
+      // ending — which is what "doesn't finish, ends early, but loops
+      // fine" turned out to be: the loop itself was never the problem,
+      // it was getting restarted mid-playback before reaching it.
       const io = new IntersectionObserver(entries => {
         entries.forEach(entry => {
-          if (entry.isIntersecting) video.play().catch(() => {});
-          else video.pause();
+          if (entry.intersectionRatio >= 0.4) { if (video.paused) video.play().catch(() => {}); }
+          else if (entry.intersectionRatio <= 0.1) { if (!video.paused) video.pause(); }
         });
-      }, { threshold: 0.4 });
+      }, { threshold: [0.1, 0.4] });
       io.observe(video);
     });
   })();
