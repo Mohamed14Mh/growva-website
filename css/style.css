@@ -2640,8 +2640,12 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .project-card-photo[data-media-current-url]:not([data-media-current-url=""]) > *{display:none;}
 .project-card-title{position:absolute;left:20px;bottom:18px;z-index:2;margin:0;font-family:var(--serif);font-size:clamp(1rem,1.6vw,1.25rem);font-weight:500;line-height:1.2;color:var(--ivory);text-shadow:0 12px 34px rgba(0,0,0,.45);}
 .project-card-badge{position:absolute;left:50%;top:50%;z-index:3;transform:translate(-50%,-50%) scale(.9);opacity:0;display:inline-flex;align-items:center;justify-content:center;padding:9px 15px;border-radius:999px;background:var(--mint);color:var(--black-deep);font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;box-shadow:0 16px 34px rgba(0,0,0,.28);transition:opacity .24s var(--ease),transform .24s var(--ease);}
-@media(hover:hover){.project-card:hover .project-card-badge,.project-card:focus-visible .project-card-badge{opacity:1;transform:translate(-50%,-50%) scale(1);}}
-@media(hover:none){.project-card-badge{opacity:1;transform:translate(-50%,-50%) scale(1);}}
+/* Touch devices used to always show this badge (no :hover to reveal it
+   on), permanently overlapping the card's own cover image on every
+   project card site-wide — visually cluttered, and redundant with the
+   title + "View Project" arrow already shown in the caption below the
+   image. Now only shown on hover/keyboard-focus, same on every device. */
+.project-card:hover .project-card-badge,.project-card:focus-visible .project-card-badge{opacity:1;transform:translate(-50%,-50%) scale(1);}
 .project-card-caption{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-top:12px;font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;}
 .project-card-tag{color:rgba(177,250,32,.85);}
 .project-card-arrow{color:var(--mint);opacity:0;transition:opacity .22s var(--ease);}
