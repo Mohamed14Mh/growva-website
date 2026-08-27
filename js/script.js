@@ -534,9 +534,14 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimers();
         // The dropdown already opens on hover/focus for exploring sub-links;
         // clicking the word itself should behave like a normal nav link and
-        // take you to that section's main page.
+        // take you to that section's main page. data-active-page is always
+        // a root-level filename (e.g. "pricing.html") — it needs a leading
+        // slash to actually resolve at the root; without one, clicking this
+        // from any nested page (e.g. /pricing/web-development.html) resolves
+        // it relative to the current folder instead, landing on a broken
+        // /pricing/pricing.html-style URL rather than the real page.
         const target = trigger.dataset.activePage;
-        if (target) { window.location.href = target; return; }
+        if (target) { window.location.href = '/' + target; return; }
         item.classList.contains('open') ? closeItem(item) : openItem(item);
       });
 
