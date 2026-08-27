@@ -1889,6 +1889,10 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
    states, and — the one genuinely new behaviour — a horizontal scroll-snap
    comparison carousel on phones instead of stacking (requested explicitly). */
 .shopify-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch;}
+/* 4-up variant (e.g. branding packages). Desktop only; the shared
+   <=820px rule below switches both to the flex swipe-carousel. */
+.shopify-plans--4{grid-template-columns:repeat(4,1fr);}
+@media(min-width:821px) and (max-width:1080px){.shopify-plans--4{grid-template-columns:repeat(2,1fr);}}
 .shopify-plan{display:flex;flex-direction:column;height:100%;}
 /* Softer, calmer entrance than the site-wide reveal — these cards are large,
    so the default 36px+scale rise read as too much here. Still the same
