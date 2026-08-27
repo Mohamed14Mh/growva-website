@@ -1874,11 +1874,34 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
    comparison carousel on phones instead of stacking (requested explicitly). */
 .shopify-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch;}
 .shopify-plan{display:flex;flex-direction:column;height:100%;}
+/* Softer, calmer entrance than the site-wide reveal — these cards are large,
+   so the default 36px+scale rise read as too much here. Still the same
+   .reveal-up opacity/transform system, just a shorter rise, no scale, and a
+   tighter stagger. Repeated-class .in wins the return-to-0 over .reveal-up.in. */
+.shopify-plan.reveal-up{transform:translateY(16px);transition-duration:.55s;transition-delay:calc(var(--card-index,0) * 55ms);}
+.shopify-plan.reveal-up.in{transform:translateY(0);}
+.shopify-plan:hover{transform:translateY(-2px);}
+
+/* Section-level offer strip — noticeable but restrained, no sale graphics. */
+.shopify-offer{display:inline-flex;align-items:center;gap:13px;flex-wrap:wrap;margin:0 0 38px;padding:11px 18px;border:1px solid rgba(177,250,32,.24);border-radius:4px;background:rgba(177,250,32,.045);}
+.shopify-offer-tag{font-family:var(--mono);font-size:.62rem;letter-spacing:.11em;text-transform:uppercase;color:var(--black-deep);background:var(--mint);padding:5px 11px;border-radius:100px;white-space:nowrap;}
+.shopify-offer-text{font-size:.9rem;color:rgba(246,246,246,.82);}
 .shopify-plan-head{padding-bottom:24px;margin-bottom:4px;border-bottom:1px solid var(--line-soft);}
 .shopify-plan.featured .shopify-plan-head{border-color:rgba(246,246,246,.12);}
-.shopify-plan-pos{font-size:.86rem;color:var(--gray-dim);line-height:1.5;margin:8px 0 22px;min-height:2.6em;}
+.shopify-plan-pos{font-size:.86rem;color:var(--gray-dim);line-height:1.5;margin:8px 0 20px;min-height:2.6em;}
 .shopify-plan.featured .shopify-plan-pos{color:rgba(246,246,246,.6);}
-.shopify-plan .pricing-price{margin-bottom:22px;}
+
+/* Limited-offer pricing: old price crossed out and secondary, new price
+   dominant, 30% Off as a subtle tinted pill so it never competes with the
+   solid "Most Popular" badge on the featured card. */
+.shopify-price{margin-bottom:0;}
+.shopify-price-old{font-family:var(--serif);font-size:1.02rem;color:var(--gray);text-decoration:line-through;text-decoration-color:rgba(246,246,246,.45);margin-bottom:5px;}
+.shopify-plan.featured .shopify-price-old{color:rgba(246,246,246,.62);}
+.shopify-price-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.shopify-price-new{margin-bottom:0;}
+.shopify-off-badge{font-family:var(--mono);font-size:.58rem;letter-spacing:.09em;text-transform:uppercase;color:var(--mint);background:rgba(177,250,32,.1);border:1px solid rgba(177,250,32,.34);padding:5px 10px;border-radius:100px;white-space:nowrap;}
+
+.shopify-plan-cta{margin-top:24px;}
 
 /* Key-number strip — the three differentiators customers scan first. */
 .shopify-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin:24px 0 4px;background:var(--line-soft);border:1px solid var(--line-soft);border-radius:2px;overflow:hidden;}
