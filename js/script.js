@@ -2218,7 +2218,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!window.matchMedia('(hover: hover)').matches) return;
     const SEL = [
       '.why-card', '.service-compact-item', '.case-card',
-      '.shopify-pillar', '.process-stage', '.pricing-card',
+      '.shopify-pillar', '.process-stage', '.pricing-card:not(.shopify-plan)',
       '.value-card', '.faq-item', '.shopify-process-step',
       '.latest-project-card',
       '.testi-card', '.stat-item', '.value-item',

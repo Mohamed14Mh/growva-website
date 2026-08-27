@@ -1880,7 +1880,12 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
    tighter stagger. Repeated-class .in wins the return-to-0 over .reveal-up.in. */
 .shopify-plan.reveal-up{transform:translateY(16px);transition-duration:.55s;transition-delay:calc(var(--card-index,0) * 55ms);}
 .shopify-plan.reveal-up.in{transform:translateY(0);}
-.shopify-plan:hover{transform:translateY(-2px);}
+/* No hover lift on these cards — the base .pricing-card:hover translateY read
+   as too much movement on such large cards. Overriding the hover transform to
+   the same identity as the resting (revealed) state means the pointer never
+   moves the card; only the border highlight (a static colour change) remains.
+   The base transition is left untouched so the entrance reveal still works. */
+.shopify-plan:hover{transform:none;}
 
 /* Section-level offer strip — noticeable but restrained, no sale graphics. */
 .shopify-offer{display:inline-flex;align-items:center;gap:13px;flex-wrap:wrap;margin:0 0 38px;padding:11px 18px;border:1px solid rgba(177,250,32,.24);border-radius:4px;background:rgba(177,250,32,.045);}
