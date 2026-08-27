@@ -1893,6 +1893,41 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
    <=820px rule below switches both to the flex swipe-carousel. */
 .shopify-plans--4{grid-template-columns:repeat(4,1fr);}
 @media(min-width:821px) and (max-width:1080px){.shopify-plans--4{grid-template-columns:repeat(2,1fr);}}
+/* 5-up variant (web-dev packages). Full row on wide screens, swipe-carousel
+   at <=1200 so 5 dense cards never get cramped. Tighter card padding since
+   they're narrower than the 3-up plans. */
+.shopify-plans--5{grid-template-columns:repeat(5,1fr);gap:16px;}
+.shopify-plans--5 .shopify-plan{padding:34px 24px;}
+@media(max-width:1200px){
+  .shopify-plans--5{display:flex;grid-template-columns:none;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:18px 0 6px;}
+  .shopify-plans--5::-webkit-scrollbar{display:none;}
+  .shopify-plans--5 .shopify-plan{flex:0 0 300px;max-width:300px;scroll-snap-align:start;padding:40px 32px;}
+  .shopify-plans--5::after{content:'';flex:0 0 4px;}
+}
+@media(max-width:480px){.shopify-plans--5 .shopify-plan{flex:0 0 86%;max-width:86%;}}
+
+/* "Best for" line inside a plan card */
+.shopify-plan-bestfor{font-size:.8rem;line-height:1.5;color:var(--gray-dim);margin:0 0 22px;padding-top:16px;border-top:1px solid var(--line-soft);}
+.shopify-plan-bestfor span{display:block;font-family:var(--mono);font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--mint);margin-bottom:5px;}
+.shopify-plan.featured .shopify-plan-bestfor{border-color:rgba(246,246,246,.12);color:rgba(246,246,246,.6);}
+
+/* Web-dev add-on cards: reuse .pricing-addon-col shell, add a price + a
+   short includes list. */
+.wd-addons-grid{align-items:start;}
+.wd-addon{display:flex;flex-direction:column;}
+.wd-addon-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line-soft);padding-bottom:16px;margin-bottom:16px;}
+.wd-addon-head h4{margin:0;padding:0;border:none;font-family:var(--serif);font-size:1.05rem;font-weight:600;}
+.wd-addon-price{flex-shrink:0;font-family:var(--mono);font-size:.78rem;color:var(--mint);white-space:nowrap;}
+.wd-addon-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:9px;}
+.wd-addon-list li{position:relative;padding-left:18px;font-size:.86rem;color:rgba(246,246,246,.72);line-height:1.5;}
+.wd-addon-list li::before{content:'';position:absolute;left:0;top:.55em;width:6px;height:6px;border-radius:50%;background:rgba(177,250,32,.5);}
+
+/* How-pricing-works checklist */
+.wd-checklist{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;}
+.wd-check{display:flex;align-items:center;gap:10px;font-size:.92rem;color:rgba(246,246,246,.82);}
+.wd-check-ic{flex-shrink:0;width:18px;height:18px;color:var(--mint);}
+.wd-check-ic svg{width:100%;height:100%;display:block;}
+@media(max-width:560px){.wd-checklist{grid-template-columns:1fr;}}
 .shopify-plan{display:flex;flex-direction:column;height:100%;}
 /* Softer, calmer entrance than the site-wide reveal — these cards are large,
    so the default 36px+scale rise read as too much here. Still the same
