@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Page Not Found — GROWVA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0a0a'/%3E%3Cpath d='M21 10a7 7 0 1 0 0 12v-5h-5' fill='none' stroke='%23B1FA20' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/css/style.css?v=2026081401">
+<style>
+  /* Standalone error page — deliberately does not load admin.min.css/js,
+     script.js, or the model-viewer/GSAP bundles the rest of the site uses.
+     Cloudflare Pages serves this file (with a real 404 status) for any
+     unmatched URL at any depth, so every asset reference above and below
+     uses an absolute (leading-slash) path — a page reached at, say,
+     /pricing/pricing.html must resolve /css/style.css correctly, not
+     ../css/style.css or css/style.css, which would 404 themselves and
+     leave the page completely unstyled. */
+  .notfound{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px;gap:22px;}
+  .notfound-eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--mint);}
+  .notfound-code{font-family:var(--serif);font-size:clamp(4rem,16vw,8rem);line-height:1;color:var(--ivory);}
+  .notfound-title{font-family:var(--serif);font-size:clamp(1.4rem,3vw,2rem);color:var(--ivory);max-width:36ch;}
+  .notfound-sub{color:var(--gray);max-width:44ch;font-size:.95rem;line-height:1.6;}
+  .notfound-actions{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:6px;}
+  .notfound-logo{font-family:var(--serif);font-size:1.1rem;letter-spacing:.02em;color:var(--ivory);position:fixed;top:28px;left:40px;}
+</style>
+</head>
+<body>
+<a class="notfound-logo" href="/">GROWVA</a>
+<main class="notfound">
+  <p class="notfound-eyebrow">Error 404</p>
+  <p class="notfound-code">404</p>
+  <h1 class="notfound-title">This page doesn't exist.</h1>
+  <p class="notfound-sub">The link may be broken, or the page may have moved. Head back to the homepage or browse our work.</p>
+  <div class="notfound-actions">
+    <a class="btn btn-primary" href="/">Back to Home</a>
+    <a class="btn btn-ghost" href="/portfolio.html">View Our Work</a>
+  </div>
+</main>
+</body>
+</html>
