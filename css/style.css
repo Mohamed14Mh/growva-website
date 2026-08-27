@@ -2691,6 +2691,11 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
    mobile, redundant with the card title + price line below). */
 .work-cat-card:hover .work-cat-card-badge,.work-cat-card:focus-visible .work-cat-card-badge{opacity:1;transform:translate(-50%,-50%) scale(1);}
 .work-cat-card-caption{display:flex;align-items:center;justify-content:space-between;gap:18px;padding-top:14px;font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;}
+/* Pricing hub: title sits below the cover (cleaner/readable) instead of
+   overlaid on the busy 3D artwork, and the old green count/arrow caption is
+   dropped. Only pricing.html uses .work-cat-card-label. */
+.work-cat-card-label{display:block;margin-top:15px;font-family:var(--serif);font-size:clamp(1.1rem,1.7vw,1.4rem);font-weight:500;line-height:1.25;color:var(--ivory);transition:color .25s var(--ease);}
+.work-cat-card:hover .work-cat-card-label{color:var(--mint);}
 .work-cat-card-count{color:var(--mint);}
 .work-cat-card-arrow{color:var(--mint);opacity:0;transition:opacity .22s var(--ease);}
 .work-cat-card:hover .work-cat-card-arrow{opacity:1;}
