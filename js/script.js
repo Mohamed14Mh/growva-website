@@ -424,6 +424,55 @@ document.addEventListener('DOMContentLoaded', () => {
       nav.classList.toggle('scrolled', window.scrollY > 40);
     });
     whenIntroReady(() => nav.classList.add('in'));
+
+    /* ---- Desktop: hide header on scroll-down, reveal on scroll-up ----
+       Laptop/desktop only (min-width:992px) and off for reduced-motion, so
+       the mobile bar is untouched. Never hides at the very top, while a
+       mega-dropdown is open, or while the mobile menu is open. Listens to
+       Lenis's scroll (desktop runs Lenis) and the native scroll event; a
+       rAF gate collapses both to one check per frame. */
+    (function initAutoHideNav() {
+      const reduceMq = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const deskMq = window.matchMedia('(min-width: 992px)');
+      let lastY = 0, enabled = false, ticking = false;
+
+      const readY = () => window.scrollY || window.pageYOffset || 0;
+      function evaluate(y) {
+        if (y <= 6) { nav.classList.remove('nav--hidden'); lastY = y; return; }
+        const mobileNav = document.getElementById('navMobile');
+        const blocked = document.querySelector('.nav-item--mega.open') ||
+                        (mobileNav && mobileNav.classList.contains('open'));
+        if (blocked) { nav.classList.remove('nav--hidden'); lastY = y; return; }
+        const dy = y - lastY;
+        if (dy > 6) nav.classList.add('nav--hidden');
+        else if (dy < -6) nav.classList.remove('nav--hidden');
+        lastY = y;
+      }
+      function onScroll() {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => { evaluate(readY()); ticking = false; });
+      }
+      function enable() {
+        if (enabled) return;
+        enabled = true;
+        lastY = readY();
+        nav.classList.add('nav--autohide');
+        window.addEventListener('scroll', onScroll, { passive: true });
+        if (window._lenis && typeof window._lenis.on === 'function') window._lenis.on('scroll', onScroll);
+      }
+      function disable() {
+        if (!enabled) return;
+        enabled = false;
+        nav.classList.remove('nav--autohide', 'nav--hidden');
+        window.removeEventListener('scroll', onScroll);
+        if (window._lenis && typeof window._lenis.off === 'function') window._lenis.off('scroll', onScroll);
+      }
+      const apply = () => (deskMq.matches && !reduceMq.matches) ? enable() : disable();
+      apply();
+      deskMq.addEventListener('change', apply);
+      reduceMq.addEventListener('change', apply);
+    })();
   }
   const burger    = document.getElementById('navBurger');
   const navMobile = document.getElementById('navMobile');

@@ -221,7 +221,7 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
   padding:20px 0;
   background:rgba(10,10,10,.94);
   border-bottom:1px solid rgba(246,246,246,.08);
-  transition:background .4s,padding .4s,border-color .4s,opacity .7s var(--ease),transform .7s var(--ease);
+  transition:background .4s,padding .4s,border-color .4s,opacity .7s var(--ease),transform .42s var(--ease);
   color:var(--ivory);
   opacity:0;
   transform:translateY(-16px);
@@ -233,6 +233,14 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
   padding:13px 0;
   border-color:rgba(246,246,246,.12);
 }
+/* Desktop-only auto-hide: header slides up while scrolling down and returns
+   on scroll-up. Toggled by JS (adds .nav--autohide on desktop, .nav--hidden
+   per scroll direction), so touch/reduced-motion never get it. Reuses the
+   nav's own transform transition (.42s above), which keeps the entrance
+   opacity fade intact. .nav--hidden is placed after .nav.in so it wins the
+   transform tie when both apply. */
+.nav.nav--autohide{will-change:transform;}
+.nav.nav--hidden{transform:translateY(-100%);}
 .nav-inner{
   max-width:var(--container);margin:0 auto;padding:0 40px;
   display:flex;align-items:center;justify-content:space-between;
@@ -250,6 +258,14 @@ button{font-family:inherit;background:none;border:none;cursor:pointer;color:inhe
    icon's own continuous auto-rotate loop/selector. */
 .logo-wordmark-3d{width:165px;height:36px;flex-shrink:0;--poster-color:transparent;pointer-events:auto;}
 @media(max-width:600px){.logo-wordmark-3d{width:138px;height:30px;}}
+/* Phone header: drop the GROWVA wordmark and centre the rotating icon in the
+   bar. The logo is taken out of flow and absolutely centred; the burger is
+   pushed to the right (justify-content:flex-end) so it keeps its position. */
+@media(max-width:600px){
+  .logo-wordmark-3d{display:none;}
+  .nav-inner{position:relative;justify-content:flex-end;}
+  .nav-inner .logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);gap:0;}
+}
 
 .nav-links{display:flex;align-items:center;gap:28px;}
 .nav-link{
