@@ -2670,6 +2670,13 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .work-cat-card-visual::before{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(to top,rgba(0,0,0,.62),transparent 55%);}
 .work-cat-card-photo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background-position:50% 50%;background-size:cover;}
 .work-cat-card-photo[data-media-current-url]:not([data-media-current-url=""]) > *{display:none;}
+/* When a real cover image is set, force cover/center. The .cat-v-* rules below
+   use the `background` shorthand for their placeholder gradient, which resets
+   background-size to auto and position to 0 0 — so without this the cover
+   image rendered at natural size from the top-left corner. This selector
+   out-specifies those .cat-v-* rules so size/position win while the inline
+   background-image supplies the picture. */
+.work-cat-card-photo[data-media-current-url]:not([data-media-current-url=""]){background-size:cover;background-position:50% 50%;background-repeat:no-repeat;}
 .cat-v-shopify .work-cat-card-photo{background:radial-gradient(ellipse at 50% 55%,rgba(177,250,32,.13) 0%,transparent 60%),linear-gradient(145deg,#152510 0%,#0d0d0d 100%);}
 .cat-v-brand .work-cat-card-photo{background:radial-gradient(ellipse at 50% 50%,rgba(177,250,32,.1) 0%,transparent 55%),linear-gradient(145deg,#181818 0%,#0d0d0d 100%);}
 .cat-v-pkg .work-cat-card-photo{background:radial-gradient(ellipse at 35% 65%,rgba(177,250,32,.09) 0%,transparent 55%),linear-gradient(145deg,#181420 0%,#0d0d0d 100%);}
