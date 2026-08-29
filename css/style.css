@@ -1165,14 +1165,15 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .latest-project-card:focus-visible .latest-project-visual{
   box-shadow:0 0 0 2px var(--mint),0 22px 55px rgba(10,10,10,.12);
 }
-@media(hover:hover){
-  .latest-project-card:hover .latest-project-badge,.latest-project-card:focus-visible .latest-project-badge{
-    opacity:1;transform:translate(-50%,-50%) scale(1);
-  }
+.latest-project-card:hover .latest-project-badge,.latest-project-card:focus-visible .latest-project-badge{
+  opacity:1;transform:translate(-50%,-50%) scale(1);
 }
-@media(hover:none){
-  .latest-project-badge{opacity:1;transform:translate(-50%,-50%) scale(1);}
-}
+/* Title moved below the cover, green caption dropped — same treatment as the
+   portfolio/services hubs. The photo layer keeps cover/center even though the
+   .case-visual-N gradient uses the background shorthand (which would reset it). */
+.latest-project-label{display:block;margin-top:15px;font-family:var(--serif);font-size:clamp(1.35rem,2.2vw,2rem);font-weight:500;line-height:1.2;color:var(--ivory);transition:color .25s var(--ease);}
+.latest-project-card:hover .latest-project-label{color:var(--mint);}
+.case-visual-inner[data-media-current-url]:not([data-media-current-url=""]){background-size:cover;background-position:50% 50%;background-repeat:no-repeat;}
 .case-tag{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--mint);margin-bottom:14px;}
 .case-body h3{font-family:var(--serif);font-size:clamp(1.8rem,3vw,2.4rem);font-weight:500;margin-bottom:22px;}
 .case-line{font-size:.95rem;line-height:1.6;color:var(--gray-dim);margin-bottom:12px;}
