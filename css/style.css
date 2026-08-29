@@ -2815,6 +2815,14 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .project-card-tag{color:rgba(177,250,32,.85);}
 .project-card-arrow{color:var(--mint);opacity:0;transition:opacity .22s var(--ease);}
 .project-card:hover .project-card-arrow{opacity:1;}
+/* Portfolio hubs where the title moves below the cover (green tag/arrow
+   dropped): the label sits inside the caption span, so it overrides the
+   caption's mono/uppercase with the serif card-title look. */
+.project-card-label{font-family:var(--serif);font-size:clamp(1rem,1.6vw,1.25rem);font-weight:500;text-transform:none;letter-spacing:normal;line-height:1.25;color:var(--ivory);transition:color .25s var(--ease);}
+.project-card:hover .project-card-label{color:var(--mint);}
+/* When a real cover image is set, keep cover/center (defensive, matches the
+   work-cat-card rule). */
+.project-card-photo[data-media-current-url]:not([data-media-current-url=""]){background-size:cover;background-position:50% 50%;background-repeat:no-repeat;}
 
 /* Admin-only "hidden from visitors" indicator. Visitors never see this —
    the card gets display:none for them instead. Admins see the card at
