@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "growva-site",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["live-server", "--port=5500", "--no-browser"],
+      "port": 5500
+    }
+  ]
+}

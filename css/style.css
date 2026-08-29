@@ -1106,7 +1106,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   display:block;text-decoration:none;color:var(--black);outline:none;
 }
 .latest-project-visual{
-  position:relative;display:block;aspect-ratio:1.06/1;overflow:hidden;border-radius:8px;
+  position:relative;display:block;aspect-ratio:1/1;overflow:hidden;border-radius:8px;
   background:var(--black);box-shadow:0 22px 55px rgba(10,10,10,.12);
   isolation:isolate;
 }
@@ -1115,7 +1115,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
    wash out the white title text the way a bright photo otherwise could. */
 .latest-project-visual::before{
   content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
-  background:linear-gradient(to top,rgba(0,0,0,.6),transparent 55%);
+  background:linear-gradient(to top,rgba(0,0,0,.28),transparent 42%);
 }
 .latest-project-visual .case-visual-inner{
   transition:transform .8s var(--ease),filter .35s var(--ease);
@@ -2133,7 +2133,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   position:absolute;
   top:0;left:0;
   width:280px;
-  height:370px;
+  height:280px;
   border-radius:16px;
   background:linear-gradient(145deg,#1b1b1b 0%,#0a0a0a 100%);
   border:1px solid rgba(255,255,255,.08);
@@ -2160,10 +2160,13 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
 .sc-card-photo[data-media-current-url]:not([data-media-current-url=""]){
   background-size:cover;
 }
+/* Light bottom-only scrim so the label stays readable — the previous
+   near-opaque top-to-bottom overlay was darkening the whole cover and
+   dulling its real colours. */
 .sc-card-photo[data-media-current-url]:not([data-media-current-url=""])::after{
   content:"";
   position:absolute;inset:0;
-  background:linear-gradient(180deg,rgba(0,0,0,.42) 0%,rgba(0,0,0,.5) 45%,rgba(0,0,0,.78) 100%);
+  background:linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 38%);
 }
 .stack-card:has(> .sc-card-photo[data-media-current-url]:not([data-media-current-url=""])) .sc-photo-hide{
   display:none;
@@ -2174,10 +2177,10 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   position:absolute;
   bottom:16px;right:18px;
   font-family:var(--mono);
-  font-size:.62rem;
+  font-size:.82rem;
   text-transform:uppercase;
-  letter-spacing:.1em;
-  color:rgba(177,250,32,.55);
+  letter-spacing:.09em;
+  color:rgba(177,250,32,.9);
 }
 
 /* ---- Card 1: Shopify Store ---- */
@@ -2349,7 +2352,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   top:auto;left:auto;right:auto;
   width:100%;
   height:auto;
-  aspect-ratio:240/320;
+  aspect-ratio:1/1;
   opacity:0;
   visibility:hidden;
   pointer-events:auto;
@@ -2583,7 +2586,7 @@ body:not(.admin-edit-mode) .gallery__item[data-cms-clickable-card]{cursor:pointe
   top:var(--travel-top, 14vh);
   left:auto;
   width:clamp(200px,21vw,280px);
-  height:calc(clamp(200px,21vw,280px) * 1.32143);
+  height:clamp(200px,21vw,280px);
   pointer-events:auto;
   transform-origin:center center;
 }
